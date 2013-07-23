@@ -40,7 +40,7 @@ void WebCamDeviceStatusCallback(const TTV_WebCamDevice* device, TTV_ErrorCode er
 void WebCamDeviceChangeCallback(TTV_WebCamDeviceChange change, const TTV_WebCamDevice* device, TTV_ErrorCode error, void* userdata);
 
 
-void InitializeWebcamSystem(const std::string& clientId, const std::string& clientSecret, const std::wstring& caCertPath, const std::wstring& dllLoadPath);
+void InitializeWebcamSystem(const std::string& clientId, const std::string& clientSecret, const std::wstring& dllLoadPath);
 void FlushWebcamEvents();
 void ShutdownWebcamSystem();
 

@@ -1,5 +1,25 @@
 #Twitch Broadcasting SDK - Change history
 
+####July 18, 2013  
+- Updated the Intel Media sdk to version 1.7 and improved the code to detect hardware QSV support. *IMPORTANT* Update the libmfx*.dll binaries you distribute.  
+
+####July 17, 2013  
+- Removed libcurl. We now use platform-specific implementations for making HTTP requests (e.g. WinInet on Windows). This means you no longer need the CA Cert bundle file and libcurl.dll, libeay32.dll and ssleay32.dll.  
+
+####July 16, 2013  
+- Fixed a crash in chat when receiving extremely long messages from the server.  
+
+####July 15, 2013
+- Changed the code to ensure keyframes evrey 2 seconds to be compatible with future video tech at twitch.tv
+- A side effect of the change is that if no data is submitted, the last frame is auto resubmitted and this will keep the stream alive
+
+####June 27, 2013  
+- Moved some common services into the new twitchcore project and you'll need to add twitchsdk/twitchcore/include/ to your include paths. This doesn't impact the public API, however if you were building twitchsdk as part of your solution, you'll also need to add this new project.  
+
+####June 26, 2013
+- Added the ability to filter the trace output based on the channel/area of the trace. This will make it easier for us to use a high verbosity trace when tracking down bugs with you.
+- Changed the logging to use OutputDebugString instead of printf. This means that you will now see our trace messages from our DLL if you use TTV_SetTraceLevel, TTV_SetTraceChannelLevel without setting a file with TTV_SetTraceOutput
+
 ####June 25, 2013  
 - Changed the metadata API functions so that they don't require the stream id.  This enables games to send metadata immediately and allows the SDK to do caching internally and flush the batch to the server when the stream id is available.  Affected API functions are TTV_SendActionMetaData, TTV_SendStartSpanMetaData and TTV_SendEndSpanMetaData.  
 - Added a new API function called TTV_GetStreamTime which returns the current stream time in milliseconds for use in submitting metadata.  

@@ -157,8 +157,8 @@ void FrameUnlockCallback(const uint8_t* buffer, void* /*userData*/)
  * called to call callback functions.  When IsReadyToStream() returns true then the SDK is ready to begin streaming which can be 
  * done with a call to StartStreaming().
  */
-void InitializeStreaming(const std::string& username, const std::string& password, const std::string& clientId, const std::string& clientSecret, 
-						 const std::wstring& caCertPath, const std::wstring& dllLoadPath)
+void InitializeStreaming(const std::string& username, const std::string& password, const std::string& clientId, 
+						 const std::string& clientSecret, const std::wstring& dllLoadPath)
 {
 	switch (gStreamState)
 	{
@@ -193,7 +193,7 @@ void InitializeStreaming(const std::string& username, const std::string& passwor
 	memCallbacks.freeCallback = FreeCallback;
 
 	// Initialize the SDK
-	TTV_ErrorCode ret = TTV_Init(&memCallbacks, clientId.c_str(), caCertPath.c_str(), TTV_VID_ENC_DEFAULT, dllLoadPath.c_str());
+	TTV_ErrorCode ret = TTV_Init(&memCallbacks, clientId.c_str(), TTV_VID_ENC_DEFAULT, dllLoadPath.c_str());
 	if ( TTV_FAILED(ret) )
 	{
 		const char* err = TTV_ErrorToString(ret);

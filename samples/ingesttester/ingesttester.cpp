@@ -180,8 +180,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	desc.add_options()
 		("help", "produce help message")
 		("username", po::value<std::string>(), "user name")
-		("password", po::value<std::string>(), "password")
-		("cert_bundle", po::value<std::string>()->default_value(".\\curl-ca-bundle.crt"), "path to cert bundle")
+		("password", po::value<std::string>(), "password")		
 		("tracing_file", po::value<std::string>(), "tracing filename")
 		("trace_level", po::value<unsigned int>()->default_value(TTV_ML_NONE), "tracing level")
 		("duration", po::value<unsigned int>()->default_value(5), "duration of test")
@@ -204,14 +203,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	TTV_MemCallbacks memCallbacks;
 	memCallbacks.size = sizeof (TTV_MemCallbacks);
 	memCallbacks.allocCallback = AllocCallback;
-	memCallbacks.freeCallback = FreeCallback;
-
-	std::string caCert = variableMap["cert_bundle"].as<std::string>();
+	memCallbacks.freeCallback = FreeCallback;	
 
 	TTV_ErrorCode ret = TTV_Init(
 		&memCallbacks, 
-		gClientId.c_str(),
-		std::wstring(caCert.begin(), caCert.end()).c_str(),
+		gClientId.c_str(),		
 		TTV_VID_ENC_INTEL, L"");		
 	ASSERT_ON_ERROR(ret);
 

@@ -131,15 +131,6 @@ void ReportError(const char* format, ...)
 
 
 /**
- * Determines the path curl-ca-bundle.crt file.
- */
-std::wstring GetCaCertFilePath()
-{
-	return std::wstring(std::wstring(L"curl-ca-bundle.crt"));
-}
-
-
-/**
  * Determines the directory that the intel encoder DLL is located.
  */
 std::wstring GetIntelDllPath()
@@ -402,7 +393,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	GetCursorPos(&gLastMousePos);
 
 	// Initialize the Twitch SDK
-	InitializeStreaming("<username>", "<password>", "<clientId>", "<clientSecret>", GetCaCertFilePath(), GetIntelDllPath());
+	InitializeStreaming("<username>", "<password>", "<clientId>", "<clientSecret>", GetIntelDllPath());
 
 	// Main message loop
 	MSG msg;

@@ -253,8 +253,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 
 	TTV_ErrorCode ret = TTV_Init(
 		&memCallbacks, 
-		gClientId,
-		_T(".\\curl-ca-bundle.crt"),
+		gClientId,		
 		TTV_VID_ENC_INTEL, 
 		_T(""));
 	ASSERT_ON_ERROR(ret);
@@ -324,8 +323,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 			// Initialize the Chat module
 			//////////////////////////////////////////////////////////////////////////
 			ret = TTV_Chat_Init(
-				gUserName, 
-				_T(".\\curl-ca-bundle.crt"),
+				gUserName,				
 				&chatCallbacks);
 			ASSERT_ON_ERROR(ret);
 

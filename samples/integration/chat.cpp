@@ -103,7 +103,7 @@ void EmoticonDataDownloadCallback(TTV_ErrorCode error)
 }
 
 
-void InitializeChat(const utf8char* channel, const wchar_t* caCertPath)
+void InitializeChat(const utf8char* channel)
 {
 	TTV_ChatCallbacks chatCallbacks;
 	chatCallbacks.statusCallback = ChatStatusCallback;
@@ -113,8 +113,7 @@ void InitializeChat(const utf8char* channel, const wchar_t* caCertPath)
 	chatCallbacks.clearCallback = ChatClearCallback;
 
 	TTV_ErrorCode ret = TTV_Chat_Init(
-		channel, 
-		caCertPath,
+		channel,		
 		&chatCallbacks);
 	ASSERT_ON_ERROR(ret);
 

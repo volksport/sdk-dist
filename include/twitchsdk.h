@@ -10,6 +10,10 @@
 #define TTVSDK_TWITCH_SDK_H
 
 #include "twitchsdktypes.h"
+#include "twitchcore/types/errortypes.h"
+#include "twitchcore/types/tasktypes.h"
+#include "twitchcore/types/tracingtypes.h"
+#include "twitchcore/types/memorytypes.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -22,15 +26,13 @@ extern "C"
 *
 * @param[in] memCallbacks - Memory allocation/deallocation callback functions provided by the client. If nullptr, malloc/free will be used
 * @param[in] clientID - The Twitch client ID assigned to your application
-* @param[in] caCertFile - Full path of the CA Cert bundle file (Strongly encourage using the bundle file provided with the SDK)
 * @param[in] vidEncoder - The video encoder to use
 * @param[in] audioEncoder - The audio encoder to use
 * @param[in] dllPath - [Optional] Windows Only - Path to DLL's to load if no in exe folder (e.g. Intel DLL) 
 * @return - TTV_EC_SUCCESS if function succeeds; error code otherwise
 */
 TTVSDK_API TTV_ErrorCode TTV_Init(const TTV_MemCallbacks* memCallbacks, 
-								  const char* clientID,
-								  const wchar_t* caCertFile,
+								  const char* clientID,								  
 								  TTV_VideoEncoder vidEncoder,
 								  const wchar_t* dllPath);
 
@@ -320,6 +322,16 @@ TTVSDK_API TTV_ErrorCode TTV_Shutdown();
 * @return - TTV_EC_SUCCESS
 */
 TTVSDK_API TTV_ErrorCode TTV_SetTraceLevel(TTV_MessageLevel traceLevel);
+
+/**
+* TTV_SetTraceChannelLevel - Sets the minimum threshold for what type of trace messages for a specific
+		channel should be included into the log. Overrides the value set in TTV_SetTracelevel.
+
+		|channel| is case sensitive
+
+* @return - TTV_EC_SUCCESS
+*/
+TTVSDK_API TTV_ErrorCode TTV_SetTraceChannelLevel(const char* channel, TTV_MessageLevel traceLevel);
 
 
 /**

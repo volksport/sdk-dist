@@ -76,8 +76,7 @@ int main()
 	// Those functions have these forward declarations:
 
 	//TTVSDK_API TTV_ErrorCode TTV_Init(const TTV_MemCallbacks* memCallbacks, 
-	//                                  const char* clientID,
-	//                                  const wchar_t* caCertFile,
+	//                                  const char* clientID,	
 	//                                  TTV_VideoEncoder vidEncoder,
 	//                                  const wchar_t* dllPath);
 	//TTVSDK_API TTV_ErrorCode TTV_Shutdown();
@@ -85,8 +84,7 @@ int main()
 	// Lets make function pointer typedefs to match
 
 	typedef TTV_ErrorCode (*TTV_InitFunctionPointer)(const TTV_MemCallbacks* memCallbacks, 
-	                                                 const char* clientID,
-	                                                 const wchar_t* caCertFile,
+	                                                 const char* clientID,	                                                 
 	                                                 TTV_VideoEncoder vidEncoder,
 	                                                 const wchar_t* dllPath);
 	typedef TTV_ErrorCode (*TTV_ShutdownFunctionPointer)(void);
@@ -114,7 +112,7 @@ int main()
 
 	// Initialize the SDK
 #error Don't forget to fill in the strings below
-	TTV_ErrorCode ret = ourTTV_Init(&memCallbacks, "client ID here", L"curl-ca-bundle.crt", vidEncoder, L".\\");
+	TTV_ErrorCode ret = ourTTV_Init(&memCallbacks, "client ID here", vidEncoder, L".\\");
 	if ( TTV_FAILED(ret) )
 	{
 		assert(false);

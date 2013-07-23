@@ -32,7 +32,7 @@ enum StreamState
 };
 #undef STREAM_STATE
 
-void InitializeStreaming(const std::string& username, const std::string& password, const std::string& clientId, const std::string& clientSecret, const std::wstring& caCertPath, const std::wstring& dllLoadPath);
+void InitializeStreaming(const std::string& username, const std::string& password, const std::string& clientId, const std::string& clientSecret, const std::wstring& dllLoadPath);
 void StartStreaming(unsigned int outputWidth, unsigned int outputHeight, unsigned int targetFps);
 const std::string& GetUsername();
 unsigned char* GetNextFreeBuffer();

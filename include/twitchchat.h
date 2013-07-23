@@ -10,6 +10,7 @@
 #define TTVSDK_TWITCH_CHAT_H
 
 #include "twitchsdktypes.h"
+#include "twitchcore/types/errortypes.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -318,11 +319,10 @@ typedef struct
  *                since you may miss connection and disconnection events.
  *
  * @param[in] channelName - The UTF-8 encoded name of the channel to connect to. See #kMaxChatChannelNameLength for details.
- * @param[in] caCertFile - Full path of the CA Cert bundle file (Strongly encourage using the bundle file provided with the SDK).
  * @param[in] chatCallbacks - The set of callbacks for receiving chat events.
  * @return - TTV_EC_SUCCESS.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_Init(const utf8char* channelName, const wchar_t* caCertFile, const TTV_ChatCallbacks* chatCallbacks);
+TTVSDK_API TTV_ErrorCode TTV_Chat_Init(const utf8char* channelName, const TTV_ChatCallbacks* chatCallbacks);
 
 /**
  * TTV_Chat_Shutdown - Tear down the chat subsystem. Be sure to have freed all outstanding lists before calling this.

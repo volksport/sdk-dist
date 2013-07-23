@@ -121,15 +121,6 @@ void ReportError(const char* format, ...)
 
 
 /**
- * Determines the path curl-ca-bundle.crt file.
- */
-std::wstring GetCaCertFilePath()
-{
-	return std::wstring(std::wstring(L"curl-ca-bundle.crt"));
-}
-
-
-/**
  * Determines the directory that the intel encoder DLL is located.
  */
 std::wstring GetIntelDllPath()
@@ -365,7 +356,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 	// Initialize the Twitch SDK
 	std::string channelName = "<username>";
-	InitializeStreaming("<username>", "<password>", "<clientId>", "<clientSecret>", GetCaCertFilePath(), GetIntelDllPath());
+	InitializeStreaming("<username>", "<password>", "<clientId>", "<clientSecret>", GetIntelDllPath());
 
 	// Main message loop
 	MSG msg;
@@ -459,7 +450,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		if (GetChatState() == CHAT_STATE(Uninitialized) && 
 			GetStreamState() >= STREAM_STATE(Authenticated))
 		{
-			InitializeChat(channelName.c_str(), GetCaCertFilePath().c_str());
+			InitializeChat(channelName.c_str());
 		}
 
 		#undef CHAT_STATE

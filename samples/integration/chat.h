@@ -25,7 +25,7 @@ enum ChatState
 #undef CHAT_STATE
 
 
-void InitializeChat(const utf8char* channel, const wchar_t* caCertPath);
+void InitializeChat(const utf8char* channel);
 void ShutdownChat();
 void FlushChatEvents();
 ChatState GetChatState();

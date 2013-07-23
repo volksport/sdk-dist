@@ -43,7 +43,7 @@ void FreeCallback(void* ptr)
 #pragma endregion
 
 
-void InitializeWebcamSystem(const std::string& clientId, const std::string& clientSecret, const std::wstring& caCertPath, const std::wstring& dllLoadPath)
+void InitializeWebcamSystem(const std::string& clientId, const std::string& clientSecret, const std::wstring& dllLoadPath)
 {
 	gClientId = clientId;
 	gClientSecret = clientSecret;
@@ -55,7 +55,7 @@ void InitializeWebcamSystem(const std::string& clientId, const std::string& clie
 	memCallbacks.freeCallback = FreeCallback;
 
 	// Initialize the SDK
-	TTV_ErrorCode ret = TTV_Init(&memCallbacks, clientId.c_str(), caCertPath.c_str(), TTV_VID_ENC_DEFAULT, dllLoadPath.c_str());
+	TTV_ErrorCode ret = TTV_Init(&memCallbacks, clientId.c_str(), TTV_VID_ENC_DEFAULT, dllLoadPath.c_str());
 	if ( TTV_FAILED(ret) )
 	{
 		const char* err = TTV_ErrorToString(ret);
