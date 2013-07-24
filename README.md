@@ -1,6 +1,5 @@
 By downloading these files you agree to the terms of service below
 https://docs.google.com/a/justin.tv/document/d/1Gt5R4sk6dU1YWDUL7cu05Q7GNNSg4GIrd9793oUSv9s
-
 #How To Integrate the Twitch Broadcasting SDK
 
 ###PC
