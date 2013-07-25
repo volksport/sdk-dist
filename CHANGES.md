@@ -1,5 +1,8 @@
 #Twitch Broadcasting SDK - Change history
 
+####July 25, 2013  
+- Fixed a bug where in absence of hardware encoding, if a dll path wasn't specified (because dll's are in same folder as exe), the encoder initialization would fail.  
+
 ####July 18, 2013  
 - Updated the Intel Media sdk to version 1.7 and improved the code to detect hardware QSV support. *IMPORTANT* Update the libmfx*.dll binaries you distribute.  
 

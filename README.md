@@ -1,5 +1,3 @@
-By downloading these files you agree to the terms of service below
-https://docs.google.com/a/justin.tv/document/d/1Gt5R4sk6dU1YWDUL7cu05Q7GNNSg4GIrd9793oUSv9s
 #How To Integrate the Twitch Broadcasting SDK
 
 ###PC
@@ -9,7 +7,7 @@ https://docs.google.com/a/justin.tv/document/d/1Gt5R4sk6dU1YWDUL7cu05Q7GNNSg4GIr
 - You will need 2012 or later to build the code. Open the twitchsdk.sln in Visual Studio and select the appropriate config to build. If you want to statically link the SDK code into your game select one of the non-dll configs; otherwise select the dll configs and build.
 
 - Add the following SDK include directories to your game's include path and include twitchsdk.h:  
- - /twitchsdk/include  
+	- /twitchsdk/include  
 	- /twitchsdk/twitchcore/include
 
 - Add the SDK lib directory to your game's linker include path and add the appropriate twitchsdk lib to your linker input
