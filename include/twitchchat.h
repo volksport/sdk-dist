@@ -71,8 +71,8 @@ typedef struct
 	utf8char displayName[kMaxChatUserNameLength+1];		//!< The UTF-8 encoded displayed name.  Currently restricted to the ASCII subset.
 	TTV_ChatUserMode modes;								//!< The mode which controls priviledges in a particular chat room.
 	TTV_ChatUserSubscription subscriptions;				//!< The user's subscriptions for the channel.
-	unsigned int nameColorARGB;							//!< The current ARGB color of the user's name text.
-	unsigned int emoticonSet;							//!< The emoticon set id for the user.
+	uint32_t nameColorARGB;								//!< The current ARGB color of the user's name text.
+	uint32_t emoticonSet;								//!< The emoticon set id for the user.
 	bool ignore;										//!< Whether or not to ignore the user.
 
 } TTV_ChatUserInfo;
@@ -84,7 +84,7 @@ typedef struct
 typedef struct
 {
 	TTV_ChatUserInfo* userList;		//!< The array of user info entries.
-	unsigned int userCount;			//!< The number of entries in the array.
+	uint32_t userCount;			//!< The number of entries in the array.
 
 } TTV_ChatUserList;
 
@@ -118,8 +118,8 @@ typedef struct
 	utf8char message[kMaxChatMessageLength+1];			//!< The UTF-8 encoded message text.
 	TTV_ChatUserMode modes;								//!< The mode which controls priviledges in a particular chat room.
 	TTV_ChatUserSubscription subscriptions;				//!< The user's subscriptions for the channel.
-	unsigned int nameColorARGB;							//!< The ARGB color of the name text.
-	unsigned int emoticonSet;							//!< The emoticon set to use when rendering emoticons.  0 is the default.
+	uint32_t nameColorARGB;								//!< The ARGB color of the name text.
+	uint32_t emoticonSet;								//!< The emoticon set to use when rendering emoticons.  0 is the default.
 	bool action;										//!< Whether or not the message is an action.  If true, it should be displayed entirely in the name text color and of the form "<userName> <message>".
 
 } TTV_ChatMessage;
@@ -131,7 +131,7 @@ typedef struct
 typedef struct
 {
 	TTV_ChatMessage* messageList;					//!< The ordered array of chat messages.
-	unsigned int messageCount;						//!< The number of messages in the list.
+	uint32_t messageCount;							//!< The number of messages in the list.
 
 } TTV_ChatMessageList;
 
@@ -162,11 +162,11 @@ typedef struct
  */
 typedef struct
 {
-	int sheetIndex;			//!< The index of the sheet to use when rendering.  -1 means no image.
-	unsigned short x1;		//!< The left edge in pixels on the sheet.
-	unsigned short y1;		//!< The top edge in pixels on the sheet.
-	unsigned short x2;		//!< The right edge in pixels on the sheet.
-	unsigned short y2;		//!< The bottom edge in pixels on the sheet.
+	int32_t sheetIndex;		//!< The index of the sheet to use when rendering.  -1 means no image.
+	uint16_t x1;			//!< The left edge in pixels on the sheet.
+	uint16_t y1;			//!< The top edge in pixels on the sheet.
+	uint16_t x2;			//!< The right edge in pixels on the sheet.
+	uint16_t y2;			//!< The bottom edge in pixels on the sheet.
 
 } TTV_ChatImageMessageToken;
 
@@ -195,9 +195,9 @@ typedef struct
 	utf8char displayName[kMaxChatUserNameLength+1];		//!< The UTF-8 encoded displayed name.  Currently restricted to the ASCII subset.
 	TTV_ChatUserMode modes;								//!< The modes of the user who sent the message.
 	TTV_ChatUserSubscription subscriptions;				//!< The subscriptions of the user who sent the message.
-	unsigned int nameColorARGB;							//!< The current ARGB color of the user's name text.
+	uint32_t nameColorARGB;								//!< The current ARGB color of the user's name text.
  	TTV_ChatMessageToken* tokenList;					//!< The array of message tokens.
-	unsigned int tokenCount;							//!< The number of entries in tokenList.
+	uint32_t tokenCount;								//!< The number of entries in tokenList.
 
 } TTV_ChatTokenizedMessage;
 
@@ -207,10 +207,10 @@ typedef struct
  */
 typedef struct
 {
-	unsigned int sheetIndex;		//!< The index of the sprite sheet.
+	uint32_t sheetIndex;			//!< The index of the sprite sheet.
 	const uint8_t* buffer;			//!< The RGBA buffer data, 8 bits per channel.
-	unsigned int width;				//!< The width of the buffer in pixels.
-	unsigned int height;			//!< The height of the buffer in pixels.
+	uint16_t width;					//!< The width of the buffer in pixels.
+	uint16_t height;				//!< The height of the buffer in pixels.
 
 } TTV_ChatTextureSheet;
 
@@ -221,7 +221,7 @@ typedef struct
 typedef struct
 {
 	TTV_ChatTextureSheet* list;			//!< The array of sheets.
-	unsigned int count;					//!< The number of entries in the array.
+	uint32_t count;					//!< The number of entries in the array.
 
 } TTV_ChatTextureSheetList;
 

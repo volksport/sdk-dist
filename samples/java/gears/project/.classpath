@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="twitch">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="${PROJECT_LOC}/native/darwin"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="C:/Drew/Repositories/sdk_unity/twitchsdk/samples/java/lwjgl-2.8.5/jar/jinput.jar"/>
+	<classpathentry kind="lib" path="C:/Drew/Repositories/sdk_unity/twitchsdk/samples/java/lwjgl-2.8.5/jar/lwjgl.jar"/>
+	<classpathentry kind="lib" path="C:/Drew/Repositories/sdk_unity/twitchsdk/samples/java/lwjgl-2.8.5/jar/lwjgl_util.jar"/>
+	<classpathentry kind="lib" path="C:/Drew/Repositories/sdk_unity/twitchsdk/samples/java/lwjgl-2.8.5/jar/lwjgl-debug.jar"/>
+	<classpathentry kind="lib" path="C:/Drew/Repositories/sdk_unity/twitchsdk/samples/java/lwjgl-2.8.5/jar/lzma.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

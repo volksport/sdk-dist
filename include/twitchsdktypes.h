@@ -14,7 +14,11 @@
 #include "errno.h"
 #include "twitchcore/types/coretypes.h"
 
-#define TTVSDK_API
+#if TTV_PLATFORM_MAC
+#	define TTVSDK_API __attribute__((visibility("default")))
+#else
+#	define TTVSDK_API
+#endif
 
 /**
  * TTV_AuthParams - Authentication parameters for broadcasting on Twitch. A broadcast key is ultimately needed; but it may be obtained by using username/password.

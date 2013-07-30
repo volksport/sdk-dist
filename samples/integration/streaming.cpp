@@ -259,6 +259,7 @@ void StartStreaming(unsigned int outputWidth, unsigned int outputHeight, unsigne
 
 	// Setup the video parameters
 	TTV_VideoParams videoParams;
+	memset(&videoParams, 0, sizeof(videoParams));
 	videoParams.size = sizeof(TTV_VideoParams);
 	videoParams.outputWidth = outputWidth;
 	videoParams.outputHeight = outputHeight;
