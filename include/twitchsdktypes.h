@@ -9,8 +9,6 @@
 #ifndef TTVSDK_TWITCH_SDK_TYPES_H
 #define TTVSDK_TWITCH_SDK_TYPES_H
 
-#include <stddef.h>
-#include <stdint.h>
 #include "errno.h"
 #include "twitchcore/types/coretypes.h"
 

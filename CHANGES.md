@@ -1,5 +1,8 @@
 #Twitch Broadcasting SDK - Change history
 
+#### August 5, 2013  
+- Moved all the chat code into a new twitchchat project. This won't impact any public API's, but you'll need to add twitchsdk/twitchchat/include/ to your include paths. Also, if building twitchsdk in your solution, you'll need to add this project.  
+
 ####July 25, 2013  
 - Fixed a bug where in absence of hardware encoding, if a dll path wasn't specified (because dll's are in same folder as exe), the encoder initialization would fail.  
 

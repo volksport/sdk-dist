@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include <stdint.h>
+#include <cstddef>
+
 /**
  * Specifies that the string is encoded as UTF-8.
  */

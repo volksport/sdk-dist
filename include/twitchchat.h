@@ -9,310 +9,12 @@
 #ifndef TTVSDK_TWITCH_CHAT_H
 #define TTVSDK_TWITCH_CHAT_H
 
-#include "twitchsdktypes.h"
-#include "twitchcore/types/errortypes.h"
+#include "twitchchat/chattypes.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-/**
- * TTV_ChatEvent - The various events coming from the chat system.
- */
-typedef enum
-{
-	TTV_CHAT_JOINED_CHANNEL,			//!< Local user joined a channel.
-	TTV_CHAT_LEFT_CHANNEL				//!< Local user left a channel.
-
-} TTV_ChatEvent;
-
-
-/**
- * TTV_ChatUserMode - A list of the mode flags a user may have.
- */
-typedef enum
-{
-	TTV_CHAT_USERMODE_VIEWER		= 0,		//!< A regulare viewer.
-
-	TTV_CHAT_USERMODE_MODERATOR		= 1 << 0,	//!< A moderator.
-	TTV_CHAT_USERMODE_BROADCASTER	= 1 << 1,	//!< The broadcaster.
-	TTV_CHAT_USERMODE_ADMINSTRATOR	= 1 << 2,	//!< An admin.
-	TTV_CHAT_USERMODE_STAFF			= 1 << 3,	//!< A member of Twitch.
-
-	TTV_CHAT_USERMODE_BANNED		= 1 << 30	//!< The user has been banned.  This flag may not always be up to date.
-
-} TTV_ChatUserMode;
-
-
-/**
- * TTV_ChatUserSubscription - A list of the subscription flags a user may have.
- */
-typedef enum
-{
-	TTV_CHAT_USERSUB_NONE			= 0,		//!< A standard user.
-
-	TTV_CHAT_USERSUB_SUBSCRIBER		= 1 << 0,	//!< A subscriber in the current channel.
-	TTV_CHAT_USERSUB_TURBO			= 1 << 1	//!< A Twitch Turbo account.
-
-} TTV_ChatUserSubscription;
-
-
-/**
- * This is the maximum length of the user name in bytes, NOT characters.  Be careful with multi-byte characters in UTF-8.  
- * However, user names are currently restricted to ASCII which is confined to the lower 7 bits so the encodings are the same.
- */
-#define kMaxChatUserNameLength 63
-/**
- * TTV_ChatUserInfo - The user information.
- */
-typedef struct
-{	
-	utf8char displayName[kMaxChatUserNameLength+1];		//!< The UTF-8 encoded displayed name.  Currently restricted to the ASCII subset.
-	TTV_ChatUserMode modes;								//!< The mode which controls priviledges in a particular chat room.
-	TTV_ChatUserSubscription subscriptions;				//!< The user's subscriptions for the channel.
-	uint32_t nameColorARGB;								//!< The current ARGB color of the user's name text.
-	uint32_t emoticonSet;								//!< The emoticon set id for the user.
-	bool ignore;										//!< Whether or not to ignore the user.
-
-} TTV_ChatUserInfo;
-
-
-/**
- * TTV_ChatUserList - A list of chat users.
- */
-typedef struct
-{
-	TTV_ChatUserInfo* userList;		//!< The array of user info entries.
-	uint32_t userCount;			//!< The number of entries in the array.
-
-} TTV_ChatUserList;
-
-
-/**
- * This is the maximum length of the channel name in bytes, NOT characters.  Be careful with multi-byte characters in UTF-8.  
- * However, user names are currently restricted to ASCII which is confined to the lower 7 bits so the encodings happen to be the same (for now).
- */
-#define kMaxChatChannelNameLength 63
-/**
- * TTV_ChatChannelInfo - Information about a chat channel.
- */
-typedef struct
-{
-	utf8char name[kMaxChatChannelNameLength+1];			//!< The UTF-8 encoded name of the channel.  Currently restricted to the ASCII subset.
-	TTV_ChatUserInfo broadcasterUserInfo;				//!< Information about the broadcaster of the stream.
-
-} TTV_ChatChannelInfo;
-
-
-/**
- * This is the maximum length of the message in bytes, NOT characters.  Be careful with multi-byte characters in UTF-8.
- */
-#define kMaxChatMessageLength 510
-/**
- * TTV_ChatMessage - A message from a user in a chat channel.
- */
-typedef struct
-{
-	utf8char userName[kMaxChatUserNameLength+1];		//!< The UTF-8 encoded user that sent the message.  Currently restricted to the ASCII subset.
-	utf8char message[kMaxChatMessageLength+1];			//!< The UTF-8 encoded message text.
-	TTV_ChatUserMode modes;								//!< The mode which controls priviledges in a particular chat room.
-	TTV_ChatUserSubscription subscriptions;				//!< The user's subscriptions for the channel.
-	uint32_t nameColorARGB;								//!< The ARGB color of the name text.
-	uint32_t emoticonSet;								//!< The emoticon set to use when rendering emoticons.  0 is the default.
-	bool action;										//!< Whether or not the message is an action.  If true, it should be displayed entirely in the name text color and of the form "<userName> <message>".
-
-} TTV_ChatMessage;
-
-
-/**
- * TTV_ChatMessageList - A list of chat messages.
- */
-typedef struct
-{
-	TTV_ChatMessage* messageList;					//!< The ordered array of chat messages.
-	uint32_t messageCount;							//!< The number of messages in the list.
-
-} TTV_ChatMessageList;
-
-
-/**
- * TTV_ChatMessageTokenType - The types of tokens that can be generated from a chat message.
- */
-typedef enum
-{
-	TTV_CHAT_MSGTOKEN_TEXT,
-	TTV_CHAT_MSGTOKEN_IMAGE
-
-} TTV_ChatMessageTokenType;
-
-
-/**
- * TTV_ChatTextMessageToken - Information about a text token.
- */
-typedef struct
-{
-	utf8char buffer[kMaxChatMessageLength];
-	
-} TTV_ChatTextMessageToken;
-
-
-/**
- * TTV_ChatImageMessageToken - Information about an image token.
- */
-typedef struct
-{
-	int32_t sheetIndex;		//!< The index of the sheet to use when rendering.  -1 means no image.
-	uint16_t x1;			//!< The left edge in pixels on the sheet.
-	uint16_t y1;			//!< The top edge in pixels on the sheet.
-	uint16_t x2;			//!< The right edge in pixels on the sheet.
-	uint16_t y2;			//!< The bottom edge in pixels on the sheet.
-
-} TTV_ChatImageMessageToken;
-
-
-/**
- * TTV_ChatMessageToken - Information about an image token.
- */
-typedef struct 
-{
-	TTV_ChatMessageTokenType type;	//!< The way to interpret the data.
-
-	union
-	{
-		TTV_ChatTextMessageToken text;
-		TTV_ChatImageMessageToken image;
-	} data;
-	
-} TTV_ChatMessageToken;
-
-
-/**
- * TTV_ChatTokenizedMessage - A list of tokens parsed from a text message.
- */
-typedef struct
-{
-	utf8char displayName[kMaxChatUserNameLength+1];		//!< The UTF-8 encoded displayed name.  Currently restricted to the ASCII subset.
-	TTV_ChatUserMode modes;								//!< The modes of the user who sent the message.
-	TTV_ChatUserSubscription subscriptions;				//!< The subscriptions of the user who sent the message.
-	uint32_t nameColorARGB;								//!< The current ARGB color of the user's name text.
- 	TTV_ChatMessageToken* tokenList;					//!< The array of message tokens.
-	uint32_t tokenCount;								//!< The number of entries in tokenList.
-
-} TTV_ChatTokenizedMessage;
-
-
-/**
- * TTV_ChatSpriteSheet - The texture data which can be loaded into a texture and used for rendering emoticons and badges.
- */
-typedef struct
-{
-	uint32_t sheetIndex;			//!< The index of the sprite sheet.
-	const uint8_t* buffer;			//!< The RGBA buffer data, 8 bits per channel.
-	uint16_t width;					//!< The width of the buffer in pixels.
-	uint16_t height;				//!< The height of the buffer in pixels.
-
-} TTV_ChatTextureSheet;
-
-
-/**
- * TTV_ChatTextureSheetList - A list of texture sheets.
- */
-typedef struct
-{
-	TTV_ChatTextureSheet* list;			//!< The array of sheets.
-	uint32_t count;					//!< The number of entries in the array.
-
-} TTV_ChatTextureSheetList;
-
-
-/**
- * TTV_ChatBadgeData - Information about how to render badges based on the subscriptions and user modes.
- */
-typedef struct
-{
-	TTV_ChatImageMessageToken turboIcon;
-	TTV_ChatImageMessageToken channelSubscriberIcon;
-	TTV_ChatImageMessageToken broadcasterIcon;
-	TTV_ChatImageMessageToken staffIcon;
-	TTV_ChatImageMessageToken adminIcon;
-	TTV_ChatImageMessageToken moderatorIcon;
-
-} TTV_ChatBadgeData;
-
-
-/**
- * TTV_ChatEmoticonData - Information to use when rendering emoticons and badges.
- */
-typedef struct 
-{
-	utf8char channel[kMaxChatChannelNameLength+1];
-	TTV_ChatTextureSheetList textures;
-	TTV_ChatBadgeData badges;
-
-} TTV_ChatEmoticonData;
-
-
-/**
- * Callback signature for connection and disconnection events from the chat service.  Once a connecion is successful, this may be
- * called at any time to indicate a disconnect from the server.  If a disconnection occurs, TTV_ChatConnect must be called again
- * to connect to the server and all channels must be rejoined.
- *
- * When a connection is attempted via TTV_ChatConnect, a successful connection will result in the callback being called with TTV_EC_SUCCESS.
- * Otherwise, an error will be returned which can be one of TTV_EC_CHAT_INVALID_LOGIN, TTV_EC_CHAT_LOST_CONNECTION, TTV_EC_CHAT_COULD_NOT_CONNECT.
- */
-typedef void (*TTV_ChatStatusCallback) (TTV_ErrorCode result);
-
-/**
- * Callback signature for result of the local user joining or leaving channels.
- *
- * Expected evt values are TTV_CHAT_JOINED_CHANNEL, TTV_CHAT_LEFT_CHANNEL.
- */
-typedef void (*TTV_ChatChannelMembershipCallback) (TTV_ChatEvent evt, const TTV_ChatChannelInfo* channelInfo);
-
-/**
- * Callback signature for notifications of users joining, leaving or changing their attributes in a chat channel.  The lists returned in this callback must be freed by 
- * calling TTV_Chat_FreeUserList on each one when the application is done with them.
- */
-typedef void (*TTV_ChatChannelUserChangeCallback) (const TTV_ChatUserList* joinList, const TTV_ChatUserList* leaveList, const TTV_ChatUserList* infoChangeList);
-
-/**
- * Callback signature for a reply to TTV_ChatGetChannelUsers for a request for the user list for a chat channel.  The list returned in the callback must be freed by 
- * calling TTV_Chat_FreeUserList when the application is done with it or it will leak each time the callback is called.
- */
-typedef void (*TTV_ChatQueryChannelUsersCallback) (const TTV_ChatUserList* userList);
-
-/**
- * Callback signature for notifications of a message event occurring in chat.  This list is freed automatically when the call to the callback returns
- * so be sure not to retain a reference to the list.
- */
-typedef void (*TTV_ChatChannelMessageCallback) (const TTV_ChatMessageList* messageList);
-
-/**
- * Callback signature for notifications that the chatroom should be cleared.
- */
-typedef void (*TTV_ChatClearCallback) (const utf8char* channelName);
-
-/**
- * Callback to indicate the result of the request to fetch emoticon data.
- *
- * @param error Specifies any error or warning that may have occurred while preparing the emoticon data.
- */
-typedef void (*TTV_EmoticonDataDownloadCallback) (TTV_ErrorCode error);
-
-/**
- * TTV_ChatCallbacks - The set of callbacks to call for notifications from the chat subsystem.
- */
-typedef struct
-{
-	TTV_ChatStatusCallback				statusCallback;			//!< The callback to call for connection and disconnection events from the chat service. Cannot be NULL.
-	TTV_ChatChannelMembershipCallback	membershipCallback;		//!< The callback to call when the local user joins or leaves a channel. Cannot be NULL.
-	TTV_ChatChannelUserChangeCallback	userCallback;			//!< The callback to call when other users join or leave a channel. This may be NULL.
-	TTV_ChatChannelMessageCallback		messageCallback;		//!< The callback to call when a message is received on a channel. Cannot be NULL.
-	TTV_ChatClearCallback				clearCallback;			//!< The callback to call when the chatroom should be cleared. Can be NULL.
-
-} TTV_ChatCallbacks;
-
 
 /**
  * TTV_ChatInit - Sets the callbacks for receiving chat events.  This may be NULL to stop receiving chat events but this is not recommended
@@ -322,14 +24,14 @@ typedef struct
  * @param[in] chatCallbacks - The set of callbacks for receiving chat events.
  * @return - TTV_EC_SUCCESS.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_Init(const utf8char* channelName, const TTV_ChatCallbacks* chatCallbacks);
+TTV_ErrorCode TTV_Chat_Init(const utf8char* channelName, const TTV_ChatCallbacks* chatCallbacks);
 
 /**
  * TTV_Chat_Shutdown - Tear down the chat subsystem. Be sure to have freed all outstanding lists before calling this.
  *
  * @return - TTV_EC_SUCCESS.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_Shutdown();
+TTV_ErrorCode TTV_Chat_Shutdown();
 
 /**
  * TTV_ChatConnect - Connects to the chat service.  This is an asynchronous call and notification of 
@@ -344,7 +46,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_Shutdown();
  *			 TTV_EC_CHAT_ALREADY_IN_CHANNEL if already in channel.
  *			 TTV_EC_CHAT_LEAVING_CHANNEL if still leaving a channel.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_Connect(const utf8char* username, const TTV_AuthToken* authToken);
+TTV_ErrorCode TTV_Chat_Connect(const utf8char* username, const char* authToken);
 
 /**
  * TTV_Chat_ConnectAnonymous - Connects to the chat service anonymously allowing chat messages to be received but not sent.  This is an asynchronous 
@@ -357,7 +59,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_Connect(const utf8char* username, const TTV_Au
  *			 TTV_EC_CHAT_ALREADY_IN_CHANNEL if already in channel.
  *			 TTV_EC_CHAT_LEAVING_CHANNEL if still leaving a channel.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_ConnectAnonymous();
+TTV_ErrorCode TTV_Chat_ConnectAnonymous();
 
 /**
  * TTV_ChatDisconnect - Disconnects from the chat server.  This will automatically remove the user from
@@ -367,7 +69,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_ConnectAnonymous();
  * @return - TTV_EC_SUCCESS if disconnection successful.
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_Disconnect();
+TTV_ErrorCode TTV_Chat_Disconnect();
 
 /**
  * TTV_ChatGetChannelUsers - Retrieves the current users for the named channel.  This is used by both broadcasters and viewers.
@@ -378,7 +80,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_Disconnect();
  *			 TTV_EC_CHAT_NOT_IN_CHANNEL if not in the channel.
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_GetChannelUsers(TTV_ChatQueryChannelUsersCallback callback);
+TTV_ErrorCode TTV_Chat_GetChannelUsers(TTV_ChatQueryChannelUsersCallback callback);
 
 /**
  * TTV_Chat_SendMessage - Sends the given message to the channel.  The user must have joined the channel first.  
@@ -410,7 +112,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_GetChannelUsers(TTV_ChatQueryChannelUsersCallb
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
  *			 TTV_EC_CHAT_ANON_DENIED if connected anonymously.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_SendMessage(const utf8char* message);
+TTV_ErrorCode TTV_Chat_SendMessage(const utf8char* message);
 
 /**
  * TTV_ChatFlushEvents - Calls callbacks for all events which has accumulated since the last flush.  This include connects, disconnects,  
@@ -419,7 +121,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_SendMessage(const utf8char* message);
  * @return - TTV_EC_SUCCESS if function succeeds.
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_FlushEvents();
+TTV_ErrorCode TTV_Chat_FlushEvents();
 
 /**
  * TTV_Chat_FreeUserList - Frees the memory for the given user list which was passed to the application during a callback.
@@ -427,7 +129,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_FlushEvents();
  * @param[in] userList - The user list to free.
  * @return - TTV_EC_SUCCESS if function succeeds.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_FreeUserList(const TTV_ChatUserList* userList);
+TTV_ErrorCode TTV_Chat_FreeUserList(const TTV_ChatUserList* userList);
 
 /**
  * TTV_Chat_TokenizeMessage - Takes a raw text message, parses it and breaks it into tokens which makes it easier to render messages with embedded emoticons.
@@ -437,7 +139,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_FreeUserList(const TTV_ChatUserList* userList)
  * @param[out] tokenizedMessage - The data for the tokenized message.  This must be freed by calling TTV_Chat_FreeTokenizeMessage.
  * @return - TTV_EC_SUCCESS if function succeeds, TTV_EC_INVALID_ARG if the message is not valid.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_TokenizeMessage(const TTV_ChatMessage* message, TTV_ChatTokenizedMessage** tokenizedMessage);
+TTV_ErrorCode TTV_Chat_TokenizeMessage(const TTV_ChatMessage* message, TTV_ChatTokenizedMessage** tokenizedMessage);
 
 /**
  * TTV_Chat_FreeTokenizedMessage - Frees the memory allocated during a call to TTV_Chat_TokenizeMessage.
@@ -445,7 +147,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_TokenizeMessage(const TTV_ChatMessage* message
  * @param[in] tokenizedMessage - The data to free.
  * @return - TTV_EC_SUCCESS if function succeeds, TTV_EC_INVALID_ARG if the message is not expected.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_FreeTokenizedMessage(TTV_ChatTokenizedMessage* tokenizedMessage);
+TTV_ErrorCode TTV_Chat_FreeTokenizedMessage(TTV_ChatTokenizedMessage* tokenizedMessage);
 
 /**
  * TTV_Chat_DownloadEmoticonData - Initiates a download of the emoticon data.  This will trigger a redownload if called a second time.  The callback will be called
@@ -458,7 +160,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_FreeTokenizedMessage(TTV_ChatTokenizedMessage*
  *			 TTV_EC_CHAT_EMOTICON_DATA_LOCKED if the data has been locked by a call to TTV_Chat_GetEmoticonData and has not yet been freed by TTV_Chat_FreeEmoticonData.
  *			 TTV_EC_INVALID_ARG if an invalid callback.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_DownloadEmoticonData(TTV_EmoticonDataDownloadCallback callback);
+TTV_ErrorCode TTV_Chat_DownloadEmoticonData(TTV_EmoticonDataDownloadCallback callback);
 
 /**
  * TTV_Chat_GetEmoticonData - Retrieves the texture information and badge info after it has been downloaded and prepared. When done with this data be sure 
@@ -469,7 +171,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_DownloadEmoticonData(TTV_EmoticonDataDownloadC
  *			 TTV_EC_CHAT_EMOTICON_DATA_DOWNLOADING if the data is still downloading.
  *			 TTV_EC_CHAT_EMOTICON_DATA_NOT_READY if the data is not yet ready to be retrieved.  
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_GetEmoticonData(TTV_ChatEmoticonData** data);
+TTV_ErrorCode TTV_Chat_GetEmoticonData(TTV_ChatEmoticonData** data);
 
 /**
  * TTV_Chat_FreeEmoticonData - Frees the data previously obtained from TTV_Chat_GetEmoticonData.
@@ -478,7 +180,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_GetEmoticonData(TTV_ChatEmoticonData** data);
  * @return - TTV_EC_SUCCESS if function succeeds.
  *			 TTV_EC_INVALID_ARG if not a previously retrieved list.
  */
-TTVSDK_API TTV_ErrorCode TTV_Chat_FreeEmoticonData(TTV_ChatEmoticonData* data);
+TTV_ErrorCode TTV_Chat_FreeEmoticonData(TTV_ChatEmoticonData* data);
 
 
 #ifdef __cplusplus

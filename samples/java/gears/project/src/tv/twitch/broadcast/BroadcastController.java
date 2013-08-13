@@ -825,9 +825,9 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
 
     /**
      * Sets the visible data about the channel of the currently logged in user.
-     * @param channel The name of the channel.
-     * @param game The name of the game.
-     * @param title The title of the channel
+     * @param channel The name of the channel.  Normally your username.
+     * @param game The name of the game.  If the string is null or empty then this parameter is ignored.
+     * @param title The title of the channel.  If the string is null or empty then this parameter is ignored.
      * @return Whether or not the request was made
      */
     public boolean setStreamInfo(String channel, String game, String title)
@@ -837,6 +837,21 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
             return false;
         }
 
+        if (channel == null || channel == "")
+        {
+        	channel = m_UserName;
+        }
+
+        if (game == null)
+        {
+        	game = "";
+        }
+
+        if (title == null)
+        {
+        	title = "";
+        }
+        
         StreamInfoForSetting info = new StreamInfoForSetting();
         info.streamTitle = title;
         info.gameName = game;

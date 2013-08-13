@@ -290,3 +290,5 @@ typedef enum
 
 #define TTV_TO_WSA_ERROR(ttv_ec) (int)(ttv_ec-TTV_EC_SOCKET_ERR+WSABASEERR)
 #define WSA_TO_TTV_ERROR(wsa_ec) (TTV_ErrorCode) (wsa_ec-WSABASEERR+TTV_EC_SOCKET_ERR)
+
+#define RETURN_CLIENT_ERROR(errorCode)	assert( !errorCode );  return errorCode;

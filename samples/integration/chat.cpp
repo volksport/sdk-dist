@@ -150,7 +150,7 @@ void FlushChatEvents()
 			gChatState = CHAT_STATE(Connecting);
 
 			// connect to the channel
-			TTV_ErrorCode ret = TTV_Chat_Connect(gUserName.c_str(), &gAuthToken);
+			TTV_ErrorCode ret = TTV_Chat_Connect(gUserName.c_str(), gAuthToken.data);
 			ASSERT_ON_ERROR(ret);
 
 			// start downloading the emoticon data

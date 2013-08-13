@@ -405,6 +405,10 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 			{
 				broadcastController.requestAuthToken(username, password);
 			}
+			else if (Keyboard.getEventKey() == Keyboard.KEY_S)
+			{
+				broadcastController.setStreamInfo(username, "Java Game", "Fun times");
+			}
 			else if (Keyboard.getEventKey() == Keyboard.KEY_P) 
 			{
 				if (broadcastController.getIsPaused())

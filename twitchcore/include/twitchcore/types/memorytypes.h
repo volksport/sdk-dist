@@ -26,10 +26,6 @@ typedef struct
 } TTV_MemCallbacks;
 
 
-// Allocate aligned memory
-void* AlignedAlloc(size_t size, size_t alignment);
-
-
 // Default aligned malloc/free if the client doesn't provide them
 // These are just wrappers around the functions provided by the CRT
 //

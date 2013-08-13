@@ -8,7 +8,8 @@
 
 - Add the following SDK include directories to your game's include path and include twitchsdk.h:  
 	- /twitchsdk/include  
-	- /twitchsdk/twitchcore/include
+	- /twitchsdk/twitchcore/include  
+	- /twitchsdk/twitchchat/include  
 
 - Add the SDK lib directory to your game's linker include path and add the appropriate twitchsdk lib to your linker input
 

@@ -835,9 +835,9 @@ namespace Twitch.Broadcast
         /// <summary>
         /// Sets the visible data about the channel of the currently logged in user.
         /// </summary>
-        /// <param name="channel">The name of the channel.</param>
-        /// <param name="game">The name of the game.</param>
-        /// <param name="title">The title of the channel</param>
+        /// <param name="channel">The name of the channel.  Normally your username.</param>
+        /// <param name="game">The name of the game.  If the string is null or empty then this parameter is ignored.</param>
+        /// <param name="title">The title of the channel.  If the string is null or empty then this parameter is ignored.</param>
         /// <returns>Whether or not the request was made</returns>
         public virtual bool SetStreamInfo(string channel, string game, string title)
         {
@@ -846,6 +846,21 @@ namespace Twitch.Broadcast
                 return false;
             }
 
+            if (String.IsNullOrEmpty(channel))
+            {
+                channel = m_UserName;
+            }
+
+            if (game == null)
+            {
+                game = "";
+            }
+
+            if (title == null)
+            {
+                title = "";
+            } 
+            
             StreamInfoForSetting info = new StreamInfoForSetting();
             info.StreamTitle = title;
             info.GameName = game;

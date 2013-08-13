@@ -332,7 +332,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 
 			ret = TTV_Chat_Connect(
 				gUserName,
-				&gAuthToken
+				gAuthToken.data
 				);
 			ASSERT_ON_ERROR(ret);
 
