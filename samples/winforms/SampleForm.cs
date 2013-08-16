@@ -157,6 +157,7 @@ namespace WinformsSample
             uint fps = (uint)mFramesPerSecondSelector.Value;
 
             Twitch.Broadcast.VideoParams videoParams = mBroadcastController.GetRecommendedVideoParams(width, height, fps);
+            mBroadcastController.EnableAudio = mEnableAudioCheckbox.Checked;
 
             if (!mBroadcastController.StartBroadcasting(videoParams))
             {
@@ -175,6 +176,7 @@ namespace WinformsSample
             float aspectRatio = float.Parse(arr[0]) / float.Parse(arr[1]);
 
             Twitch.Broadcast.VideoParams videoParams = mBroadcastController.GetRecommendedVideoParams(maxKbps, fps, 0.1f, aspectRatio);
+            mBroadcastController.EnableAudio = mEnableAudioCheckbox.Checked;
 
             if (!mBroadcastController.StartBroadcasting(videoParams))
             {

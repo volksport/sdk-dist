@@ -155,12 +155,13 @@ TTV_ErrorCode TTV_Chat_FreeTokenizedMessage(TTV_ChatTokenizedMessage* tokenizedM
  *								   been downloaded.
  *
  * @param[in] callback - The callback to call when the emoticon data has finished downloading and is prepared for use.
+ * @param[in] userdata - The userdata to pass back in the callback.
  * @return - TTV_EC_SUCCESS if function succeeds
  *			 TTV_EC_CHAT_EMOTICON_DATA_DOWNLOADING if the data is still downloading.
  *			 TTV_EC_CHAT_EMOTICON_DATA_LOCKED if the data has been locked by a call to TTV_Chat_GetEmoticonData and has not yet been freed by TTV_Chat_FreeEmoticonData.
  *			 TTV_EC_INVALID_ARG if an invalid callback.
  */
-TTV_ErrorCode TTV_Chat_DownloadEmoticonData(TTV_EmoticonDataDownloadCallback callback);
+TTV_ErrorCode TTV_Chat_DownloadEmoticonData(TTV_EmoticonDataDownloadCallback callback, void* userdata);
 
 /**
  * TTV_Chat_GetEmoticonData - Retrieves the texture information and badge info after it has been downloaded and prepared. When done with this data be sure 

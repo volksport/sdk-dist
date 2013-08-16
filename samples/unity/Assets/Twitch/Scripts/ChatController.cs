@@ -514,7 +514,7 @@ namespace Twitch.Chat
                     }
                     else
                     {
-                        ret = m_Chat.Connect(m_ChannelName, m_AuthToken);
+                        ret = m_Chat.Connect(m_ChannelName, m_AuthToken.Data);
                     }
 
                     if (Error.Failed(ret))

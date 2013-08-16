@@ -20,8 +20,8 @@ namespace Twitch
 		
 		private static Entry[] s_Entries = new Entry[]
 		{
-			new Entry(@"../../lib/twitchsdk.dll", @"Assets/Plugins/{UNITY_PLUGIN_DIR}/twitchsdk.dll"),
-			new Entry(@"../../lib/twitchsdk.pdb", @"Assets/Plugins/{UNITY_PLUGIN_DIR}/twitchsdk.pdb"),
+			new Entry(@"../../lib/{TWITCHSDK_PLATFORM}/{TWITCHSDK_CONFIG}/twitchsdk.dll", @"Assets/Plugins/{UNITY_PLUGIN_DIR}/twitchsdk.dll"),
+			new Entry(@"../../lib/{TWITCHSDK_PLATFORM}/{TWITCHSDK_CONFIG}/twitchsdk.pdb", @"Assets/Plugins/{UNITY_PLUGIN_DIR}/twitchsdk.pdb"),
 			new Entry(@"../../bindings/csharp/wrapper/bin/{WRAPPER_PLATFORM}/{WRAPPER_CONFIG}/TwitchSdkWrapper.dll", @"Assets/Plugins/TwitchSdkWrapper.dll"),
 			new Entry(@"../../bindings/csharp/wrapper/bin/{WRAPPER_PLATFORM}/{WRAPPER_CONFIG}/TwitchSdkWrapper.pdb", @"Assets/Plugins/TwitchSdkWrapper.pdb"),
 			
@@ -30,46 +30,42 @@ namespace Twitch
 
 			new Entry(@"../../libmp3lame/bin/{LAME_DIR}/libmp3lame-ttv.dll",  @"Assets/Plugins/{UNITY_PLUGIN_DIR}/libmp3lame-ttv.dll"),
 
-			new Entry(@"../../libcurl/bin/{CURL_DIR}/libcurl-ttv.dll",  @"Assets/Plugins/{UNITY_PLUGIN_DIR}/libcurl-ttv.dll"), 
-			new Entry(@"../../libcurl/bin/{CURL_DIR}/ssleay32-ttv.dll",  @"Assets/Plugins/{UNITY_PLUGIN_DIR}/ssleay32-ttv.dll"),
-			new Entry(@"../../libcurl/bin/{CURL_DIR}/libeay32-ttv.dll",  @"Assets/Plugins/{UNITY_PLUGIN_DIR}/libeay32-ttv.dll"),
-
 			new Entry(@"../../intel/bin/{INTEL_DIR}/libmfxsw{INTEL_PLATFORM}.dll",  @"Assets/Plugins/{UNITY_PLUGIN_DIR}/libmfxsw{INTEL_PLATFORM}.dll"),
 		};
 
         [MenuItem("Twitch/Grab Binaries/Debug x86")]
-        protected static void GrabDebugX86Binaries()
+        public static void GrabDebugX86Binaries()
         {
             GrabBinaries("x86", true);
         }
 
         [MenuItem("Twitch/Grab Binaries/Release x86")]
-        protected static void GrabReleaseX86Binaries()
+        public static void GrabReleaseX86Binaries()
         {
             GrabBinaries("x86", false);
         }
 
         [MenuItem("Twitch/Grab Binaries/Debug x64")]
-        protected static void GrabDebugX64Binaries()
+        public static void GrabDebugX64Binaries()
         {
             GrabBinaries("x64", true);
         }
 
         [MenuItem("Twitch/Grab Binaries/Release x64")]
-        protected static void GrabReleaseX64Binaries()
+        public static void GrabReleaseX64Binaries()
         {
             GrabBinaries("x64", false);
         }
 		
 		protected static void GrabBinaries(string platform, bool debug)
 		{
-			string TWITCHSDK_CONFIG = debug ? "debug" : "release";
+            string TWITCHSDK_PLATFORM = platform == "x86" ? "win32" : "x64";
+            string TWITCHSDK_CONFIG = debug ? "debug_bindings" : "release_bindings";
 			string WRAPPER_CONFIG = debug ? "Debug" : "Release";
 
             string UNITY_PLUGIN_DIR = platform == "x86" ? "x86" : "x86_64";
             string FFMPEG_DIR = platform == "x86" ? "win32" : "x64";
             string LAME_DIR = platform == "x86" ? "win32" : "x64";
-            string CURL_DIR = platform == "x86" ? "win32" : "x64";
             string INTEL_DIR = platform == "x86" ? "win32" : "x64";
             string INTEL_PLATFORM = platform == "x86" ? "32" : "64";
             string WRAPPER_PLATFORM = "AnyCPU";
@@ -77,13 +73,12 @@ namespace Twitch
 			foreach (Entry e in s_Entries)
 			{
 				string inputPath = e.inputPath;
-                inputPath = inputPath.Replace("{PLATFORM}", platform);
+                inputPath = inputPath.Replace("{TWITCHSDK_PLATFORM}", TWITCHSDK_PLATFORM);
 				inputPath = inputPath.Replace("{TWITCHSDK_CONFIG}", TWITCHSDK_CONFIG);
                 inputPath = inputPath.Replace("{WRAPPER_CONFIG}", WRAPPER_CONFIG);
                 inputPath = inputPath.Replace("{WRAPPER_PLATFORM}", WRAPPER_PLATFORM);
                 inputPath = inputPath.Replace("{FFMPEG_DIR}", FFMPEG_DIR);
                 inputPath = inputPath.Replace("{LAME_DIR}", LAME_DIR);
-                inputPath = inputPath.Replace("{CURL_DIR}", CURL_DIR);
                 inputPath = inputPath.Replace("{INTEL_DIR}", INTEL_DIR);
                 inputPath = inputPath.Replace("{INTEL_PLATFORM}", INTEL_PLATFORM);
 				
@@ -94,6 +89,14 @@ namespace Twitch
                 outputPath = outputPath.Replace("{UNITY_PLUGIN_DIR}", UNITY_PLUGIN_DIR);
                 outputPath = outputPath.Replace("{INTEL_PLATFORM}", INTEL_PLATFORM);
 				
+                FileInfo finfo = new FileInfo(outputPath);
+                if (!Directory.Exists(finfo.Directory.FullName))
+                {
+                    Directory.CreateDirectory(finfo.Directory.FullName);
+                }
+
+                outputPath = Application.dataPath + "/../" + outputPath;
+
 				if (File.Exists(outputPath))
 				{
 					File.Delete(outputPath);
@@ -109,14 +112,14 @@ namespace Twitch
 		#region Filling in Credentials
 
         [MenuItem("Twitch/Populate My Credentials")]
-        protected static void PopulateMyCredentials()
+        public static void PopulateMyCredentials()
         {
-            // TODO: fill in credentials here that you enter often
+			// TODO: fill in credentials here that you enter often
             PopulateCredentials("", "", "", "");
         }
 
         [MenuItem("Twitch/Clear Credentials")]
-        protected static void ClearCredentials()
+        public static void ClearCredentials()
         {
             PopulateCredentials("", "", "", "");
         }
@@ -171,10 +174,22 @@ namespace Twitch
         #region Export Package
 
         [MenuItem("Twitch/Export Package")]
-        protected static void ExportPackage()
+        public static void ExportPackageDefault()
         {
-            string outputPath = "C:/Drew/Repositories/twitchbins/TwitchUnity.unitypackage";
+            ExportPackage("../../../../twitchbins/TwitchUnity.unitypackage");
+        }
 
+        public static void ExportPackageFromCommandLine()
+        {
+            GrabReleaseX86Binaries();
+            GrabReleaseX64Binaries();
+
+            string[] args = System.Environment.GetCommandLineArgs();
+            ExportPackage(args[args.Length-1]);
+        }
+
+        protected static void ExportPackage(string outputPath)
+        {
             if (File.Exists(outputPath))
             {
                 File.Delete(outputPath);
@@ -182,8 +197,8 @@ namespace Twitch
 
             List<string> inputPaths = new List<string>();
 
-            // export Assets/Plugins DLLs
-            string[] files = Directory.GetFiles("Assets/Plugins", "*.dll", SearchOption.AllDirectories);
+            // export Assets/Plugins except for pdb and dependencies
+            string[] files = Directory.GetFiles(Application.dataPath + "/Plugins", "*.dll", SearchOption.AllDirectories);
             foreach (string path in files)
             {
                 FileInfo file = new FileInfo(path);
@@ -200,25 +215,8 @@ namespace Twitch
                 inputPaths.Add(assetPath);
             }
 
-            // export Assets/Plugins/twitchsdk.bundle
-            files = Directory.GetFiles("Assets/Plugins/twitchsdk.bundle", "*.*", SearchOption.AllDirectories);
-            foreach (string path in files)
-            {
-                FileInfo file = new FileInfo(path);
-
-                // skip files
-                if (file.Extension.ToLower() == ".meta")
-                {
-                    continue;
-                }
-
-                string assetPath = GetAssetPath(path);
-
-                inputPaths.Add(assetPath);
-            }
-
             // export Assets/Twitch
-            files = Directory.GetFiles("Assets/Twitch", "*.*", SearchOption.AllDirectories);
+            files = Directory.GetFiles(Application.dataPath + "/Twitch", "*.*", SearchOption.AllDirectories);
             foreach (string path in files)
             {
                 FileInfo file = new FileInfo(path);

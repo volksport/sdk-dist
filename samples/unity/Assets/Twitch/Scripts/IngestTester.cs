@@ -149,6 +149,10 @@ namespace Twitch.Broadcast
         {
         }
 
+        void IStreamCallbacks.SetStreamInfoCallback(ErrorCode result)
+        {
+        }
+
         void IStreamCallbacks.GetGameNameListCallback(ErrorCode result, GameInfoList list)
         {
         }

@@ -200,8 +200,11 @@ TTVSDK_API TTV_ErrorCode TTV_SendEndSpanMetaData(const TTV_AuthToken* authToken,
 * @param[in] authToken - The authentication token previously obtained
 * @param[in] channel - The channel name that will have its stream info set.
 * @param[in] streamInfoToBeSet - The stream-related information to send.
+* @param[in] callback - The callback function to be called when the web API has been called
+* @param[in] userData - Optional pointer to be passed through to the callback function
 */
-TTVSDK_API TTV_ErrorCode TTV_SetStreamInfo(const TTV_AuthToken* authToken, const char* channel, const TTV_StreamInfoForSetting* streamInfoToSet);
+TTVSDK_API TTV_ErrorCode TTV_SetStreamInfo(const TTV_AuthToken* authToken, const char* channel, const TTV_StreamInfoForSetting* streamInfoToSet, 
+										   TTV_TaskCallback callback, void* userData);
 
 
 /**

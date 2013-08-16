@@ -38,7 +38,7 @@ void FreeCallback (void* ptr)
 //////////////////////////////////////////////////////////////////////////
 // Callbacks for chat module
 //////////////////////////////////////////////////////////////////////////
-void ChatQueryChannelUsersCallback (const TTV_ChatUserList* userList)
+void ChatQueryChannelUsersCallback (const TTV_ChatUserList* userList, void* /*userdata*/)
 {
 	OutputDebugString (_T("ChatQueryChannelUsersCallback \n"));
 
@@ -53,7 +53,7 @@ void ChatQueryChannelUsersCallback (const TTV_ChatUserList* userList)
 	TTV_Chat_FreeUserList(userList);
 }
 
-void ChatStatusCallback(TTV_ErrorCode result)
+void ChatStatusCallback(TTV_ErrorCode result, void* /*userdata*/)
 {
 	if (TTV_SUCCEEDED(result))
 	{
@@ -70,7 +70,7 @@ void ChatStatusCallback(TTV_ErrorCode result)
 	}
 }
 
-void ChatMembershipCallback(TTV_ChatEvent evt, const TTV_ChatChannelInfo* channelInfo)
+void ChatMembershipCallback(TTV_ChatEvent evt, const TTV_ChatChannelInfo* channelInfo, void* /*userdata*/)
 {
 	switch (evt)
 	{
@@ -86,7 +86,7 @@ void ChatMembershipCallback(TTV_ChatEvent evt, const TTV_ChatChannelInfo* channe
 	}
 }
 
-void ChatUserCallback (const TTV_ChatUserList* joinList, const TTV_ChatUserList* leaveList, const TTV_ChatUserList* userInfoList)
+void ChatUserCallback (const TTV_ChatUserList* joinList, const TTV_ChatUserList* leaveList, const TTV_ChatUserList* userInfoList, void* /*userdata*/)
 {
 	OutputDebugString (_T("ChatUserCallback \n"));
 
@@ -109,7 +109,7 @@ void ChatUserCallback (const TTV_ChatUserList* joinList, const TTV_ChatUserList*
 	TTV_Chat_FreeUserList(userInfoList);
 }
 
-void ChatMessageCallback (const TTV_ChatMessageList* messageList)
+void ChatMessageCallback (const TTV_ChatMessageList* messageList, void* /*userdata*/)
 {
 	assert (messageList);
 	assert (hMessages);
@@ -129,7 +129,7 @@ void ChatMessageCallback (const TTV_ChatMessageList* messageList)
 	}
 }
 
-void ChatClearCallback(const utf8char* channelName)
+void ChatClearCallback(const utf8char* channelName, void* /*userdata*/)
 {
 	assert (hMessages);
 
@@ -149,7 +149,9 @@ void AuthDoneCallback(TTV_ErrorCode result, void* userData)
 		gReceivedAuthToken = false;
 
 		const char* err = TTV_ErrorToString(result);
+		OutputDebugStringA("AuthDoneCallback: ");
 		OutputDebugStringA(err);
+		OutputDebugStringA("\n");
 	}
 	else
 	{
@@ -157,7 +159,7 @@ void AuthDoneCallback(TTV_ErrorCode result, void* userData)
 	}
 }
 
-void EmoticonDataDownloadCallback(TTV_ErrorCode error)
+void EmoticonDataDownloadCallback(TTV_ErrorCode error, void* /*userdata*/)
 {
 	assert( TTV_SUCCEEDED(error) );
 
@@ -264,6 +266,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 	chatCallbacks.userCallback = ChatUserCallback;
 	chatCallbacks.messageCallback = ChatMessageCallback;
 	chatCallbacks.clearCallback = ChatClearCallback;
+	chatCallbacks.unsolicitedUserData = nullptr;
 
 	HWND hWnd = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_CHAT_DIALOG), 0, DialogProc);
 
@@ -327,7 +330,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 				&chatCallbacks);
 			ASSERT_ON_ERROR(ret);
 
-			ret = TTV_Chat_DownloadEmoticonData(EmoticonDataDownloadCallback);
+			ret = TTV_Chat_DownloadEmoticonData(EmoticonDataDownloadCallback, nullptr);
 			ASSERT_ON_ERROR(ret);
 
 			ret = TTV_Chat_Connect(

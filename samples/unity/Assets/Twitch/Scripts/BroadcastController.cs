@@ -319,6 +319,15 @@ namespace Twitch.Broadcast
             }
         }
 
+        void IStreamCallbacks.SetStreamInfoCallback(ErrorCode result)
+        {
+            if (Error.Failed(result))
+            {
+                string err = Error.GetString(result);
+                ReportWarning(string.Format("SetStreamInfoCallback got failure: {0}", err));
+            }
+        }
+
         void IStreamCallbacks.GetGameNameListCallback(ErrorCode result, GameInfoList list)
         {
             if (Error.Failed(result))

@@ -93,7 +93,6 @@
     <EmbeddedResource Include="SampleForm.resx">
       <DependentUpon>SampleForm.cs</DependentUpon>
     </EmbeddedResource>
-    <None Include="curl-ca-bundle.crt" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -112,9 +111,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>echo f | xcopy "$(ProjectDir)..\..\lib\twitchsdk.dll" "$(ProjectDir)$(OutDir)twitchsdk.dll" /Y
+    <PostBuildEvent>echo f | xcopy "$(ProjectDir)..\..\lib\Win32\debug_bindings\twitchsdk.dll" "$(ProjectDir)$(OutDir)twitchsdk.dll" /Y
 
-echo f | xcopy "$(ProjectDir)..\..\lib\twitchsdk.pdb" "$(ProjectDir)$(OutDir)twitchsdk.pdb" /Y</PostBuildEvent>
+echo f | xcopy "$(ProjectDir)..\..\lib\Win32\debug_bindings\twitchsdk.pdb" "$(ProjectDir)$(OutDir)twitchsdk.pdb" /Y</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

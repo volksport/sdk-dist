@@ -108,6 +108,7 @@
             this.mShutdownButton = new System.Windows.Forms.Button();
             this.mInitButton = new System.Windows.Forms.Button();
             this.Tabs = new System.Windows.Forms.TabControl();
+            this.mEnableAudioCheckbox = new System.Windows.Forms.CheckBox();
             this.ChatTab.SuspendLayout();
             this.mChatMessagesGroupbox.SuspendLayout();
             this.mChatConnectionGroupbox.SuspendLayout();
@@ -275,6 +276,7 @@
             // 
             // StreamTab
             // 
+            this.StreamTab.Controls.Add(this.mEnableAudioCheckbox);
             this.StreamTab.Controls.Add(this.mLoginGroupbox);
             this.StreamTab.Controls.Add(this.mAdvancedBroadcastGroupbox);
             this.StreamTab.Controls.Add(this.mBroadcastInfoGroupbox);
@@ -941,6 +943,18 @@
             this.Tabs.Size = new System.Drawing.Size(886, 740);
             this.Tabs.TabIndex = 6;
             // 
+            // mEnableAudioCheckbox
+            // 
+            this.mEnableAudioCheckbox.AutoSize = true;
+            this.mEnableAudioCheckbox.Checked = true;
+            this.mEnableAudioCheckbox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.mEnableAudioCheckbox.Location = new System.Drawing.Point(182, 291);
+            this.mEnableAudioCheckbox.Name = "mEnableAudioCheckbox";
+            this.mEnableAudioCheckbox.Size = new System.Drawing.Size(89, 17);
+            this.mEnableAudioCheckbox.TabIndex = 65;
+            this.mEnableAudioCheckbox.Text = "Enable Audio";
+            this.mEnableAudioCheckbox.UseVisualStyleBackColor = true;
+            // 
             // SampleForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -959,6 +973,7 @@
             this.mChatConnectionGroupbox.ResumeLayout(false);
             this.mChatConnectionGroupbox.PerformLayout();
             this.StreamTab.ResumeLayout(false);
+            this.StreamTab.PerformLayout();
             this.mLoginGroupbox.ResumeLayout(false);
             this.mAdvancedBroadcastGroupbox.ResumeLayout(false);
             this.mAdvancedBroadcastGroupbox.PerformLayout();
@@ -1064,6 +1079,7 @@
         private System.Windows.Forms.ListBox mChatUsersListbox;
         private System.Windows.Forms.Button mChatSendButton;
         private System.Windows.Forms.TextBox mChatInputTextbox;
+        private System.Windows.Forms.CheckBox mEnableAudioCheckbox;
 
     }
 }

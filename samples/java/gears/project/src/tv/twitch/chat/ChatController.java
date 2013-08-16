@@ -571,7 +571,7 @@ public class ChatController implements IChatCallbacks
                 }
                 else
                 {
-                    ret = m_Chat.connect(m_ChannelName, m_AuthToken);
+                    ret = m_Chat.connect(m_ChannelName, m_AuthToken.data);
                 }
 
                 if (ErrorCode.failed(ret))

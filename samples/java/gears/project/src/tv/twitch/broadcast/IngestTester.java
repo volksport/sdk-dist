@@ -147,6 +147,10 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
     {
     }
 
+    public void setStreamInfoCallback(ErrorCode result)
+    {
+    }
+
     public void getGameNameListCallback(ErrorCode result, GameInfoList list)
     {
     }

@@ -316,6 +316,15 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
         }
     }
 
+    public void setStreamInfoCallback(ErrorCode result)
+    {
+        if (ErrorCode.failed(result))
+        {
+            String err = ErrorCode.getString(result);
+            reportWarning(String.format("SetStreamInfoCallback got failure: %s", err));
+        }
+    }
+
     public void getGameNameListCallback(ErrorCode result, GameInfoList list)
     {
         if (ErrorCode.failed(result))
@@ -825,9 +834,9 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
 
     /**
      * Sets the visible data about the channel of the currently logged in user.
-     * @param channel The name of the channel.  Normally your username.
-     * @param game The name of the game.  If the string is null or empty then this parameter is ignored.
-     * @param title The title of the channel.  If the string is null or empty then this parameter is ignored.
+     * @param channel The name of the channel.
+     * @param game The name of the game.  If the empty string or null then this parameter is ignored.
+     * @param title The title of the channel.  If the empty string or null then this parameter is ignored.
      * @return Whether or not the request was made
      */
     public boolean setStreamInfo(String channel, String game, String title)
