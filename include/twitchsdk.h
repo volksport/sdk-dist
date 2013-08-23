@@ -125,7 +125,9 @@ TTVSDK_API TTV_ErrorCode TTV_FreeIngestList(TTV_IngestList* ingestList);
 
 
 /**
-* TTV_Start - Starts streaming.  This function is asynchronous if a valid callback is provided.
+* TTV_Start - Starts streaming.  This function is asynchronous if a callback is provided.
+* On Mac, if attempting to start with audio enabled and SoundFlower is not installed TTV_EC_SOUNDFLOWER_NOT_INSTALLED 
+* will be returned, possibly in the callback if one is provided.
 * @param[in] videoParams - Output stream video paramaters
 * @param[in] audioParams - Output stream audio parameters
 * @param[in] ingestServer - The ingest server to use
@@ -161,10 +163,13 @@ TTVSDK_API TTV_ErrorCode TTV_SubmitVideoFrame(const uint8_t* frameBuffer,
 * @param[in] streamTime - Number of milliseconds into the broadcast for when event occurs
 * @param[in] humanDescription - Long form string to describe the meaning of an event. Maximum length is 1000 characters
 * @param[in] data - A valid JSON object that is the payload of an event. Values in this JSON object have to be strings. Maximum of 50 keys are allowed. Maximum length for values are 255 characters.
+* @param[in] callback - The callback function to be called when the request is completed
+* @param[in] userData - Optional pointer to be passed through to the callback function
 */
 TTVSDK_API TTV_ErrorCode TTV_SendActionMetaData(const TTV_AuthToken* authToken,
 												const char* name, uint64_t streamTime,
-												const char* humanDescription, const char* data);
+												const char* humanDescription, const char* data, 
+												TTV_TaskCallback callback, void* userData);
 
 
 /**
@@ -175,10 +180,13 @@ TTVSDK_API TTV_ErrorCode TTV_SendActionMetaData(const TTV_AuthToken* authToken,
 * @param[out] sequenceId - A unique sequenceId returned that associates a start and end event together
 * @param[in] humanDescription - Long form string to describe the meaning of an event. Maximum length is 1000 characters
 * @param[in] data - A valid JSON object that is the payload of an event. Values in this JSON object have to be strings. Maximum of 50 keys are allowed. Maximum length for values are 255 characters.
+* @param[in] callback - The callback function to be called when the request is completed
+* @param[in] userData - Optional pointer to be passed through to the callback function
 */
 TTVSDK_API TTV_ErrorCode TTV_SendStartSpanMetaData(const TTV_AuthToken* authToken,
 												   const char* name, uint64_t streamTime, unsigned long* sequenceId,
-												   const char* humanDescription, const char* data);
+												   const char* humanDescription, const char* data,
+												   TTV_TaskCallback callback, void* userData);
 
 
 /**
@@ -189,10 +197,13 @@ TTVSDK_API TTV_ErrorCode TTV_SendStartSpanMetaData(const TTV_AuthToken* authToke
 * @param[in] sequenceId - Associates a start and end event together. Use the correspoding sequenceId returned in TTV_SendStartSpanMetaData
 * @param[in] humanDescription - Long form string to describe the meaning of an event. Maximum length is 1000 characters                                  
 * @param[in] data - A valid JSON object that is the payload of an event. Values in this JSON object have to be strings. Maximum of 50 keys are allowed. Maximum length for values are 255 characters.
+* @param[in] callback - The callback function to be called when the request is completed
+* @param[in] userData - Optional pointer to be passed through to the callback function
 */
 TTVSDK_API TTV_ErrorCode TTV_SendEndSpanMetaData(const TTV_AuthToken* authToken,
 												 const char* name, uint64_t streamTime, unsigned long sequenceId, 
-												 const char* humanDescription, const char* data);
+												 const char* humanDescription, const char* data,
+												 TTV_TaskCallback callback, void* userData);
 
 
 /**
@@ -220,7 +231,9 @@ TTVSDK_API TTV_ErrorCode TTV_GetUserInfo(const TTV_AuthToken* authToken,
                                          TTV_UserInfo* userInfo);
 
 /**
-* TTV_StreamInfo - Returns stream-related information from Twitch
+* TTV_StreamInfo - Returns stream-related information from Twitch.  If the stream info is not
+* available TTV_WRN_STREAMINFO_PENDING will be returned asynchronously.  
+* NOTE: If your channel is hidden then you will never receive any stream info.
 * @param[in] authToken - The authentication token previously obtained
 * @param[in] callback - The callback function to be called when user info is retrieved
 * @param[in] userData - Optional pointer to be passed through to the callback function

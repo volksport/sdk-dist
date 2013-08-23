@@ -453,10 +453,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 			InitializeChat(channelName.c_str());
 		}
 
+		if (GetChatState() != CHAT_STATE(Uninitialized))
+		{
+			FlushChatEvents();
+		}
+
 		#undef CHAT_STATE
 		#undef STREAM_STATE
-
-		FlushChatEvents();
 
 		gLastFrameTime = curTime;
 

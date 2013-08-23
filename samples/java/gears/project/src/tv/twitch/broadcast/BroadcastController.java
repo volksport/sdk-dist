@@ -424,6 +424,33 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
         }
     }
     
+    public void sendActionMetaDataCallback(ErrorCode ret)
+    {
+        if (ErrorCode.failed(ret))
+        {
+            String err = ErrorCode.getString(ret);
+            reportError(String.format("sendActionMetaDataCallback got failure: %s", err));
+        }
+    }
+    
+    public void sendStartSpanMetaDataCallback(ErrorCode ret)
+    {
+        if (ErrorCode.failed(ret))
+        {
+            String err = ErrorCode.getString(ret);
+            reportError(String.format("sendStartSpanMetaDataCallback got failure: %s", err));
+        }
+    }
+    
+    public void sendEndSpanMetaDataCallback(ErrorCode ret)
+    {
+        if (ErrorCode.failed(ret))
+        {
+            String err = ErrorCode.getString(ret);
+            reportError(String.format("sendEndSpanMetaDataCallback got failure: %s", err));
+        }
+    }
+
     //endregion
 
     

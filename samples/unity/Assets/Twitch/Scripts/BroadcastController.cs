@@ -424,6 +424,33 @@ namespace Twitch.Broadcast
             HandleBufferUnlock(buffer);
         }
 
+        void IStreamCallbacks.SendActionMetaDataCallback(ErrorCode ret)
+        {
+            if (Error.Failed(ret))
+            {
+                string err = Error.GetString(ret);
+                ReportError(string.Format("SendActionMetaDataCallback got failure: {0}", err));
+            }
+        }
+
+        void IStreamCallbacks.SendStartSpanMetaDataCallback(ErrorCode ret)
+        {
+            if (Error.Failed(ret))
+            {
+                string err = Error.GetString(ret);
+                ReportError(string.Format("SendStartSpanMetaDataCallback got failure: {0}", err));
+            }
+        }
+
+        void IStreamCallbacks.SendEndSpanMetaDataCallback(ErrorCode ret)
+        {
+            if (Error.Failed(ret))
+            {
+                string err = Error.GetString(ret);
+                ReportError(string.Format("SendEndSpanMetaDataCallback got failure: {0}", err));
+            }
+        }
+
         #endregion
 
 
