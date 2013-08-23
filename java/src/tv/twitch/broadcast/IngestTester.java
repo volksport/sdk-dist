@@ -185,6 +185,18 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
         setTestState(TestState.DoneTestingServer);
     }
     
+    public void sendActionMetaDataCallback(ErrorCode ret)
+    {
+    }
+    
+    public void sendStartSpanMetaDataCallback(ErrorCode ret)
+    {
+    }
+    
+    public void sendEndSpanMetaDataCallback(ErrorCode ret)
+    {
+    }
+    
     //#endregion
 
     //#region IStatCallbacks
