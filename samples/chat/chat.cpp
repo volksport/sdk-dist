@@ -13,8 +13,8 @@ HWND hChannelMembers = NULL;
 HWND hMessages = NULL;
 HWND hInputBox = NULL;
 
-const char gClientId[] = "<client id here>";
-const char gClientSecret[] = "<client secret here>";
+const char gClientId[] = "<client id>";
+const char gClientSecret[] = "<client secret>";
 
 // Stuff for init file
 const int kMaxUserName = 128;
@@ -122,10 +122,6 @@ void ChatMessageCallback (const TTV_ChatMessageList* messageList, void* /*userda
 	{
 		sprintf_s (buffer, "<%s> %s", messageList->messageList[i].userName, messageList->messageList[i].message);
 		SendMessageA(hMessages, LB_ADDSTRING, NULL, (LPARAM)buffer);
-
-		TTV_ChatTokenizedMessage* tokenizedMessage = nullptr;
-		TTV_Chat_TokenizeMessage(&messageList->messageList[i], &tokenizedMessage);
-		TTV_Chat_FreeTokenizedMessage(tokenizedMessage);
 	}
 }
 
@@ -261,6 +257,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 	ASSERT_ON_ERROR(ret);
 
 	TTV_ChatCallbacks chatCallbacks;
+	memset(&chatCallbacks, 0, sizeof(chatCallbacks));
 	chatCallbacks.statusCallback = ChatStatusCallback;
 	chatCallbacks.membershipCallback = ChatMembershipCallback;
 	chatCallbacks.userCallback = ChatUserCallback;
@@ -330,7 +327,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 				&chatCallbacks);
 			ASSERT_ON_ERROR(ret);
 
-			ret = TTV_Chat_DownloadEmoticonData(EmoticonDataDownloadCallback, nullptr);
+			ret = TTV_Chat_DownloadEmoticonData(false, 
+				EmoticonDataDownloadCallback, 
+				nullptr);
 			ASSERT_ON_ERROR(ret);
 
 			ret = TTV_Chat_Connect(

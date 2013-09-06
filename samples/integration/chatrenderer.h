@@ -16,7 +16,7 @@ void AddChatUser(const TTV_ChatUserInfo* user);
 void RemoveChatUser(const TTV_ChatUserInfo* user);
 void UpdateChatUser(const TTV_ChatUserInfo* user);
 
-void AddChatMessage(const TTV_ChatMessage* message);
+void AddChatMessages(const TTV_ChatTokenizedMessageList* messageList);
 void ClearChatMessages();
 
 void RenderChatText(); // Renders the chat messages to the screen.

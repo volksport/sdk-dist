@@ -24,7 +24,7 @@ namespace Twitch.Chat
     /// 
     /// Events will fired during the call to CC.Update().  When chat messages are received RawMessagesReceived will be fired.
     /// 
-    /// NOTE: The implementation of emoticon data is not yet complete and currently not available.
+    /// NOTE: The implementation of texture emoticon data is not yet complete and currently not available.
     /// </summary>
     public abstract partial class ChatController : IChatCallbacks
     {
@@ -40,6 +40,16 @@ namespace Twitch.Chat
             Connecting,     //!< Currently attempting to connect to the channel.
             Connected,      //!< Connected to the channel.
             Disconnected    //!< Initialized but not connected.
+        }
+
+        /// <summary>
+        /// The emoticon parsing mode for chat messages.
+        /// </summary>
+        public enum EmoticonMode
+        {
+            None,			//!< Do not parse out emoticons in messages.
+            Url, 			//!< Parse out emoticons and return urls only for images.
+            TextureAtlas 	//!< Parse out emoticons and return texture atlas coordinates.
         }
 
         /// <summary>
@@ -111,11 +121,13 @@ namespace Twitch.Chat
         protected AuthToken m_AuthToken = new AuthToken();
 
         protected List<ChatUserInfo> m_ChannelUsers = new List<ChatUserInfo>();
-        protected LinkedList<ChatMessage> m_Messages = new LinkedList<ChatMessage>();
+        protected LinkedList<ChatMessage> m_RawMessages = new LinkedList<ChatMessage>();
+        protected LinkedList<ChatTokenizedMessage> m_TokenizedMessages = new LinkedList<ChatTokenizedMessage>();
         protected uint m_MessageHistorySize = 128;
 
-        protected bool m_UseEmoticons = false;
-        protected bool m_EmoticonDataDownloaded = false;
+        protected EmoticonMode m_EmoticonMode = EmoticonMode.None;
+        protected EmoticonMode m_ActiveEmoticonMode = EmoticonMode.None;
+        protected ChatEmoticonData m_EmoticonData = null;
 
         #endregion
 
@@ -203,52 +215,51 @@ namespace Twitch.Chat
         {
             for (int i = 0; i < messageList.Messages.Length; ++i)
             {
-                m_Messages.AddLast(messageList.Messages[i]);
+                m_RawMessages.AddLast(messageList.Messages[i]);
             }
 
             try
             {
-                if (m_UseEmoticons)
+                if (RawMessagesReceived != null)
                 {
-                    if (TokenizedMessagesReceived != null)
-                    {
-                        List<ChatTokenizedMessage> list = new List<ChatTokenizedMessage>();
-                        for (int i = 0; i < messageList.Messages.Length; ++i)
-                        {
-                            ChatTokenizedMessage tokenized = null;
-                            ErrorCode ret = m_Chat.TokenizeMessage(messageList.Messages[i], out tokenized);
-                            if (Error.Failed(ret) || tokenized == null)
-                            {
-                                string err = Error.GetString(ret);
-                                ReportError(string.Format("Error disconnecting: {0}", err));
-                            }
-                            else
-                            {
-                                list.Add(tokenized);
-                            }
-                        }
-
-                        ChatTokenizedMessage[] arr = list.ToArray();
-
-                        this.TokenizedMessagesReceived(arr);
-                    }
-                }
-                else
-                {
-                    if (RawMessagesReceived != null)
-                    {
-                        this.RawMessagesReceived(messageList.Messages);
-                    }
+                    this.RawMessagesReceived(messageList.Messages);
                 }
             }
-            catch
+            catch (Exception x)
             {
+                ReportError(string.Format("Error in ChatChannelMessageCallback: {0}", x.ToString()));
             }
 
             // cap the number of messages cached
-            while (m_Messages.Count > m_MessageHistorySize)
+            while (m_RawMessages.Count > m_MessageHistorySize)
             {
-                m_Messages.RemoveFirst();
+                m_RawMessages.RemoveFirst();
+            }
+        }
+
+        void IChatCallbacks.ChatChannelTokenizedMessageCallback(ChatTokenizedMessage[] messageList)
+        {
+            for (int i = 0; i < messageList.Length; ++i)
+            {
+                m_TokenizedMessages.AddLast(messageList[i]);
+            }
+
+            try
+            {
+                if (TokenizedMessagesReceived != null)
+                {
+                    this.TokenizedMessagesReceived(messageList);
+                }
+            }
+            catch (Exception x)
+            {
+                ReportError(string.Format("Error in ChatChannelTokenizedMessageCallback: {0}", x.ToString()));
+            }
+
+            // cap the number of messages cached
+            while (m_TokenizedMessages.Count > m_MessageHistorySize)
+            {
+                m_TokenizedMessages.RemoveFirst();
             }
         }
 
@@ -349,22 +360,38 @@ namespace Twitch.Chat
         }
 
         /// <summary>
-        /// An iterator for the chat messages from oldest to newest.
+        /// An iterator for the raw chat messages from oldest to newest.
         /// </summary>
-        public LinkedList<ChatMessage>.Enumerator Messages
+        public LinkedList<ChatMessage>.Enumerator RawMessages
         {
-            get { return m_Messages.GetEnumerator(); }
+            get { return m_RawMessages.GetEnumerator(); }
         }
 
-        //public bool UseEmoticons
-        //{
-        //    get { return m_UseEmoticons; }
-        //    set 
-        //    { 
-        //        m_UseEmoticons = value;
-        //        DownloadEmoticonData();
-        //    }
-        //}
+        /// <summary>
+        /// An iterator for the tokenized chat messages from oldest to newest.
+        /// </summary>
+        public LinkedList<ChatTokenizedMessage>.Enumerator TokenizedMessages
+        {
+            get { return m_TokenizedMessages.GetEnumerator(); }
+        }
+
+        /// <summary>
+        /// The emoticon parsing mode for chat messages.  This must be set before connecting to the channel to set the preference until disconnecting.  
+        /// If a texture atlas is selected this will trigger a download of emoticon images to create the atlas.
+        /// </summary>
+        public EmoticonMode EmoticonParsingMode
+        {
+            get { return m_EmoticonMode; }
+            set { m_EmoticonMode = value; }
+        }
+
+        /// <summary>
+        /// Retrieves the emoticon data that can be used to render icons.
+        /// </summary>
+        public ChatEmoticonData EmoticonData
+        {
+            get { return m_EmoticonData;}
+        }
 
         #endregion
 
@@ -435,7 +462,8 @@ namespace Twitch.Chat
                 return false;
             }
 
-            ErrorCode ret = m_Chat.Initialize(channel);
+            m_ActiveEmoticonMode = m_EmoticonMode;
+            ErrorCode ret = m_Chat.Initialize(channel, m_ActiveEmoticonMode != EmoticonMode.None);
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
@@ -514,7 +542,7 @@ namespace Twitch.Chat
                     }
                     else
                     {
-                        ret = m_Chat.Connect(m_ChannelName, m_AuthToken.Data);
+                        ret = m_Chat.Connect(m_UserName, m_AuthToken.Data);
                     }
 
                     if (Error.Failed(ret))
@@ -579,7 +607,7 @@ namespace Twitch.Chat
         /// </summary>
         public virtual void ClearMessages()
         {
-            m_Messages.Clear();
+            m_RawMessages.Clear();
 
             try
             {
@@ -632,11 +660,16 @@ namespace Twitch.Chat
 
         protected virtual void DownloadEmoticonData()
         {
-            if (m_UseEmoticons &&
-                !m_EmoticonDataDownloaded &&
+            // don't download emoticons
+            if (m_ActiveEmoticonMode == EmoticonMode.None)
+            {
+                return;
+            }
+
+            if (m_EmoticonData == null &&
                 m_ChatInitialized)
             {
-                ErrorCode ret = m_Chat.DownloadEmoticonData();
+                ErrorCode ret = m_Chat.DownloadEmoticonData(m_ActiveEmoticonMode == EmoticonMode.TextureAtlas);
                 if (Error.Failed(ret))
                 {
                     string err = Error.GetString(ret);
@@ -647,21 +680,51 @@ namespace Twitch.Chat
 
         protected virtual void SetupEmoticonData()
         {
-            m_EmoticonDataDownloaded = true;
-
-            if (EmoticonDataAvailable != null)
+            if (m_EmoticonData != null)
             {
-                EmoticonDataAvailable();
+                return;
+            }
+
+            ErrorCode ec = m_Chat.GetEmoticonData(out m_EmoticonData);
+            if (Error.Succeeded(ec))
+            {
+                try
+                {
+                    if (EmoticonDataAvailable != null)
+                    {
+                        EmoticonDataAvailable();
+                    }
+                }
+                catch (Exception x)
+                {
+                    ReportError(x.ToString());
+                }
+            }
+            else
+            {
+                ReportError("Error preparing emoticon data: " + Error.GetString(ec));
             }
         }
 
         protected virtual void CleanupEmoticonData()
         {
-            m_EmoticonDataDownloaded = false;
-
-            if (EmoticonDataExpired != null)
+            if (m_EmoticonData == null)
             {
-                EmoticonDataExpired();
+                return;
+            }
+
+            m_EmoticonData = null;
+
+            try
+            {
+                if (EmoticonDataExpired != null)
+                {
+                    EmoticonDataExpired();
+                }
+            }
+            catch (Exception x)
+            {
+                ReportError(x.ToString());
             }
         }
 

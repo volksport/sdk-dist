@@ -66,7 +66,6 @@ typedef struct
 	TTV_ChatUserMode modes;								//!< The mode which controls priviledges in a particular chat room.
 	TTV_ChatUserSubscription subscriptions;				//!< The user's subscriptions for the channel.
 	uint32_t nameColorARGB;								//!< The current ARGB color of the user's name text.
-	uint32_t emoticonSet;								//!< The emoticon set id for the user.
 	bool ignore;										//!< Whether or not to ignore the user.
 
 } TTV_ChatUserInfo;
@@ -113,7 +112,6 @@ typedef struct
 	TTV_ChatUserMode modes;								//!< The mode which controls priviledges in a particular chat room.
 	TTV_ChatUserSubscription subscriptions;				//!< The user's subscriptions for the channel.
 	uint32_t nameColorARGB;								//!< The ARGB color of the name text.
-	uint32_t emoticonSet;								//!< The emoticon set to use when rendering emoticons.  0 is the default.
 	bool action;										//!< Whether or not the message is an action.  If true, it should be displayed entirely in the name text color and of the form "<userName> <message>".
 
 } TTV_ChatMessage;
@@ -136,7 +134,8 @@ typedef struct
 typedef enum
 {
 	TTV_CHAT_MSGTOKEN_TEXT,
-	TTV_CHAT_MSGTOKEN_IMAGE
+	TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE,
+	TTV_CHAT_MSGTOKEN_URL_IMAGE
 
 } TTV_ChatMessageTokenType;
 
@@ -152,7 +151,7 @@ typedef struct
 
 
 /**
- * TTV_ChatImageMessageToken - Information about an image token.
+ * TTV_ChatTextureImageMessageToken - Information about an image token that is specified by a location in the texture altas.
  */
 typedef struct
 {
@@ -162,7 +161,21 @@ typedef struct
 	uint16_t x2;			//!< The right edge in pixels on the sheet.
 	uint16_t y2;			//!< The bottom edge in pixels on the sheet.
 
-} TTV_ChatImageMessageToken;
+} TTV_ChatTextureImageMessageToken;
+
+
+#define kMaxChatImageUrlLength 139
+
+/**
+ * TTV_ChatUrlImageMessageToken - Information about an image token that is specified by a URL.
+ */
+typedef struct
+{
+	utf8char url[kMaxChatImageUrlLength+1];		//!< The URL of the image.
+	uint16_t width;								//!< The width of the image in pixels.
+	uint16_t height;							//!< The height of the image in pixels.
+
+} TTV_ChatUrlImageMessageToken;
 
 
 /**
@@ -175,7 +188,8 @@ typedef struct
 	union
 	{
 		TTV_ChatTextMessageToken text;
-		TTV_ChatImageMessageToken image;
+		TTV_ChatTextureImageMessageToken textureImage;
+		TTV_ChatUrlImageMessageToken urlImage;
 	} data;
 	
 } TTV_ChatMessageToken;
@@ -192,8 +206,20 @@ typedef struct
 	uint32_t nameColorARGB;								//!< The current ARGB color of the user's name text.
  	TTV_ChatMessageToken* tokenList;					//!< The array of message tokens.
 	uint32_t tokenCount;								//!< The number of entries in tokenList.
+	bool action;										//!< Whether or not the message is an action.  If true, it should be displayed entirely in the name text color and of the form "<userName> <message>".
 
 } TTV_ChatTokenizedMessage;
+
+
+/**
+ * TTV_ChatTokenizedMessageList - A list of chat messages which have been tokenized.
+ */
+typedef struct
+{
+	TTV_ChatTokenizedMessage* messageList;			//!< The ordered array of tokenized chat messages.
+	uint32_t messageCount;							//!< The number of messages in the list.
+
+} TTV_ChatTokenizedMessageList;
 
 
 /**
@@ -225,12 +251,12 @@ typedef struct
  */
 typedef struct
 {
-	TTV_ChatImageMessageToken turboIcon;
-	TTV_ChatImageMessageToken channelSubscriberIcon;
-	TTV_ChatImageMessageToken broadcasterIcon;
-	TTV_ChatImageMessageToken staffIcon;
-	TTV_ChatImageMessageToken adminIcon;
-	TTV_ChatImageMessageToken moderatorIcon;
+	TTV_ChatMessageToken turboIcon;
+	TTV_ChatMessageToken channelSubscriberIcon;
+	TTV_ChatMessageToken broadcasterIcon;
+	TTV_ChatMessageToken staffIcon;
+	TTV_ChatMessageToken adminIcon;
+	TTV_ChatMessageToken moderatorIcon;
 
 } TTV_ChatBadgeData;
 
@@ -292,13 +318,19 @@ typedef void (*TTV_ChatChannelUserChangeCallback) (const TTV_ChatUserList* joinL
 typedef void (*TTV_ChatQueryChannelUsersCallback) (const TTV_ChatUserList* userList, void* userdata);
 
 /**
- * Callback signature for notifications of a message event occurring in chat.  This list is freed automatically when the call to the callback returns
+ * Callback signature for notifications of a raw message event occurring in chat.  This list is freed automatically when the call to the callback returns
  * so be sure not to retain a reference to the list.
  *
  * @param messageList The list of messages.
  * @param userdata The userdata specified in TTV_ChatCallbacks.
  */
 typedef void (*TTV_ChatChannelMessageCallback) (const TTV_ChatMessageList* messageList, void* userdata);
+
+/**
+ * Callback signature for notifications of a tokenized message event occurring in chat.  This list is NOT freed automatically when the call to the callback returns
+ * so be sure to call TTV_Chat_FreeTokenizedMessageList when done with the list.
+ */
+typedef void (*TTV_ChatChannelTokenizedMessageCallback) (const TTV_ChatTokenizedMessageList* messageList, void* userdata);
 
 /**
  * Callback signature for notifications that the chatroom should be cleared.
@@ -317,15 +349,16 @@ typedef void (*TTV_ChatClearCallback) (const utf8char* channelName, void* userda
 typedef void (*TTV_EmoticonDataDownloadCallback) (TTV_ErrorCode error, void* userdata);
 
 /**
- * TTV_ChatCallbacks - The set of callbacks to call for notifications from the chat subsystem.
+ * TTV_ChatCallbacks - The set of callbacks to call for notifications from the chat subsystem.  Either messageCallback or tokenizedMessageCallback must not be NULL.
  */
 typedef struct
 {
-	TTV_ChatStatusCallback				statusCallback;			//!< The callback to call for connection and disconnection events from the chat service. Cannot be NULL.
-	TTV_ChatChannelMembershipCallback	membershipCallback;		//!< The callback to call when the local user joins or leaves a channel. Cannot be NULL.
-	TTV_ChatChannelUserChangeCallback	userCallback;			//!< The callback to call when other users join or leave a channel. This may be NULL.
-	TTV_ChatChannelMessageCallback		messageCallback;		//!< The callback to call when a message is received on a channel. Cannot be NULL.
-	TTV_ChatClearCallback				clearCallback;			//!< The callback to call when the chatroom should be cleared. Can be NULL.
-	void*								unsolicitedUserData;	//!< The userdata to pass in the callbacks.
+	TTV_ChatStatusCallback					statusCallback;				//!< The callback to call for connection and disconnection events from the chat service. Cannot be NULL.
+	TTV_ChatChannelMembershipCallback		membershipCallback;			//!< The callback to call when the local user joins or leaves a channel. Cannot be NULL.
+	TTV_ChatChannelUserChangeCallback		userCallback;				//!< The callback to call when other users join or leave a channel. This may be NULL.
+	TTV_ChatChannelMessageCallback			messageCallback;			//!< The callback to call when raw messages are received on a channel. 
+	TTV_ChatChannelTokenizedMessageCallback	tokenizedMessageCallback;	//!< The callback to call when tokenized messages are received on a channel. 
+	TTV_ChatClearCallback					clearCallback;				//!< The callback to call when the chatroom should be cleared. Can be NULL.
+	void*									unsolicitedUserData;		//!< The userdata to pass in the callbacks.
 
 } TTV_ChatCallbacks;

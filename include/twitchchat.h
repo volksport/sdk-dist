@@ -132,28 +132,19 @@ TTV_ErrorCode TTV_Chat_FlushEvents();
 TTV_ErrorCode TTV_Chat_FreeUserList(const TTV_ChatUserList* userList);
 
 /**
- * TTV_Chat_TokenizeMessage - Takes a raw text message, parses it and breaks it into tokens which makes it easier to render messages with embedded emoticons.
- *							  Badges for the sending user can be rendered using TTV_ChatBadgeData obtained from a call to TTV_Chat_GetBadgeData.
+ * TTV_Chat_FreeTokenizedMessageList - Frees the memory allocated from by TTV_ChatChannelTokenizedMessageCallback.
  *
- * @param[in] message - The message to tokenize.
- * @param[out] tokenizedMessage - The data for the tokenized message.  This must be freed by calling TTV_Chat_FreeTokenizeMessage.
- * @return - TTV_EC_SUCCESS if function succeeds, TTV_EC_INVALID_ARG if the message is not valid.
+ * @param[in] tokenizedMessageList - The list to free.
+ * @return - TTV_EC_SUCCESS if function succeeds, TTV_EC_INVALID_ARG if the list is not expected.
  */
-TTV_ErrorCode TTV_Chat_TokenizeMessage(const TTV_ChatMessage* message, TTV_ChatTokenizedMessage** tokenizedMessage);
-
-/**
- * TTV_Chat_FreeTokenizedMessage - Frees the memory allocated during a call to TTV_Chat_TokenizeMessage.
- *
- * @param[in] tokenizedMessage - The data to free.
- * @return - TTV_EC_SUCCESS if function succeeds, TTV_EC_INVALID_ARG if the message is not expected.
- */
-TTV_ErrorCode TTV_Chat_FreeTokenizedMessage(TTV_ChatTokenizedMessage* tokenizedMessage);
+TTV_ErrorCode TTV_Chat_FreeTokenizedMessageList(const TTV_ChatTokenizedMessageList* tokenizedMessageList);
 
 /**
  * TTV_Chat_DownloadEmoticonData - Initiates a download of the emoticon data.  This will trigger a redownload if called a second time.  The callback will be called
  *								   to indicate the success of the download.  Call TTV_Chat_GetEmoticonDatato retrieve the data after it has 
  *								   been downloaded.
  *
+ * @param[in] createTextureAtlas - Whether or not to download images and create a texture atlas.
  * @param[in] callback - The callback to call when the emoticon data has finished downloading and is prepared for use.
  * @param[in] userdata - The userdata to pass back in the callback.
  * @return - TTV_EC_SUCCESS if function succeeds
@@ -161,7 +152,7 @@ TTV_ErrorCode TTV_Chat_FreeTokenizedMessage(TTV_ChatTokenizedMessage* tokenizedM
  *			 TTV_EC_CHAT_EMOTICON_DATA_LOCKED if the data has been locked by a call to TTV_Chat_GetEmoticonData and has not yet been freed by TTV_Chat_FreeEmoticonData.
  *			 TTV_EC_INVALID_ARG if an invalid callback.
  */
-TTV_ErrorCode TTV_Chat_DownloadEmoticonData(TTV_EmoticonDataDownloadCallback callback, void* userdata);
+TTV_ErrorCode TTV_Chat_DownloadEmoticonData(bool createTextureAtlas, TTV_EmoticonDataDownloadCallback callback, void* userdata);
 
 /**
  * TTV_Chat_GetEmoticonData - Retrieves the texture information and badge info after it has been downloaded and prepared. When done with this data be sure 

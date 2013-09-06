@@ -62,15 +62,17 @@ struct EmoticonTextureData
 
 struct ChatLine
 {
-	TTV_ChatTokenizedMessage* tokenizedMessage;
+	const TTV_ChatTokenizedMessageList* list;
+	int index;
 	FontData* font;
 
 	~ChatLine()
 	{
-		if (tokenizedMessage)
+		// deleting the last message in this message list so free it
+		if (list && index == list->messageCount-1)
 		{
-			TTV_Chat_FreeTokenizedMessage(tokenizedMessage);
-			tokenizedMessage = nullptr;
+			TTV_Chat_FreeTokenizedMessageList(list);
+			list = nullptr;
 		}
 	}
 };
@@ -98,6 +100,10 @@ static D3DXMATRIX gScreenProjectionMatrix;						// The orthographic screen proje
 static FontData gNormalFont;
 static FontData gBoldFont;
 static TTV_ChatBadgeData gBadgeData;
+
+static TTV_ChatTokenizedMessageList gInputTokenizedMessageList;
+static TTV_ChatTokenizedMessage gInputTokenizedMessage;
+static TTV_ChatMessageToken gInputToken;
 
 static std::vector<QuadVertex> gVertices;					// Scratch buffer to save frequent allocations.
 static std::list< std::shared_ptr<ChatLine> > gChatLines;
@@ -190,12 +196,12 @@ void InitializeChatRenderer(unsigned int windowWidth, unsigned int windowHeight)
 	gTextureQuadVertexBuffer->Unlock();
 
 	// mark the badges as invalid
-	gBadgeData.adminIcon.sheetIndex = -1;
-	gBadgeData.broadcasterIcon.sheetIndex = -1;
-	gBadgeData.channelSubscriberIcon.sheetIndex = -1;
-	gBadgeData.moderatorIcon.sheetIndex = -1;
-	gBadgeData.staffIcon.sheetIndex = -1;
-	gBadgeData.turboIcon.sheetIndex = -1;
+	gBadgeData.adminIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.broadcasterIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.channelSubscriberIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.moderatorIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.staffIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.turboIcon.data.textureImage.sheetIndex = -1;
 }
 
 
@@ -476,82 +482,98 @@ int RenderString(int left, int bottom, unsigned int rgba, FontData& font, const 
 }
 
 
-int RenderEmoticon(int left, int bottom, FontData& font, const TTV_ChatImageMessageToken* token)
+int RenderEmoticon(int left, int bottom, FontData& font, const TTV_ChatMessageToken* token)
 {
-	if (token->sheetIndex < 0)
+	if (token->type == TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE)
 	{
+		const TTV_ChatTextureImageMessageToken& image = token->data.textureImage;
+		if (image.sheetIndex < 0)
+		{
+			return left;
+		}
+
+		// get the texture
+		EmoticonTextureData& data = gEmoticonTextures[image.sheetIndex];
+		if (data.texture == nullptr)
+		{
+			return left;
+		}
+
+		float width = static_cast<float>(image.x2 - image.x1);
+		float height = static_cast<float>(image.y2 - image.y1);
+
+		float lineHeight =  static_cast<float>(font.pixelHeight) * 0.75f; // the rough actual height of text
+
+		float x = static_cast<float>(left);
+		float y = static_cast<float>(bottom + (lineHeight-height)/2);
+		int v = 0;
+
+		gVertices.resize(6);
+
+		// bottom-left
+		gVertices[v].tx = static_cast<float>(image.x1) / data.width;
+		gVertices[v].ty = static_cast<float>(image.y2) / data.height;
+		gVertices[v].v.x = x;
+		gVertices[v].v.y = y;
+		gVertices[v].v.z = 1;
+		gVertices[v].c = 0xFFFFFFFF;
+		v++;
+
+		// top-left
+		gVertices[v].tx = static_cast<float>(image.x1) / data.width;
+		gVertices[v].ty = static_cast<float>(image.y1) / data.height;
+		gVertices[v].v.x = x;
+		gVertices[v].v.y = y + height;
+		gVertices[v].v.z = 1;
+		gVertices[v].c = 0xFFFFFFFF;
+		v++;
+
+		// top-right
+		gVertices[v].tx = static_cast<float>(image.x2) / data.width;
+		gVertices[v].ty = static_cast<float>(image.y1) / data.height;
+		gVertices[v].v.x = x + width;
+		gVertices[v].v.y = y + height;
+		gVertices[v].v.z = 1;
+		gVertices[v].c = 0xFFFFFFFF;
+		v++;
+
+		gVertices[v] = gVertices[v-3];
+		v++;
+
+		gVertices[v] = gVertices[v-2];
+		v++;
+
+		// bottom-right
+		gVertices[v].tx = static_cast<float>(image.x2) / data.width;
+		gVertices[v].ty = static_cast<float>(image.y2) / data.height;
+		gVertices[v].v.x = x + width;
+		gVertices[v].v.y = y;
+		gVertices[v].v.z = 1;
+		gVertices[v].c = 0xFFFFFFFF;
+		v++;
+
+		// render the image
+		gGraphicsDevice->SetFVF(FONT_QUAD_VERTEX_FVF);
+		gGraphicsDevice->SetTexture(0, data.texture);
+		gGraphicsDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, gVertices.data(), sizeof(QuadVertex));
+		gGraphicsDevice->SetTexture(0, nullptr);
+
+		x += width + kBadgeSpacing;
+
+		return static_cast<int>(x);
+	}
+	else if (token->type == TTV_CHAT_MSGTOKEN_URL_IMAGE)
+	{
+		left = RenderString(left, bottom, KWhiteColor, font, "[");
+		left = RenderString(left, bottom, KWhiteColor, font, token->data.urlImage.url);
+		left = RenderString(left, bottom, KWhiteColor, font, "]");
 		return left;
 	}
-
-	// get the texture
-	EmoticonTextureData& data = gEmoticonTextures[token->sheetIndex];
-	if (data.texture == nullptr)
+	else
 	{
+		assert(false);
 		return left;
 	}
-
-	float width = static_cast<float>(token->x2 - token->x1);
-	float height = static_cast<float>(token->y2 - token->y1);
-
-	float lineHeight =  static_cast<float>(font.pixelHeight) * 0.75f; // the rough actual height of text
-
-	float x = static_cast<float>(left);
-	float y = static_cast<float>(bottom + (lineHeight-height)/2);
-	int v = 0;
-
-	gVertices.resize(6);
-
-	// bottom-left
-	gVertices[v].tx = static_cast<float>(token->x1) / data.width;
-	gVertices[v].ty = static_cast<float>(token->y2) / data.height;
-	gVertices[v].v.x = x;
-	gVertices[v].v.y = y;
-	gVertices[v].v.z = 1;
-	gVertices[v].c = 0xFFFFFFFF;
-	v++;
-
-	// top-left
-	gVertices[v].tx = static_cast<float>(token->x1) / data.width;
-	gVertices[v].ty = static_cast<float>(token->y1) / data.height;
-	gVertices[v].v.x = x;
-	gVertices[v].v.y = y + height;
-	gVertices[v].v.z = 1;
-	gVertices[v].c = 0xFFFFFFFF;
-	v++;
-
-	// top-right
-	gVertices[v].tx = static_cast<float>(token->x2) / data.width;
-	gVertices[v].ty = static_cast<float>(token->y1) / data.height;
-	gVertices[v].v.x = x + width;
-	gVertices[v].v.y = y + height;
-	gVertices[v].v.z = 1;
-	gVertices[v].c = 0xFFFFFFFF;
-	v++;
-
-	gVertices[v] = gVertices[v-3];
-	v++;
-
-	gVertices[v] = gVertices[v-2];
-	v++;
-
-	// bottom-right
-	gVertices[v].tx = static_cast<float>(token->x2) / data.width;
-	gVertices[v].ty = static_cast<float>(token->y2) / data.height;
-	gVertices[v].v.x = x + width;
-	gVertices[v].v.y = y;
-	gVertices[v].v.z = 1;
-	gVertices[v].c = 0xFFFFFFFF;
-	v++;
-
-	// render the image
-	gGraphicsDevice->SetFVF(FONT_QUAD_VERTEX_FVF);
-	gGraphicsDevice->SetTexture(0, data.texture);
-	gGraphicsDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, gVertices.data(), sizeof(QuadVertex));
-	gGraphicsDevice->SetTexture(0, nullptr);
-
-	x += width + kBadgeSpacing;
-
-	return static_cast<int>(x);
 }
 
 
@@ -618,24 +640,22 @@ void UpdateChatUser(const TTV_ChatUserInfo* user)
 }
 
 
-void AddChatMessage(const TTV_ChatMessage* message)
+void AddChatMessages(const TTV_ChatTokenizedMessageList* list)
 {
-	std::shared_ptr<ChatLine> line( new ChatLine() );
-
-	line->font = message->action ? &gBoldFont : &gNormalFont;
-	line->tokenizedMessage = nullptr;
-
-	TTV_ErrorCode ret = TTV_Chat_TokenizeMessage(message, &line->tokenizedMessage);
-	if ( TTV_FAILED(ret) )
+	for (uint32_t i = 0; i< list->messageCount; ++i)
 	{
-		return;
-	}
+		std::shared_ptr<ChatLine> line( new ChatLine() );
 
-	gChatLines.push_back(line);
+		line->font = list->messageList[i].action ? &gBoldFont : &gNormalFont;
+		line->list = list;
+		line->index = i;
 
-	if (gChatLines.size() > gMaxChatLines)
-	{
-		gChatLines.erase( gChatLines.begin() );
+		gChatLines.push_back(line);
+
+		if (gChatLines.size() > gMaxChatLines)
+		{
+			gChatLines.erase( gChatLines.begin() );
+		}
 	}
 }
 
@@ -649,19 +669,20 @@ void BeginChatInput()
 
 	gInputText.reset( new ChatLine() );
 
-	static TTV_ChatTokenizedMessage tokenizedMessage;
-	static TTV_ChatMessageToken token;
-
-	token.type = TTV_CHAT_MSGTOKEN_TEXT;
-	token.data.text.buffer[0] = '\0';
+	gInputToken.type = TTV_CHAT_MSGTOKEN_TEXT;
+	gInputToken.data.text.buffer[0] = '\0';
 
 	gInputText->font = &gNormalFont;
 
-	gInputText->tokenizedMessage = &tokenizedMessage;
-	gInputText->tokenizedMessage->tokenCount = 1;
-	gInputText->tokenizedMessage->tokenList = &token;
-	gInputText->tokenizedMessage->nameColorARGB = 0xFFFFFFFF;
-	sprintf_s(gInputText->tokenizedMessage->displayName, sizeof(gInputText->tokenizedMessage->displayName), ">");
+	gInputText->list = &gInputTokenizedMessageList;
+	gInputText->index = 0;
+	gInputTokenizedMessageList.messageCount = 1;
+	gInputTokenizedMessageList.messageList = &gInputTokenizedMessage;
+	gInputTokenizedMessage.tokenList = &gInputToken;
+	gInputTokenizedMessage.tokenCount = 1;
+	gInputTokenizedMessage.nameColorARGB = 0xFFFFFFFF;
+	gInputTokenizedMessage.action = false;
+	sprintf_s(gInputTokenizedMessage.displayName, sizeof(gInputTokenizedMessage.displayName), ">");
 }
 
 
@@ -672,7 +693,7 @@ void AppendChatInput(char ch)
 		return;
 	}
 
-	int len = strlen(gInputText->tokenizedMessage->tokenList[0].data.text.buffer);
+	int len = strlen(gInputToken.data.text.buffer);
 
 	if (ch == kBackspaceCharacter)
 	{
@@ -681,7 +702,7 @@ void AppendChatInput(char ch)
 			return;
 		}
 
-		gInputText->tokenizedMessage->tokenList[0].data.text.buffer[len-1] = '\0';
+		gInputToken.data.text.buffer[len-1] = '\0';
 	}
 	else
 	{
@@ -690,8 +711,8 @@ void AppendChatInput(char ch)
 			return;
 		}
 
-		gInputText->tokenizedMessage->tokenList[0].data.text.buffer[len] = ch;
-		gInputText->tokenizedMessage->tokenList[0].data.text.buffer[len+1] = '\0';
+		gInputToken.data.text.buffer[len] = ch;
+		gInputToken.data.text.buffer[len+1] = '\0';
 	}
 }
 
@@ -705,11 +726,12 @@ void EndChatInput(bool submit)
 
 	if (submit)
 	{
-		TTV_Chat_SendMessage( gInputText->tokenizedMessage->tokenList[0].data.text.buffer );
+		TTV_Chat_SendMessage( gInputToken.data.text.buffer );
 	}
 
 	// don't try and free the static message used for holding the input
-	gInputText->tokenizedMessage = nullptr;
+	gInputText->list = nullptr;
+	gInputText->index = -1;
 
 	gInputText.reset();
 }
@@ -735,23 +757,25 @@ void ClearChatUsers()
 
 int RenderChatLine(int left, int bottom, std::shared_ptr<ChatLine> line, unsigned int color)
 {
-	// render the badges
-	if (line->tokenizedMessage->modes & TTV_CHAT_USERMODE_BROADCASTER) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.broadcasterIcon);
-	else if (line->tokenizedMessage->modes & TTV_CHAT_USERMODE_MODERATOR) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.moderatorIcon);
+	const TTV_ChatTokenizedMessage& msg = line->list->messageList[line->index];
 
-	if (line->tokenizedMessage->modes & TTV_CHAT_USERMODE_ADMINSTRATOR) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.adminIcon);
-	if (line->tokenizedMessage->modes & TTV_CHAT_USERMODE_STAFF) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.staffIcon);
-	if (line->tokenizedMessage->subscriptions & TTV_CHAT_USERSUB_SUBSCRIBER) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.channelSubscriberIcon);
-	if (line->tokenizedMessage->subscriptions & TTV_CHAT_USERSUB_TURBO) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.turboIcon);
+	// render the badges
+	if (msg.modes & TTV_CHAT_USERMODE_BROADCASTER) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.broadcasterIcon);
+	else if (msg.modes & TTV_CHAT_USERMODE_MODERATOR) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.moderatorIcon);
+
+	if (msg.modes & TTV_CHAT_USERMODE_ADMINSTRATOR) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.adminIcon);
+	if (msg.modes & TTV_CHAT_USERMODE_STAFF) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.staffIcon);
+	if (msg.subscriptions & TTV_CHAT_USERSUB_SUBSCRIBER) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.channelSubscriberIcon);
+	if (msg.subscriptions & TTV_CHAT_USERSUB_TURBO) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.turboIcon);
 
 	// render the username
 	utf8char username[kMaxChatUserNameLength + 8];
-	sprintf_s(username, sizeof(username), line == gInputText ? "%s " : "%s: ", line->tokenizedMessage->displayName);
-	left = RenderString(left, bottom, line->tokenizedMessage->nameColorARGB, *line->font, username);
+	sprintf_s(username, sizeof(username), line == gInputText ? "%s " : "%s: ", msg.displayName);
+	left = RenderString(left, bottom, msg.nameColorARGB, *line->font, username);
 
-	for (size_t t=0; t<line->tokenizedMessage->tokenCount; ++t)
+	for (size_t t=0; t<msg.tokenCount; ++t)
 	{
-		const TTV_ChatMessageToken* token = &line->tokenizedMessage->tokenList[t];
+		const TTV_ChatMessageToken* token = &msg.tokenList[t];
 		switch (token->type)
 		{
 			case TTV_CHAT_MSGTOKEN_TEXT:
@@ -759,14 +783,16 @@ int RenderChatLine(int left, int bottom, std::shared_ptr<ChatLine> line, unsigne
 				left = RenderString(left, bottom, color, *line->font, token->data.text.buffer);
 				break;
 			}
-			case TTV_CHAT_MSGTOKEN_IMAGE:
+			case TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE:
 			{
-				left = RenderEmoticon(left, bottom, *line->font, &token->data.image);
+				left = RenderEmoticon(left, bottom, *line->font, token);
 				break;
 			}
-			default:
+			case TTV_CHAT_MSGTOKEN_URL_IMAGE:
 			{
-				assert(false);
+				left = RenderString(left, bottom, color, *line->font, "[");
+				left = RenderString(left, bottom, color, *line->font, token->data.urlImage.url);
+				left = RenderString(left, bottom, color, *line->font, "]");
 				break;
 			}
 		}
