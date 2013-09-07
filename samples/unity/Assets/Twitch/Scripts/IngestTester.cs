@@ -187,6 +187,18 @@ namespace Twitch.Broadcast
 
             SetTestState(TestState.DoneTestingServer);
         }
+
+        void IStreamCallbacks.SendActionMetaDataCallback(ErrorCode ret)
+        {
+        }
+
+        void IStreamCallbacks.SendStartSpanMetaDataCallback(ErrorCode ret)
+        {
+        }
+
+        void IStreamCallbacks.SendEndSpanMetaDataCallback(ErrorCode ret)
+        {
+        }
     
         #endregion
 

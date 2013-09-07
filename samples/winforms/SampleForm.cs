@@ -47,6 +47,14 @@ namespace WinformsSample
                 mClientSecretText.Text = System.IO.File.ReadAllText(kClientSecret);
             }
 
+            Twitch.Chat.ChatController.EmoticonMode[] arr = (Twitch.Chat.ChatController.EmoticonMode[])Enum.GetValues(typeof(Twitch.Chat.ChatController.EmoticonMode));
+            mEmoticonModeCombobox.Items.Clear();
+            foreach (var i in arr)
+            {
+                mEmoticonModeCombobox.Items.Add(i);
+            }
+            mEmoticonModeCombobox.SelectedIndex = 0;
+
             HandleDisconnected();
 
             mBroadcastController.AuthTokenRequestComplete += this.HandleAuthTokenRequestComplete;
@@ -64,6 +72,8 @@ namespace WinformsSample
             mChatController.Connected += this.HandleConnected;
             mChatController.Disconnected += this.HandleDisconnected;
             mChatController.MessagesCleared += this.HandleClearMessages;
+            mChatController.EmoticonDataAvailable += this.HandleEmoticonDataAvailable;
+            mChatController.EmoticonDataExpired += this.HandleEmoticonDataExpired;
         }
 
         #region Stream
@@ -520,6 +530,7 @@ namespace WinformsSample
         {
             mChatController.AuthToken = mBroadcastController.AuthToken;
             mChatController.UserName = mBroadcastController.UserName;
+            mChatController.EmoticonParsingMode = (Twitch.Chat.ChatController.EmoticonMode)mEmoticonModeCombobox.SelectedItem;
 
             mChatController.Connect(mChatChannelText.Text);
         }
@@ -580,10 +591,16 @@ namespace WinformsSample
                             sb.Append(mt.Message);
                             break;
                         }
-                        case Twitch.Chat.TTV_ChatMessageTokenType.TTV_CHAT_MSGTOKEN_IMAGE:
+                        case Twitch.Chat.TTV_ChatMessageTokenType.TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE:
                         {
-                            Twitch.Chat.ChatImageMessageToken mt = token as Twitch.Chat.ChatImageMessageToken;
-                            sb.Append("[emoticon]");
+                            Twitch.Chat.ChatTextureImageMessageToken mt = token as Twitch.Chat.ChatTextureImageMessageToken;
+                            sb.Append(string.Format("[{0},{1},{2},{3},{4}]", mt.SheetIndex, mt.X1, mt.Y1, mt.X2, mt.Y2));
+                            break;
+                        }
+                        case Twitch.Chat.TTV_ChatMessageTokenType.TTV_CHAT_MSGTOKEN_URL_IMAGE:
+                        {
+                            Twitch.Chat.ChatUrlImageMessageToken mt = token as Twitch.Chat.ChatUrlImageMessageToken;
+                            sb.Append("[").Append(mt.Url).Append("]");
                             break;
                         }
                     }
@@ -629,6 +646,14 @@ namespace WinformsSample
         protected void HandleClearMessages()
         {
             mChatMessagesTextbox.Text = "";
+        }
+
+        protected void HandleEmoticonDataAvailable()
+        {
+        }
+
+        protected void HandleEmoticonDataExpired()
+        {
         }
 
         #endregion

@@ -46,6 +46,7 @@
             this.mChatConnectButton = new System.Windows.Forms.Button();
             this.mChatStatusLabel = new System.Windows.Forms.Label();
             this.StreamTab = new System.Windows.Forms.TabPage();
+            this.mEnableAudioCheckbox = new System.Windows.Forms.CheckBox();
             this.mLoginGroupbox = new System.Windows.Forms.GroupBox();
             this.mSetAuthTokenButton = new System.Windows.Forms.Button();
             this.mRequestAuthTokenButton = new System.Windows.Forms.Button();
@@ -108,7 +109,8 @@
             this.mShutdownButton = new System.Windows.Forms.Button();
             this.mInitButton = new System.Windows.Forms.Button();
             this.Tabs = new System.Windows.Forms.TabControl();
-            this.mEnableAudioCheckbox = new System.Windows.Forms.CheckBox();
+            this.mEmoticonModeCombobox = new System.Windows.Forms.ComboBox();
+            this.label4 = new System.Windows.Forms.Label();
             this.ChatTab.SuspendLayout();
             this.mChatMessagesGroupbox.SuspendLayout();
             this.mChatConnectionGroupbox.SuspendLayout();
@@ -207,6 +209,8 @@
             // 
             // mChatConnectionGroupbox
             // 
+            this.mChatConnectionGroupbox.Controls.Add(this.label4);
+            this.mChatConnectionGroupbox.Controls.Add(this.mEmoticonModeCombobox);
             this.mChatConnectionGroupbox.Controls.Add(this.label9);
             this.mChatConnectionGroupbox.Controls.Add(this.mChatDisconnectButton);
             this.mChatConnectionGroupbox.Controls.Add(this.mChatChannelText);
@@ -294,6 +298,18 @@
             this.StreamTab.TabIndex = 0;
             this.StreamTab.Text = "Stream";
             this.StreamTab.UseVisualStyleBackColor = true;
+            // 
+            // mEnableAudioCheckbox
+            // 
+            this.mEnableAudioCheckbox.AutoSize = true;
+            this.mEnableAudioCheckbox.Checked = true;
+            this.mEnableAudioCheckbox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.mEnableAudioCheckbox.Location = new System.Drawing.Point(182, 291);
+            this.mEnableAudioCheckbox.Name = "mEnableAudioCheckbox";
+            this.mEnableAudioCheckbox.Size = new System.Drawing.Size(89, 17);
+            this.mEnableAudioCheckbox.TabIndex = 65;
+            this.mEnableAudioCheckbox.Text = "Enable Audio";
+            this.mEnableAudioCheckbox.UseVisualStyleBackColor = true;
             // 
             // mLoginGroupbox
             // 
@@ -943,17 +959,23 @@
             this.Tabs.Size = new System.Drawing.Size(886, 740);
             this.Tabs.TabIndex = 6;
             // 
-            // mEnableAudioCheckbox
+            // mEmoticonModeCombobox
             // 
-            this.mEnableAudioCheckbox.AutoSize = true;
-            this.mEnableAudioCheckbox.Checked = true;
-            this.mEnableAudioCheckbox.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.mEnableAudioCheckbox.Location = new System.Drawing.Point(182, 291);
-            this.mEnableAudioCheckbox.Name = "mEnableAudioCheckbox";
-            this.mEnableAudioCheckbox.Size = new System.Drawing.Size(89, 17);
-            this.mEnableAudioCheckbox.TabIndex = 65;
-            this.mEnableAudioCheckbox.Text = "Enable Audio";
-            this.mEnableAudioCheckbox.UseVisualStyleBackColor = true;
+            this.mEmoticonModeCombobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.mEmoticonModeCombobox.FormattingEnabled = true;
+            this.mEmoticonModeCombobox.Location = new System.Drawing.Point(348, 38);
+            this.mEmoticonModeCombobox.Name = "mEmoticonModeCombobox";
+            this.mEmoticonModeCombobox.Size = new System.Drawing.Size(126, 21);
+            this.mEmoticonModeCombobox.TabIndex = 15;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(348, 19);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(81, 13);
+            this.label4.TabIndex = 16;
+            this.label4.Text = "Emoticon Mode";
             // 
             // SampleForm
             // 
@@ -1080,6 +1102,8 @@
         private System.Windows.Forms.Button mChatSendButton;
         private System.Windows.Forms.TextBox mChatInputTextbox;
         private System.Windows.Forms.CheckBox mEnableAudioCheckbox;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.ComboBox mEmoticonModeCombobox;
 
     }
 }

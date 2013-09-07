@@ -12,6 +12,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "twitchsdk", "..\..\twitchsd
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "twitchchat", "..\..\twitchchat\twitchchat.vcxproj", "{77186405-DA32-40B5-BC68-4E805518C2B7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC} = {FF32A37D-6F33-4A64-B433-2D93A79B0CAC}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "twitchcore", "..\..\twitchcore\twitchcore.vcxproj", "{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -95,6 +100,30 @@ Global
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.ReleaseMD|Win32.Build.0 = ReleaseMD|Win32
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.ReleaseMD|x64.ActiveCfg = ReleaseMD|x64
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.ReleaseMD|x64.Build.0 = ReleaseMD|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.debug_bindings|Win32.ActiveCfg = Debug|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.debug_bindings|Win32.Build.0 = Debug|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.debug_bindings|x64.ActiveCfg = Debug|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.debug_bindings|x64.Build.0 = Debug|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Debug|Win32.Build.0 = Debug|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Debug|x64.ActiveCfg = Debug|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Debug|x64.Build.0 = Debug|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.DebugMD|Win32.ActiveCfg = DebugMD|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.DebugMD|Win32.Build.0 = DebugMD|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.DebugMD|x64.ActiveCfg = DebugMD|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.DebugMD|x64.Build.0 = DebugMD|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.release_bindings|Win32.ActiveCfg = ReleaseMD|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.release_bindings|Win32.Build.0 = ReleaseMD|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.release_bindings|x64.ActiveCfg = ReleaseMD|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.release_bindings|x64.Build.0 = ReleaseMD|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|Win32.ActiveCfg = Release|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|Win32.Build.0 = Release|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|x64.ActiveCfg = Release|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|x64.Build.0 = Release|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|Win32.ActiveCfg = ReleaseMD|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|Win32.Build.0 = ReleaseMD|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|x64.ActiveCfg = ReleaseMD|x64
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|x64.Build.0 = ReleaseMD|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

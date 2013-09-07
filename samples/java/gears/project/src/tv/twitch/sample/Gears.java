@@ -73,6 +73,7 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 
 	private int broadcastFramesPerSecond = 30;
 	private String username = "";
+	private String chatChannel = "";
 	private String password = "";
 	private String clientId = "";
 	private String clientSecret = "";
@@ -154,6 +155,7 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 	public void onTokenizedMessagesReceived(ChatTokenizedMessage[] messages)
 	{
         StringBuffer sb = new StringBuffer();
+        
         for (int i = 0; i < messages.length; ++i)
         {
             ChatTokenizedMessage msg = messages[i];
@@ -170,18 +172,24 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
                         sb.append(mt.text);
                         break;
                     }
-                    case TTV_CHAT_MSGTOKEN_IMAGE:
+                    case TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE:
                     {
-                        //ChatImageMessageToken mt = (ChatImageMessageToken)token;
-                        sb.append("[emoticon]");
+                        ChatTextureImageMessageToken mt = (ChatTextureImageMessageToken)token;
+                        sb.append( String.format("[%d,%d,%d,%d,%d]", mt.sheetIndex, mt.x1, mt.y1, mt.x2, mt.y2) );
+                        break;
+                    }
+                    case TTV_CHAT_MSGTOKEN_URL_IMAGE:
+                    {
+                        ChatUrlImageMessageToken mt = (ChatUrlImageMessageToken)token;
+                        sb.append("[").append(mt.url).append("]");
                         break;
                     }
                 }
             }
             sb.append("\n");
-
-            System.out.println(sb.toString());
         }
+
+        System.out.println(sb.toString());
 	}
 
 	public void onRawMessagesReceived(ChatMessage[] messages)
@@ -481,7 +489,7 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 					}
 					else
 					{
-						chatController.connect(username);
+						chatController.connect(chatChannel);
 					}
 				}
 			}
@@ -495,7 +503,7 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 					}
 					else
 					{
-						chatController.connectAnonymous(username);
+						chatController.connectAnonymous(chatChannel);
 					}
 				}
 			}
@@ -661,9 +669,11 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 		
 		chatController = new ChatController();
 		chatController.setListener(this);
+		chatController.setUserName(username);
 		chatController.setAuthToken(broadcastController.getAuthToken());
+		chatController.setEmoticonParsingModeMode(ChatController.EmoticonMode.Url);
 		
-		if (!chatController.connect(username))
+		if (!chatController.connect(chatChannel))
 		{
 			chatController = null;
 		}

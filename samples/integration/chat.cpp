@@ -11,6 +11,8 @@
 #include <assert.h>
 #include <string>
 
+#define USE_TEXTURE_ATLAS 0
+
 extern TTV_AuthToken gAuthToken;
 extern std::string gUserName;
 
@@ -75,14 +77,11 @@ void ChatUserCallback (const TTV_ChatUserList* joinList, const TTV_ChatUserList*
 	TTV_Chat_FreeUserList(userInfoList);
 }
 
-void ChatMessageCallback (const TTV_ChatMessageList* messageList, void* /*userdata*/)
+void ChatTokenizedMessageCallback(const TTV_ChatTokenizedMessageList* messageList, void* /*userdata*/)
 {
 	assert (messageList);
 
-	for (uint i = 0; i < messageList->messageCount; ++i)
-	{
-		AddChatMessage(&messageList->messageList[i]);
-	}
+	AddChatMessages(messageList);
 }
 
 void ChatClearCallback(const utf8char* channelName, void* /*userdata*/)
@@ -106,10 +105,12 @@ void EmoticonDataDownloadCallback(TTV_ErrorCode error, void* /*userdata*/)
 void InitializeChat(const utf8char* channel)
 {
 	TTV_ChatCallbacks chatCallbacks;
+	memset(&chatCallbacks, 0, sizeof(chatCallbacks));
 	chatCallbacks.statusCallback = ChatStatusCallback;
 	chatCallbacks.membershipCallback = ChatMembershipCallback;
 	chatCallbacks.userCallback = ChatUserCallback;
-	chatCallbacks.messageCallback = ChatMessageCallback;
+	chatCallbacks.messageCallback = nullptr;
+	chatCallbacks.tokenizedMessageCallback = ChatTokenizedMessageCallback;
 	chatCallbacks.clearCallback = ChatClearCallback;
 	chatCallbacks.unsolicitedUserData = nullptr;
 
@@ -155,8 +156,7 @@ void FlushChatEvents()
 			ASSERT_ON_ERROR(ret);
 
 			// start downloading the emoticon data
-			ret = TTV_Chat_DownloadEmoticonData(EmoticonDataDownloadCallback, nullptr);
-			ASSERT_ON_ERROR(ret);
+			ret = TTV_Chat_DownloadEmoticonData(USE_TEXTURE_ATLAS != 0, EmoticonDataDownloadCallback, nullptr);			ASSERT_ON_ERROR(ret);
 
 			break;
 		}

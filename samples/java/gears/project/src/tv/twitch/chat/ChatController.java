@@ -21,7 +21,7 @@ import tv.twitch.broadcast.ErrorCode;
  * 
  * Events will fired during the call to CC.Update().  When chat messages are received RawMessagesReceived will be fired.
  * 
- * NOTE: The implementation of emoticon data is not yet complete and currently not available.
+ * NOTE: The implementation of texture emoticon data is not yet complete and currently not available.
  */
 public class ChatController implements IChatCallbacks
 {
@@ -40,15 +40,25 @@ public class ChatController implements IChatCallbacks
     }
 
     /**
+     * The emoticon parsing mode for chat messages.
+     */
+    public enum EmoticonMode
+    {
+    	None,			//!< Do not parse out emoticons in messages.
+    	Url, 			//!< Parse out emoticons and return urls only for images.
+    	TextureAtlas 	//!< Parse out emoticons and return texture atlas coordinates.
+    }
+    
+    /**
      * The listener interface for events from the ChatController. 
      */
     public interface Listener
     {
-//    	/**
-//    	 * The callback signature for the event fired when a tokenized set of messages has been received.
-//    	 * @param messages
-//    	 */
-        //void onTokenizedMessagesReceived(ChatTokenizedMessage[] messages);
+    	/**
+    	 * The callback signature for the event fired when a tokenized set of messages has been received.
+    	 * @param messages
+    	 */
+        void onTokenizedMessagesReceived(ChatTokenizedMessage[] messages);
     	
     	/**
     	 * The callback signature for the event fired when a set of text-only messages has been received.
@@ -109,12 +119,14 @@ public class ChatController implements IChatCallbacks
     protected AuthToken m_AuthToken = new AuthToken();
 
     protected List<ChatUserInfo> m_ChannelUsers = new ArrayList<ChatUserInfo>();
-    protected LinkedList<ChatMessage> m_Messages = new LinkedList<ChatMessage>();
+    protected LinkedList<ChatMessage> m_RawMessages = new LinkedList<ChatMessage>();
+    protected LinkedList<ChatTokenizedMessage> m_TokenizedMessages = new LinkedList<ChatTokenizedMessage>();
     protected int m_MessageHistorySize = 128;
 
-    protected boolean m_UseEmoticons = false;
-    protected boolean m_EmoticonDataDownloaded = false;
-
+    protected EmoticonMode m_EmoticonMode = EmoticonMode.None;
+    protected EmoticonMode m_ActiveEmoticonMode = EmoticonMode.None; 
+    protected ChatEmoticonData m_EmoticonData = null;
+    
     //#endregion
 
 
@@ -202,44 +214,14 @@ public class ChatController implements IChatCallbacks
     {
         for (int i = 0; i < messageList.messageList.length; ++i)
         {
-            m_Messages.addLast(messageList.messageList[i]);
+            m_RawMessages.addLast(messageList.messageList[i]);
         }
 
         try
         {
-        	// TODO: finish emoticons 
-//            if (m_UseEmoticons)
-//            {
-//                if (m_Listener != null)
-//                {
-//                    List<ChatTokenizedMessage> list = new ArrayList<ChatTokenizedMessage>();
-//                    
-//                    for (int i = 0; i < messageList.messageList.length; ++i)
-//                    {
-//                        ChatTokenizedMessage tokenized = null;
-//                        ErrorCode ret = m_Chat.TokenizeMessage(messageList.messageList[i], out tokenized);
-//                        if (ErrorCode.failed(ret) || tokenized == null)
-//                        {
-//                            String err = ErrorCode.getString(ret);
-//                            reportError(String.format("Error disconnecting: %s", err));
-//                        }
-//                        else
-//                        {
-//                            list.add(tokenized);
-//                        }
-//                    }
-//
-//                    ChatTokenizedMessage[] arr = (ChatTokenizedMessage[])list.toArray();
-//
-//                    m_Listener.onTokenizedMessagesReceived(arr);
-//                }
-//            }
-//            else
+            if (m_Listener != null)
             {
-                if (m_Listener != null)
-                {
-                	m_Listener.onRawMessagesReceived(messageList.messageList);
-                }
+            	m_Listener.onRawMessagesReceived(messageList.messageList);
             }
         }
         catch (Exception x)
@@ -248,12 +230,38 @@ public class ChatController implements IChatCallbacks
         }
 
         // cap the number of messages cached
-        while (m_Messages.size() > m_MessageHistorySize)
+        while (m_RawMessages.size() > m_MessageHistorySize)
         {
-            m_Messages.removeFirst();
+            m_RawMessages.removeFirst();
         }
     }
 
+    public void chatChannelTokenizedMessageCallback(ChatTokenizedMessage[] messageList)
+    {
+        for (int i = 0; i < messageList.length; ++i)
+        {
+            m_TokenizedMessages.addLast(messageList[i]);
+        }
+        
+        try
+        {
+            if (m_Listener != null)
+            {
+            	m_Listener.onTokenizedMessagesReceived(messageList);
+            }
+        }
+        catch (Exception x)
+        {
+        	reportError(x.toString());
+        }
+
+        // cap the number of messages cached
+        while (m_TokenizedMessages.size() > m_MessageHistorySize)
+        {
+        	m_TokenizedMessages.removeFirst();
+        }
+    }
+    
     public void chatClearCallback(String channelName)
     {
         clearMessages();
@@ -404,25 +412,46 @@ public class ChatController implements IChatCallbacks
     }
 
     /**
-     * An iterator for the chat messages from oldest to newest.
-     * @return
+     * An iterator for the raw chat messages from oldest to newest.
      */
-    public Iterator<ChatMessage> getMessages()
+    public Iterator<ChatMessage> getRawMessages()
     {
-        return m_Messages.iterator();
+        return m_RawMessages.iterator();
     }
 
-    // TODO: finish emoticon support
-//    public boolean getUseEmoticons()
-//    {
-//        return m_UseEmoticons;
-//    }
-//    public void setUseEmoticons(boolean value)
-//    {
-//        m_UseEmoticons = value;
-//        downloadEmoticonData();
-//    }
+    /**
+     * An iterator for the tokenized chat messages from oldest to newest.
+     */
+    public Iterator<ChatTokenizedMessage> getTokenizedMessages()
+    {
+        return m_TokenizedMessages.iterator();
+    }
 
+    /**
+	 * The emoticon parsing mode for chat messages.  This must be set before connecting to the channel to set the preference until disconnecting.  
+	 * If a texture atlas is selected this will trigger a download of emoticon images to create the atlas.
+     */
+    public EmoticonMode getEmoticonParsingModeMode()
+    {
+    	return m_EmoticonMode;
+    }
+    /**
+	 * The emoticon parsing mode for chat messages.  This must be set before connecting to the channel to set the preference until disconnecting.  
+	 * If a texture atlas is selected this will trigger a download of emoticon images to create the atlas.
+     */
+    public void setEmoticonParsingModeMode(EmoticonMode mode)
+    {
+    	m_EmoticonMode = mode;
+    }
+    
+    /**
+     * Retrieves the emoticon data that can be used to render icons.
+     */
+    public ChatEmoticonData getEmoticonData()
+    {
+    	return m_EmoticonData;
+    }
+    
     //#endregion
 
     public ChatController()
@@ -495,7 +524,8 @@ public class ChatController implements IChatCallbacks
             return false;
         }
 
-        ErrorCode ret = m_Chat.initialize(channel);
+        m_ActiveEmoticonMode = m_EmoticonMode;
+        ErrorCode ret = m_Chat.initialize(channel, m_ActiveEmoticonMode != EmoticonMode.None);
         if (ErrorCode.failed(ret))
         {
             String err = ErrorCode.getString(ret);
@@ -571,7 +601,7 @@ public class ChatController implements IChatCallbacks
                 }
                 else
                 {
-                    ret = m_Chat.connect(m_ChannelName, m_AuthToken.data);
+                    ret = m_Chat.connect(m_UserName, m_AuthToken.data);
                 }
 
                 if (ErrorCode.failed(ret))
@@ -636,7 +666,7 @@ public class ChatController implements IChatCallbacks
      */
     public void clearMessages()
     {
-        m_Messages.clear();
+        m_RawMessages.clear();
 
         try
         {
@@ -689,40 +719,74 @@ public class ChatController implements IChatCallbacks
 
     protected void downloadEmoticonData()
     {
-    	// TODO: 
-//        if (m_UseEmoticons &&
-//            !m_EmoticonDataDownloaded &&
-//            m_ChatInitialized)
-//        {
-//            ErrorCode ret = m_Chat.downloadEmoticonData();
-//            if (ErrorCode.failed(ret))
-//            {
-//                String err = ErrorCode.getString(ret);
-//                reportError(String.format("Error trying to download emoticon data: %s", err));
-//            }
-//        }
+    	// don't download emoticons
+    	if (m_EmoticonMode == EmoticonMode.None)
+    	{
+    		return;
+    	}
+    	
+        if (m_EmoticonData == null &&
+            m_ChatInitialized)
+        {
+            ErrorCode ret = m_Chat.downloadEmoticonData(m_EmoticonMode == EmoticonMode.TextureAtlas);
+            if (ErrorCode.failed(ret))
+            {
+                String err = ErrorCode.getString(ret);
+                reportError(String.format("Error trying to download emoticon data: %s", err));
+            }
+        }
     }
 
     protected void setupEmoticonData()
     {
-    	// TODO: 
-//        m_EmoticonDataDownloaded = true;
-//
-//        if (m_Listener != null)
-//        {
-//        	m_Listener.onEmoticonDataAvailable();
-//        }
+    	if (m_EmoticonData != null)
+    	{
+    		return;
+    	}
+    	
+    	m_EmoticonData = new ChatEmoticonData();
+    	ErrorCode ec = m_Chat.getEmoticonData(m_EmoticonData);
+    	
+        if (ErrorCode.succeeded(ec))
+        {
+        	try
+        	{
+		        if (m_Listener != null)
+		        {
+		        	m_Listener.onEmoticonDataAvailable();
+		        }
+        	}
+        	catch (Exception x)
+        	{
+        		reportError(x.toString());
+        	}
+        }
+        else
+        {
+        	reportError("Error preparing emoticon data: " + ErrorCode.getString(ec));
+        }
     }
 
     protected void cleanupEmoticonData()
     {
-    	// TODO: 
-//        m_EmoticonDataDownloaded = false;
-//
-//        if (m_Listener != null)
-//        {
-//        	m_Listener.onEmoticonDataExpired();
-//        }
+    	if (m_EmoticonData == null)
+    	{
+    		return;
+    	}
+
+    	m_EmoticonData = null;
+        
+    	try
+    	{
+	        if (m_Listener != null)
+	        {
+	        	m_Listener.onEmoticonDataExpired();
+	        }
+    	}
+    	catch (Exception x)
+    	{
+    		reportError(x.toString());
+    	}
     }
 
     //#endregion

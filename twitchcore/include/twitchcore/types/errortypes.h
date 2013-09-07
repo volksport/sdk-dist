@@ -20,6 +20,7 @@
 	DEFINE_TTV_ERROR_CODE(TTV_WRN_DEPRECATED)\
 	DEFINE_TTV_ERROR_CODE(TTV_WRN_CHAT_MESSAGE_SPAM_DISCARDED)			/*!< The client is submitting chat messages too quickly and the message was discarded.*/\
 	DEFINE_TTV_ERROR_CODE(TTV_WRN_WAIT_TIMEOUT)							/*!< a thread wait timed out*/\
+	DEFINE_TTV_ERROR_CODE(TTV_WRN_STREAMINFO_PENDING)					/*!< The stream info is not available from the server, try again in 30 seconds. */\
 	/* SUCCESS */\
 	DEFINE_TTV_ERROR_CODE_VALUE(TTV_EC_SUCCESS, 0)\
 	/***********/\
@@ -268,8 +269,8 @@
 	DEFINE_TTV_ERROR_CODE(TTV_EC_REQUEST_ABORTED)			/*!< The request was aborted and did not finish. */\
 	DEFINE_TTV_ERROR_CODE(TTV_EC_FRAME_QUEUE_TOO_LONG)		/*!< The network is backing up because video settings are too high for the internet connection.  Stop the stream and restart with lower settings. */\
 	DEFINE_TTV_ERROR_CODE(TTV_EC_GRAPHICS_API_ERROR)		/*!< Error in a native graphics API call. */\
-	DEFINE_TTV_ERROR_CODE(TTV_EC_METADATA_CACHE_FULL)		/*!< The local cache of meta data is full and the latest request was not competed. Wait some time until it flushes. */
-
+	DEFINE_TTV_ERROR_CODE(TTV_EC_METADATA_CACHE_FULL)		/*!< The local cache of meta data is full and the latest request was not competed. Wait some time until it flushes. */\
+	DEFINE_TTV_ERROR_CODE(TTV_EC_SOUNDFLOWER_NOT_INSTALLED)	/*!< Mac requires SoundFlower to be installed to capture system audio. */
 
 /**
  * TTV_ErrorCode

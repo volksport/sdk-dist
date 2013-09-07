@@ -8,8 +8,7 @@
 
 - Add the following SDK include directories to your game's include path and include twitchsdk.h:  
 	- /twitchsdk/include  
-	- /twitchsdk/twitchcore/include  
-	- /twitchsdk/twitchchat/include  
+	- /twitchsdk/twitchcore/include
 
 - Add the SDK lib directory to your game's linker include path and add the appropriate twitchsdk lib to your linker input
 
@@ -39,3 +38,8 @@
 - If you get STL linker errors you'll need to set your project setting for "C++ Standard Library" to "libc++ (LLVM C++ standard library with C++11 support)." This won't work for iOS < 5.0
 - Follow the steps for getting your client ID and Secret and whitelisting it as described in the PC section above
 - For audio capture to work, you must initialize your audio session with the kAudioSessionCategory_PlayAndRecord category
+
+###FAQ
+####Why am I getting TTV_EC_API_REQUEST_FAILED when calling TTV_RequestAuthToken or TTV_Login?
+
+You will receive TTV_EC_API_REQUEST_FAILED as an error if you attempt to use a client id you create without first sending it to Twitch for white-listing. Email it to your Twitch contact (or brooke@twitch.tv) to have it approved. Otherwise, sometimes this error can occur randomly because of a communication problem with the Twitch servers. Just try again in these cases.
