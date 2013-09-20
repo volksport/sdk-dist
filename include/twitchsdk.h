@@ -146,7 +146,7 @@ TTVSDK_API TTV_ErrorCode TTV_Start(const TTV_VideoParams* videoParams,
 /**
 * TTV_SubmitVideoFrame - Submit a video frame to be added to the video stream
 * @param[in] frameBuffer - Pointer to the frame buffer. This buffer will be considered "locked"
-					       until the callback is called.
+*                          until the callback is called.
 * @param[in] callback - The callback function to be called when buffer is no longer needed
 * @param[in] userData - Optional pointer to be passed through to the callback function
 * @return - TTV_EC_SUCCESS if function succeeds; error code otherwise
@@ -226,9 +226,9 @@ TTVSDK_API TTV_ErrorCode TTV_SetStreamInfo(const TTV_AuthToken* authToken, const
 * @param[out] userInfo - The user-related information.
 */
 TTVSDK_API TTV_ErrorCode TTV_GetUserInfo(const TTV_AuthToken* authToken,
-                                         TTV_TaskCallback callback,
-                                         void* userData,
-                                         TTV_UserInfo* userInfo);
+										 TTV_TaskCallback callback,
+										 void* userData,
+										 TTV_UserInfo* userInfo);
 
 /**
 * TTV_StreamInfo - Returns stream-related information from Twitch.  If the stream info is not
@@ -241,10 +241,10 @@ TTVSDK_API TTV_ErrorCode TTV_GetUserInfo(const TTV_AuthToken* authToken,
 * @param[out] streamInfo - The stream-related information.
 */
 TTVSDK_API TTV_ErrorCode TTV_GetStreamInfo(const TTV_AuthToken* authToken,
-                                           TTV_TaskCallback callback,
-                                           void* userData,
-                                           const char* channel,
-                                           TTV_StreamInfo* streamInfo);
+										   TTV_TaskCallback callback,
+										   void* userData,
+										   const char* channel,
+										   TTV_StreamInfo* streamInfo);
 
 
 /**

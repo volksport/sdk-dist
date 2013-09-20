@@ -18,10 +18,10 @@ extern "C"
 const int majorVersion = 4;
 
 // Minor version number (automatically set on release)
-const int minorVersion = 11;
+const int minorVersion = 13;
 
 // Identifies the commit in the release branch in the sdk repo
-const char* versionIdentifier = "4911403512809834badf677d30f770bc833c1d52";
+const char* versionIdentifier = "7392d5bc8edd60bd6d21bc3e6a59004c2347b825";
 
 #ifdef __cplusplus
 }

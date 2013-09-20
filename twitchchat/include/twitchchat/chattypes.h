@@ -204,7 +204,7 @@ typedef struct
 	TTV_ChatUserMode modes;								//!< The modes of the user who sent the message.
 	TTV_ChatUserSubscription subscriptions;				//!< The subscriptions of the user who sent the message.
 	uint32_t nameColorARGB;								//!< The current ARGB color of the user's name text.
- 	TTV_ChatMessageToken* tokenList;					//!< The array of message tokens.
+	TTV_ChatMessageToken* tokenList;					//!< The array of message tokens.
 	uint32_t tokenCount;								//!< The number of entries in tokenList.
 	bool action;										//!< Whether or not the message is an action.  If true, it should be displayed entirely in the name text color and of the form "<userName> <message>".
 
