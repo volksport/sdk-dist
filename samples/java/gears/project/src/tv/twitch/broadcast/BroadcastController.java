@@ -996,6 +996,9 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
         // Setup the audio parameters
         m_AudioParams = new AudioParams();
         m_AudioParams.audioEnabled = m_EnableAudio && getIsAudioSupported(); // // only enable audio if possible
+        m_AudioParams.enableMicCapture = m_AudioParams.audioEnabled;
+        m_AudioParams.enablePlaybackCapture = m_AudioParams.audioEnabled;
+		m_AudioParams.enablePassthroughAudio = false;
 
 		if (!allocateBuffers())
 		{

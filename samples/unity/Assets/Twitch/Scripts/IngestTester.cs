@@ -277,6 +277,9 @@ namespace Twitch.Broadcast
 
             m_IngestTestAudioParams = new AudioParams();
             m_IngestTestAudioParams.AudioEnabled = false;
+            m_IngestTestAudioParams.EnableMicCapture = false;
+            m_IngestTestAudioParams.EnablePlaybackCapture = false;
+            m_IngestTestAudioParams.EnablePassthroughAudio = false;
 
             m_IngestBuffers = new List<UIntPtr>();
 

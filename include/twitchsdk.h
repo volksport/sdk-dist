@@ -155,6 +155,23 @@ TTVSDK_API TTV_ErrorCode TTV_SubmitVideoFrame(const uint8_t* frameBuffer,
 											  TTV_BufferUnlockCallback callback,
 											  void* userData);
 
+	
+/**
+* TTV_SubmitAudioSamples - Submit audio samples for the stream. 
+*					** IMPORTANT **
+* The input audio samples must be 2-channel (i.e. Stereo) packed 16-bit PCM, @ 44100 samples/second.
+* It is assumed that the beginning of of the very first buffer of audio samples was captured 
+* at the same point in time as the very first video frame submitted through TTV_SubmitVideoFrame, 
+* and the following samples are assumed to be contiguous. This submitted audio is mixed with
+* any audio captured by the SDK based on flags you have specified in TTV_AudioParams in TTV_Start.
+* For example you can let the SDK do the mic capture and mix it with game audio that you supply here.
+*
+* @param[in] samplesBuffer - Pointer to the buffer hodling the audio samples being submitted.
+* @param[in] numSamples - Number of audio samples in the buffer (total NOT per channel)
+* @return - TTV_EC_SUCCESS if function succeeds; error code otherwise
+*/
+TTVSDK_API TTV_ErrorCode TTV_SubmitAudioSamples(const int16_t* samplesBuffer, uint numSamples);
+
 
 /**
 * TTV_SendActionMetaData - Send a singular action metadata point to Twitch's metadata service

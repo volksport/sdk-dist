@@ -1009,6 +1009,9 @@ namespace Twitch.Broadcast
             // Setup the audio parameters
             m_AudioParams = new AudioParams();
             m_AudioParams.AudioEnabled = this.EnableAudio && this.IsAudioSupported; // only enable audio if possible
+            m_AudioParams.EnableMicCapture = m_AudioParams.AudioEnabled;
+            m_AudioParams.EnablePlaybackCapture = m_AudioParams.AudioEnabled;
+            m_AudioParams.EnablePassthroughAudio = false;
 
             if (!AllocateBuffers())
             {

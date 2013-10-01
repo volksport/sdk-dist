@@ -145,13 +145,17 @@ typedef struct
 {
 	size_t size;						/* Size of the struct */
 	bool audioEnabled;					/* Is audio enabled? */
+	bool enableMicCapture;				/* The SDK will do microphone capture */
+	bool enablePlaybackCapture;			/* The SDK will capture system audio (Not available on all platforms, e.g. iOS) */
+	bool enablePassthroughAudio;		/* The client will supply audio samples directly to the SDK (can be in addition to or instead of playback and/or mic capture) */
 } TTV_AudioParams;
 
 
 typedef enum TTV_AudioDeviceType
 {
-	TTV_PLAYBACK_DEVICE,
-	TTV_RECORDER_DEVICE,
+	TTV_PLAYBACK_DEVICE,				/* System audio capture */
+	TTV_RECORDER_DEVICE,				/* Microphone capture */
+	TTV_PASSTHROUGH_DEVICE,				/* Audio data supplied by the client */
 
 	TTV_DEVICE_NUM
 } TTV_AudioDeviceType;

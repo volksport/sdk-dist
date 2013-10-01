@@ -9,22 +9,13 @@
 #ifndef TTVSDK_TWITCH_VERSION_H
 #define TTVSDK_TWITCH_VERSION_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 // Major version number (manually set)
-const int majorVersion = 4;
+const int kMajorVersion = 4;
 
 // Minor version number (automatically set on release)
-const int minorVersion = 13;
+const int kMinorVersion = 0;
 
 // Identifies the commit in the release branch in the sdk repo
-const char* versionIdentifier = "7392d5bc8edd60bd6d21bc3e6a59004c2347b825";
-
-#ifdef __cplusplus
-}
-#endif
+const char* kVersionIdentifier = "2cc1c64";
 
 #endif /* TTVSDK_TWITCH_VERSION_H */
