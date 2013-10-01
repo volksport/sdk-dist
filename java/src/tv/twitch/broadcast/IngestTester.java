@@ -271,6 +271,9 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
 
         m_IngestTestAudioParams = new AudioParams();
         m_IngestTestAudioParams.audioEnabled = false;
+        m_IngestTestAudioParams.enableMicCapture = false;
+        m_IngestTestAudioParams.enablePlaybackCapture = false;
+        m_IngestTestAudioParams.enablePassthroughAudio = false;
 
         m_IngestBuffers = new ArrayList<FrameBuffer>();
 
