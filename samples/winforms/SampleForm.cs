@@ -5,7 +5,7 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 using ErrorCode = Twitch.ErrorCode;
-using AuthToken = Twitch.Broadcast.AuthToken;
+using AuthToken = Twitch.AuthToken;
 
 namespace WinformsSample
 {
@@ -81,7 +81,7 @@ namespace WinformsSample
         private void InitButton_Click(object sender, EventArgs e)
         {
             mBroadcastController.ClientId = mClientIdText.Text;
-            mBroadcastController.InitializeTwitch();
+            mBroadcastController.Initialize();
 
             System.IO.File.WriteAllText(kClientId, mClientIdText.Text);
             System.IO.File.WriteAllText(kClientSecret, mClientSecretText.Text);
@@ -92,7 +92,7 @@ namespace WinformsSample
 
         private void ShutdownButton_Click(object sender, EventArgs e)
         {
-            mBroadcastController.ShutdownTwitch();
+            mBroadcastController.Shutdown();
         }
 
         private void StreamTasksTimer_Tick(object sender, EventArgs e)
@@ -212,7 +212,12 @@ namespace WinformsSample
         {
             if (mBroadcastController.IsInitialized)
             {
-                mBroadcastController.ShutdownTwitch();
+                mBroadcastController.Shutdown();
+            }
+
+            if (mChatController.IsConnected)
+            {
+                mChatController.Disconnect();
             }
         }
 

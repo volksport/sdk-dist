@@ -274,7 +274,8 @@
 	DEFINE_TTV_ERROR_CODE(TTV_EC_FRAME_QUEUE_TOO_LONG)		/*!< The network is backing up because video settings are too high for the internet connection.  Stop the stream and restart with lower settings. */\
 	DEFINE_TTV_ERROR_CODE(TTV_EC_GRAPHICS_API_ERROR)		/*!< Error in a native graphics API call. */\
 	DEFINE_TTV_ERROR_CODE(TTV_EC_METADATA_CACHE_FULL)		/*!< The local cache of meta data is full and the latest request was not competed. Wait some time until it flushes. */\
-	DEFINE_TTV_ERROR_CODE(TTV_EC_SOUNDFLOWER_NOT_INSTALLED)	/*!< Mac requires SoundFlower to be installed to capture system audio. */
+	DEFINE_TTV_ERROR_CODE(TTV_EC_SOUNDFLOWER_NOT_INSTALLED)	/*!< Mac requires SoundFlower to be installed to capture system audio. */\
+	DEFINE_TTV_ERROR_CODE(TTV_EC_STILL_IN_USE)				/*!< The requested feature is still in use. */\
 
 /**
  * TTV_ErrorCode
@@ -288,12 +289,14 @@ typedef enum
 } TTV_ErrorCode;
 
 
+#define ASSERT_ON_ERROR(err) {assert ( TTV_SUCCEEDED(err) ); }
+#define RETURN_CLIENT_ERROR(errorCode) { ASSERT_ON_ERROR(errorCode);  return errorCode; };
 #define TTV_FAILED(err) ( (err) > TTV_EC_SUCCESS )
 #define TTV_SUCCEEDED(err) ( (err) <= TTV_EC_SUCCESS)
-#define TTV_RETURN_ON_NULL(ptr,err) { if ( (ptr) == nullptr) return err; }
-#define ASSERT_ON_ERROR(err) {assert ( (err) <= TTV_EC_SUCCESS ); }
+#define TTV_RETURN_ON_NULL(ptr,err) { if ( (ptr) == nullptr) RETURN_CLIENT_ERROR(err); }
+#define TTV_RETURN_ON_EMPTY_STRING(str, err) { if (str == nullptr || str == '\0') RETURN_CLIENT_ERROR(err); }
+#define TTV_RETURN_ON_ERROR(err) { if (TTV_FAILED(err)) RETURN_CLIENT_ERROR(err);}
 
 #define TTV_TO_WSA_ERROR(ttv_ec) (int)(ttv_ec-TTV_EC_SOCKET_ERR+WSABASEERR)
 #define WSA_TO_TTV_ERROR(wsa_ec) (TTV_ErrorCode) (wsa_ec-WSABASEERR+TTV_EC_SOCKET_ERR)
 
-#define RETURN_CLIENT_ERROR(errorCode)	assert( !errorCode );  return errorCode;

@@ -11,7 +11,7 @@
 #include <assert.h>
 #include <string>
 
-#define USE_TEXTURE_ATLAS 0
+#define USE_TEXTURE_ATLAS 1
 
 extern TTV_AuthToken gAuthToken;
 extern std::string gUserName;
@@ -156,7 +156,8 @@ void FlushChatEvents()
 			ASSERT_ON_ERROR(ret);
 
 			// start downloading the emoticon data
-			ret = TTV_Chat_DownloadEmoticonData(USE_TEXTURE_ATLAS != 0, EmoticonDataDownloadCallback, nullptr);			ASSERT_ON_ERROR(ret);
+			ret = TTV_Chat_DownloadEmoticonData(USE_TEXTURE_ATLAS != 0, EmoticonDataDownloadCallback, nullptr);
+			ASSERT_ON_ERROR(ret);
 
 			break;
 		}

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using Twitch;
 using Twitch.Broadcast;
 using ErrorCode = Twitch.ErrorCode;
 
@@ -207,14 +208,14 @@ public class BroadcastGUI : MonoBehaviour
 
         if (init)
 		{
-            if (!m_BroadcastController.InitializeTwitch())
+            if (!m_BroadcastController.Initialize())
             {
                 DebugOverlay.Instance.AddViewportText("Error initializing Twitch", 2);
             }
 		}
         else if (shutdown)
 		{
-            m_BroadcastController.ShutdownTwitch();
+            m_BroadcastController.Shutdown();
 		}
         else if (start)
 		{
@@ -337,7 +338,7 @@ public class BroadcastGUI : MonoBehaviour
 	{
 		if (m_BroadcastController.IsInitialized)
 		{
-			m_BroadcastController.ShutdownTwitch();
+			m_BroadcastController.Shutdown();
 		}
 
 		m_BroadcastController.AuthTokenRequestComplete -= HandleAuthTokenRequestComplete;

@@ -252,7 +252,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 	TTV_ErrorCode ret = TTV_Init(
 		&memCallbacks, 
 		gClientId,		
-		TTV_VID_ENC_INTEL, 
 		_T(""));
 	ASSERT_ON_ERROR(ret);
 

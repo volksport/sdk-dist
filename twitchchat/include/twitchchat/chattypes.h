@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "twitchcore/types/coretypes.h"
 #include "twitchcore/types/errortypes.h"
+#include "twitchcore/types/coretypes.h"
 
 /**
  * TTV_ChatEvent - The various events coming from the chat system.

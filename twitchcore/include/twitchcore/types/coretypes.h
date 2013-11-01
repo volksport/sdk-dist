@@ -11,6 +11,12 @@
 #include <stdint.h>
 #include <cstddef>
 
+#if TTV_PLATFORM_MAC
+#	define TTVSDK_API __attribute__((visibility("default")))
+#else
+#	define TTVSDK_API
+#endif
+
 /**
  * Specifies that the string is encoded as UTF-8.
  */

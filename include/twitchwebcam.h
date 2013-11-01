@@ -237,7 +237,7 @@ typedef struct
  *
  * @return TTV_EC_SUCCESS, TTV_EC_ALREADY_INITIALIZED, TTV_EC_INVALID_ARG.
  */
-TTV_ErrorCode TTV_WebCam_Init(const TTV_WebCamCallbacks* interruptCallbacks, TTV_WebCamInitializationCallback initCallback, void* userdata);
+TTVSDK_API TTV_ErrorCode TTV_WebCam_Init(const TTV_WebCamCallbacks* interruptCallbacks, TTV_WebCamInitializationCallback initCallback, void* userdata);
 
 /**
  * TTV_WebCam_Shutdown - Shuts down and cleans up the internals of the webcam system.
@@ -247,39 +247,39 @@ TTV_ErrorCode TTV_WebCam_Init(const TTV_WebCamCallbacks* interruptCallbacks, TTV
  *
  * @return TTV_EC_SUCCESS, TTV_EC_NOT_INITIALIZED.
  */
-TTV_ErrorCode TTV_WebCam_Shutdown(TTV_WebCamShutdownCallback callback, void* userdata);
+TTVSDK_API TTV_ErrorCode TTV_WebCam_Shutdown(TTV_WebCamShutdownCallback callback, void* userdata);
 
 /**
  * TTV_WebCam_Start - Begins capturing from the named device.  The unique id of the device can be obtained from a call to TTV_WebCam_GetDevices.  The callback will
  *					  be called when the start has been processed.  When capturing starts the frameReadyCallback in the configured interruptCallbacks will be 
  *					  called periodically with the latest frame from the device.
  *
- * @param uniqueId The unique identifer of the device which can be found in the TTV_WebCamDevice struct.  
+ * @param deviceIndex The unique identifer of the device which can be found in the TTV_WebCamDevice struct.  
  * @param capabilityIndex The index of the parameters to use when capturing frames from the device.
  * @param callback The callback to call when capturing begins.
  * @param userdata The data to pass to the callback.
  *
  * @return TTV_EC_SUCCESS, TTV_EC_NOT_INITIALIZED.
  */
-TTV_ErrorCode TTV_WebCam_Start(int deviceIndex, int capabilityIndex, TTV_WebCamDeviceStatusCallback callback, void* userdata);
+TTVSDK_API TTV_ErrorCode TTV_WebCam_Start(int deviceIndex, int capabilityIndex, TTV_WebCamDeviceStatusCallback callback, void* userdata);
 
 /**
  * TTV_WebCam_Stop - Stops the capturing of frames from the device. The callback will be called when the start has been processed.
  *
- * @param uniqueId The unique identifer of the device which can be found in the TTV_WebCamDevice struct.  
+ * @param deviceIndex The unique identifer of the device which can be found in the TTV_WebCamDevice struct.  
  * @param callback The callback to call when capturing begins.
  * @param userdata The data to pass to the callback.
  *
  * @return TTV_EC_SUCCESS, TTV_EC_NOT_INITIALIZED.
  */
-TTV_ErrorCode TTV_WebCam_Stop(int deviceIndex, TTV_WebCamDeviceStatusCallback callback, void* userdata);
+TTVSDK_API TTV_ErrorCode TTV_WebCam_Stop(int deviceIndex, TTV_WebCamDeviceStatusCallback callback, void* userdata);
 
 /**
  * TTV_WebCam_FlushEvents - Causes callbacks from the webcam system to be flushed to the client.  This should be called very frequently (once per game frame ideally).
  *
  * @return TTV_EC_SUCCESS, TTV_EC_NOT_INITIALIZED.
  */
-TTV_ErrorCode TTV_WebCam_FlushEvents();
+TTVSDK_API TTV_ErrorCode TTV_WebCam_FlushEvents();
 
 /**
  * TTV_WebCam_IsFrameAvailable - Determines if there is a new frame available for the given device.
@@ -289,7 +289,7 @@ TTV_ErrorCode TTV_WebCam_FlushEvents();
  *
  * @return TTV_EC_SUCCESS, TTV_EC_NOT_INITIALIZED.
  */
-TTV_ErrorCode TTV_WebCam_IsFrameAvailable(int deviceIndex, bool* available);
+TTVSDK_API TTV_ErrorCode TTV_WebCam_IsFrameAvailable(int deviceIndex, bool* available);
 	
 /**
  * TTV_WebCam_GetFrame - Fills the given buffer with the contents of the next available frame.
@@ -306,7 +306,7 @@ TTV_ErrorCode TTV_WebCam_IsFrameAvailable(int deviceIndex, bool* available);
  *
  * @return TTV_EC_SUCCESS, TTV_EC_NOT_INITIALIZED.
  */
-TTV_ErrorCode TTV_WebCam_GetFrame(int deviceIndex, void* buffer, unsigned int pitch);
+TTVSDK_API TTV_ErrorCode TTV_WebCam_GetFrame(int deviceIndex, void* buffer, unsigned int pitch);
 
 
 #ifdef __cplusplus

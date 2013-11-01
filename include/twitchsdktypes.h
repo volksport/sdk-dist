@@ -12,11 +12,6 @@
 #include "errno.h"
 #include "twitchcore/types/coretypes.h"
 
-#if TTV_PLATFORM_MAC
-#	define TTVSDK_API __attribute__((visibility("default")))
-#else
-#	define TTVSDK_API
-#endif
 
 /**
  * TTV_AuthParams - Authentication parameters for broadcasting on Twitch. A broadcast key is ultimately needed; but it may be obtained by using username/password.
@@ -85,6 +80,7 @@ typedef enum
  */
 typedef enum
 {
+	TTV_VID_ENC_DISABLE = -2,
 	TTV_VID_ENC_DEFAULT = -1,
 
 	TTV_VID_ENC_INTEL = 0,
@@ -98,6 +94,9 @@ typedef enum
 #define TTV_MAX_FPS		60
 #define TTV_MAX_WIDTH	1920				/* Width and height must be multiples of 16 */
 #define TTV_MAX_HEIGHT	1200
+
+static_assert(TTV_MAX_WIDTH % 32 == 0, "TTV_MAX_WIDTH must be a multiple of 32");
+static_assert(TTV_MAX_HEIGHT % 16 == 0, "TTV_MAX_HEIGHT must be a multiple of 16");
 
 /**
  * TTV_VideoParams - Video parameters

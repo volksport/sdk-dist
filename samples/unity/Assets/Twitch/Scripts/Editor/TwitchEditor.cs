@@ -60,7 +60,7 @@ namespace Twitch
 		protected static void GrabBinaries(string platform, bool debug)
 		{
             string TWITCHSDK_PLATFORM = platform == "x86" ? "win32" : "x64";
-            string TWITCHSDK_CONFIG = debug ? "debug_bindings" : "release_bindings";
+            string TWITCHSDK_CONFIG = debug ? "DebugBindings" : "ReleaseBindings";
 			string WRAPPER_CONFIG = debug ? "Debug" : "Release";
 
             string UNITY_PLUGIN_DIR = platform == "x86" ? "x86" : "x86_64";

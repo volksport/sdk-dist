@@ -34,7 +34,8 @@ namespace Twitch.Chat
 
         public WinFormsChatController()
         {
-            m_Chat = new Twitch.Chat.Chat(new Twitch.Chat.CoreChatAPI());
+            m_Core = new Twitch.Core(new Twitch.StandardCoreAPI());
+            m_Chat = new Twitch.Chat.Chat(new Twitch.Chat.StandardChatAPI());
         }
 
         #region Error Handling

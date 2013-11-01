@@ -38,8 +38,7 @@ namespace TwitchTvTestXna
             m_BroadcastController.BroadcastStateChanged += MBroadcastControllerOnBroadcastStateChanged;
 
             m_BroadcastController.ClientId = ClientId;
-            m_BroadcastController.CaCertFilePath = @".\curl-ca-bundle.crt";
-            m_BroadcastController.InitializeTwitch();
+            m_BroadcastController.Initialize();
         }
 
         private void MBroadcastControllerOnBroadcastStateChanged(BroadcastController.BroadcastState state)
@@ -148,7 +147,7 @@ namespace TwitchTvTestXna
             if (m_BroadcastController.IsInitialized)
             {
                 m_BroadcastController.SetGraphicsDevice(null);
-                m_BroadcastController.ShutdownTwitch();
+                m_BroadcastController.Shutdown();
             }
             base.OnExiting(sender, args);
         }

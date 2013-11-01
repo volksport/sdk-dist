@@ -22,19 +22,19 @@ extern "C"
 
 
 /**
-* TTV_Init - Initialize the Twitch Broadcasting SDK
+* TTV_Init - Initialize the core Twitch Broadcasting SDK.  This needs to be called before the initialization of any other subsystems.
 *
 * @param[in] memCallbacks - Memory allocation/deallocation callback functions provided by the client. If nullptr, malloc/free will be used
 * @param[in] clientID - The Twitch client ID assigned to your application
-* @param[in] vidEncoder - The video encoder to use
-* @param[in] audioEncoder - The audio encoder to use
+* @param[in] vidEncoder - The video encoder to use or TTV_VID_ENC_DISABLE if you do not intend to use video encoding/broadcasting
 * @param[in] dllPath - [Optional] Windows Only - Path to DLL's to load if no in exe folder (e.g. Intel DLL) 
 * @return - TTV_EC_SUCCESS if function succeeds; error code otherwise
 */
 TTVSDK_API TTV_ErrorCode TTV_Init(const TTV_MemCallbacks* memCallbacks, 
-								  const char* clientID,								  
+								  const char* clientID,
 								  TTV_VideoEncoder vidEncoder,
 								  const wchar_t* dllPath);
+
 
 /**
 * TTV_GetDefaultParams - Fill in the video parameters with default settings based on supplied resolution and target FPS
@@ -339,7 +339,6 @@ TTVSDK_API TTV_ErrorCode TTV_PauseVideo();
 * @return - TTV_EC_SUCCESS if function succeeds; error code otherwise
 */
 TTVSDK_API TTV_ErrorCode TTV_Stop(TTV_TaskCallback callback, void* userData);
-
 
 /**
 * TTV_Shutdown - Shut down the Twitch Broadcasting SDK

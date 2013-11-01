@@ -45,6 +45,9 @@ import org.lwjgl.Sys;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import org.lwjgl.opengl.GLContext;
+
+import tv.twitch.AuthToken;
+import tv.twitch.ErrorCode;
 import tv.twitch.broadcast.*;
 import tv.twitch.chat.*;
 import tv.twitch.broadcast.BroadcastController.BroadcastState;
@@ -646,7 +649,7 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 		
 		broadcastController.setClientId(clientId);
 		broadcastController.setClientSecret(clientSecret);
-		broadcastController.initializeTwitch();
+		broadcastController.initialize();
 	}
 	
 	private void shutdownBroadcasting()
@@ -656,7 +659,7 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 			return;
 		}
 		
-		broadcastController.shutdownTwitch();
+		broadcastController.shutdown();
 		broadcastController.setListener(null);
 	}
 	

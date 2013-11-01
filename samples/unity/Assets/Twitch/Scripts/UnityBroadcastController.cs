@@ -612,6 +612,8 @@ namespace Twitch.Broadcast
         {
             LoadTwitchLibraries();
 
+            m_Core = new Core(new StandardCoreAPI());
+
             if (Application.platform == RuntimePlatform.WindowsEditor ||
                 Application.platform == RuntimePlatform.WindowsPlayer)
             {
@@ -639,12 +641,12 @@ namespace Twitch.Broadcast
 
         protected void OnDestroy()
         {
-            ShutdownTwitch();
+            Shutdown();
 
             // force a low-level shutdown
             if (m_Stream != null)
             {
-                m_Stream.Shutdown();
+                //m_Stream.Shutdown();
             }
         }
 		

@@ -24,14 +24,14 @@ extern "C"
  * @param[in] chatCallbacks - The set of callbacks for receiving chat events.
  * @return - TTV_EC_SUCCESS.
  */
-TTV_ErrorCode TTV_Chat_Init(const utf8char* channelName, const TTV_ChatCallbacks* chatCallbacks);
+TTVSDK_API TTV_ErrorCode TTV_Chat_Init(const utf8char* channelName, const TTV_ChatCallbacks* chatCallbacks);
 
 /**
  * TTV_Chat_Shutdown - Tear down the chat subsystem. Be sure to have freed all outstanding lists before calling this.
  *
  * @return - TTV_EC_SUCCESS.
  */
-TTV_ErrorCode TTV_Chat_Shutdown();
+TTVSDK_API TTV_ErrorCode TTV_Chat_Shutdown();
 
 /**
  * TTV_ChatConnect - Connects to the chat service.  This is an asynchronous call and notification of 
@@ -46,7 +46,7 @@ TTV_ErrorCode TTV_Chat_Shutdown();
  *			 TTV_EC_CHAT_ALREADY_IN_CHANNEL if already in channel.
  *			 TTV_EC_CHAT_LEAVING_CHANNEL if still leaving a channel.
  */
-TTV_ErrorCode TTV_Chat_Connect(const utf8char* username, const char* authToken);
+TTVSDK_API TTV_ErrorCode TTV_Chat_Connect(const utf8char* username, const char* authToken);
 
 /**
  * TTV_Chat_ConnectAnonymous - Connects to the chat service anonymously allowing chat messages to be received but not sent.  This is an asynchronous 
@@ -59,7 +59,7 @@ TTV_ErrorCode TTV_Chat_Connect(const utf8char* username, const char* authToken);
  *			 TTV_EC_CHAT_ALREADY_IN_CHANNEL if already in channel.
  *			 TTV_EC_CHAT_LEAVING_CHANNEL if still leaving a channel.
  */
-TTV_ErrorCode TTV_Chat_ConnectAnonymous();
+TTVSDK_API TTV_ErrorCode TTV_Chat_ConnectAnonymous();
 
 /**
  * TTV_ChatDisconnect - Disconnects from the chat server.  This will automatically remove the user from
@@ -69,7 +69,7 @@ TTV_ErrorCode TTV_Chat_ConnectAnonymous();
  * @return - TTV_EC_SUCCESS if disconnection successful.
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
  */
-TTV_ErrorCode TTV_Chat_Disconnect();
+TTVSDK_API TTV_ErrorCode TTV_Chat_Disconnect();
 
 /**
  * TTV_ChatGetChannelUsers - Retrieves the current users for the named channel.  This is used by both broadcasters and viewers.
@@ -80,7 +80,7 @@ TTV_ErrorCode TTV_Chat_Disconnect();
  *			 TTV_EC_CHAT_NOT_IN_CHANNEL if not in the channel.
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
  */
-TTV_ErrorCode TTV_Chat_GetChannelUsers(TTV_ChatQueryChannelUsersCallback callback);
+TTVSDK_API TTV_ErrorCode TTV_Chat_GetChannelUsers(TTV_ChatQueryChannelUsersCallback callback);
 
 /**
  * TTV_Chat_SendMessage - Sends the given message to the channel.  The user must have joined the channel first.  
@@ -112,7 +112,7 @@ TTV_ErrorCode TTV_Chat_GetChannelUsers(TTV_ChatQueryChannelUsersCallback callbac
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
  *			 TTV_EC_CHAT_ANON_DENIED if connected anonymously.
  */
-TTV_ErrorCode TTV_Chat_SendMessage(const utf8char* message);
+TTVSDK_API TTV_ErrorCode TTV_Chat_SendMessage(const utf8char* message);
 
 /**
  * TTV_ChatFlushEvents - Calls callbacks for all events which has accumulated since the last flush.  This include connects, disconnects,  
@@ -121,7 +121,7 @@ TTV_ErrorCode TTV_Chat_SendMessage(const utf8char* message);
  * @return - TTV_EC_SUCCESS if function succeeds.
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
  */
-TTV_ErrorCode TTV_Chat_FlushEvents();
+TTVSDK_API TTV_ErrorCode TTV_Chat_FlushEvents();
 
 /**
  * TTV_Chat_FreeUserList - Frees the memory for the given user list which was passed to the application during a callback.
@@ -129,7 +129,7 @@ TTV_ErrorCode TTV_Chat_FlushEvents();
  * @param[in] userList - The user list to free.
  * @return - TTV_EC_SUCCESS if function succeeds.
  */
-TTV_ErrorCode TTV_Chat_FreeUserList(const TTV_ChatUserList* userList);
+TTVSDK_API TTV_ErrorCode TTV_Chat_FreeUserList(const TTV_ChatUserList* userList);
 
 /**
  * TTV_Chat_FreeTokenizedMessageList - Frees the memory allocated from by TTV_ChatChannelTokenizedMessageCallback.
@@ -137,7 +137,7 @@ TTV_ErrorCode TTV_Chat_FreeUserList(const TTV_ChatUserList* userList);
  * @param[in] tokenizedMessageList - The list to free.
  * @return - TTV_EC_SUCCESS if function succeeds, TTV_EC_INVALID_ARG if the list is not expected.
  */
-TTV_ErrorCode TTV_Chat_FreeTokenizedMessageList(const TTV_ChatTokenizedMessageList* tokenizedMessageList);
+TTVSDK_API TTV_ErrorCode TTV_Chat_FreeTokenizedMessageList(const TTV_ChatTokenizedMessageList* tokenizedMessageList);
 
 /**
  * TTV_Chat_DownloadEmoticonData - Initiates a download of the emoticon data.  This will trigger a redownload if called a second time.  The callback will be called
@@ -152,27 +152,27 @@ TTV_ErrorCode TTV_Chat_FreeTokenizedMessageList(const TTV_ChatTokenizedMessageLi
  *			 TTV_EC_CHAT_EMOTICON_DATA_LOCKED if the data has been locked by a call to TTV_Chat_GetEmoticonData and has not yet been freed by TTV_Chat_FreeEmoticonData.
  *			 TTV_EC_INVALID_ARG if an invalid callback.
  */
-TTV_ErrorCode TTV_Chat_DownloadEmoticonData(bool createTextureAtlas, TTV_EmoticonDataDownloadCallback callback, void* userdata);
+TTVSDK_API TTV_ErrorCode TTV_Chat_DownloadEmoticonData(bool createTextureAtlas, TTV_EmoticonDataDownloadCallback callback, void* userdata);
 
 /**
  * TTV_Chat_GetEmoticonData - Retrieves the texture information and badge info after it has been downloaded and prepared. When done with this data be sure 
  *							  to call TTV_Chat_FreeEmoticonData to free the memory.  Initiate the download by calling TTV_Chat_DownloadEmoticonData.
  *
- * @param[out] textureSheetList - The texture information that will be returned.
+ * @param[out] data - The emoticon information that will be returned.
  * @return - TTV_EC_SUCCESS if function succeeds.
  *			 TTV_EC_CHAT_EMOTICON_DATA_DOWNLOADING if the data is still downloading.
  *			 TTV_EC_CHAT_EMOTICON_DATA_NOT_READY if the data is not yet ready to be retrieved.  
  */
-TTV_ErrorCode TTV_Chat_GetEmoticonData(TTV_ChatEmoticonData** data);
+TTVSDK_API TTV_ErrorCode TTV_Chat_GetEmoticonData(TTV_ChatEmoticonData** data);
 
 /**
  * TTV_Chat_FreeEmoticonData - Frees the data previously obtained from TTV_Chat_GetEmoticonData.
  *
- * @param[in] textureSheetList - The texture information that will be returned.
+ * @param[in] data - The data to be freed.
  * @return - TTV_EC_SUCCESS if function succeeds.
- *			 TTV_EC_INVALID_ARG if not a previously retrieved list.
+ *			 TTV_EC_INVALID_ARG if not valid data.
  */
-TTV_ErrorCode TTV_Chat_FreeEmoticonData(TTV_ChatEmoticonData* data);
+TTVSDK_API TTV_ErrorCode TTV_Chat_FreeEmoticonData(TTV_ChatEmoticonData* data);
 
 
 #ifdef __cplusplus

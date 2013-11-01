@@ -196,11 +196,17 @@ void InitializeChatRenderer(unsigned int windowWidth, unsigned int windowHeight)
 	gTextureQuadVertexBuffer->Unlock();
 
 	// mark the badges as invalid
+	gBadgeData.adminIcon.type = TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE;
 	gBadgeData.adminIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.broadcasterIcon.type = TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE;
 	gBadgeData.broadcasterIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.channelSubscriberIcon.type = TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE;
 	gBadgeData.channelSubscriberIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.moderatorIcon.type = TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE;
 	gBadgeData.moderatorIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.staffIcon.type = TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE;
 	gBadgeData.staffIcon.data.textureImage.sheetIndex = -1;
+	gBadgeData.turboIcon.type = TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE;
 	gBadgeData.turboIcon.data.textureImage.sheetIndex = -1;
 }
 

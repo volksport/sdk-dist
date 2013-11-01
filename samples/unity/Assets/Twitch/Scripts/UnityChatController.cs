@@ -42,7 +42,8 @@ namespace Twitch.Chat
             // force the twitch libraries to be loaded
             Twitch.Broadcast.UnityBroadcastController.LoadTwitchLibraries();
 
-	        m_Chat = new Chat(new CoreChatAPI());
+            m_Core = new Core(new StandardCoreAPI());
+            m_Chat = new Chat(new StandardChatAPI());
 	    }
 
         protected void OnDestroy()

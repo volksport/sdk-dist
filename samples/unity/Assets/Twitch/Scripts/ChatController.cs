@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Twitch;
+using Twitch;
 using ErrorCode = Twitch.ErrorCode;
-using AuthToken = Twitch.Broadcast.AuthToken;
-
 
 namespace Twitch.Chat
 {
@@ -15,7 +15,6 @@ namespace Twitch.Chat
     /// The typical order of operations a client of CC will take is:
     /// 
     /// - Subscribe for events via delegates on ChatController
-    /// - Initialize BroadcastController via BC.InitializeTwitch()
     /// - Call CC.Connect() / call CC.ConnectAnonymous()
     /// - Wait for the connection callback 
     /// - Call CC.SendChatMessage() to send messages (if not connected anonymously)
@@ -110,6 +109,7 @@ namespace Twitch.Chat
         public event EmoticonDataAvailableDelegate EmoticonDataAvailable;
         public event EmoticonDataExpiredDelegate EmoticonDataExpired;
 
+        protected Twitch.Core m_Core = null;
         protected Twitch.Chat.Chat m_Chat = null;
 
         protected string m_UserName = "";
@@ -307,7 +307,7 @@ namespace Twitch.Chat
         }
 
         /// <summary>
-        /// The AuthToken obtained from using the BroadcastController.
+        /// The AuthToken obtained from using the BroadcastController or some other means.
         /// </summary>
         public AuthToken AuthToken
         {
@@ -462,8 +462,19 @@ namespace Twitch.Chat
                 return false;
             }
 
+            ErrorCode ret = m_Core.Initialize(this.ClientId, VideoEncoder.TTV_VID_ENC_DISABLE, null);
+            if (Error.Failed(ret))
+            {
+                string err = Error.GetString(ret);
+                ReportError(string.Format("Error initializing core: {0}", err));
+
+                FireDisconnected();
+
+                return false;
+            }
+
             m_ActiveEmoticonMode = m_EmoticonMode;
-            ErrorCode ret = m_Chat.Initialize(channel, m_ActiveEmoticonMode != EmoticonMode.None);
+            ret = m_Chat.Initialize(channel, m_ActiveEmoticonMode != EmoticonMode.None);
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
@@ -492,6 +503,15 @@ namespace Twitch.Chat
                 {
                     string err = Error.GetString(ret);
                     ReportError(string.Format("Error shutting down chat: {0}", err));
+
+                    return false;
+                }
+
+                ret = m_Core.Shutdown();
+                if (Error.Failed(ret))
+                {
+                    string err = Error.GetString(ret);
+                    ReportError(string.Format("Error shutting down core: {0}", err));
 
                     return false;
                 }

@@ -2,6 +2,8 @@ package tv.twitch.broadcast;
 
 import java.util.*;
 
+import tv.twitch.*;
+
 
 /**
  * The state machine which manages the broadcasting state.  It provides a high level interface to the SDK libraries.  The BroadcastController (BC) performs many operations
@@ -137,6 +139,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
     protected String m_DllPath = "";
     protected boolean m_EnableAudio = true;
 
+    protected Core m_Core = null;
     protected Stream m_Stream = null;
     protected List<FrameBuffer> m_CaptureBuffers = new ArrayList<FrameBuffer>();
     protected List<FrameBuffer> m_FreeBufferList = new ArrayList<FrameBuffer>();
@@ -656,6 +659,13 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
 
     public BroadcastController()
     {
+    	m_Core = Core.getInstance();
+    	
+    	if (Core.getInstance() == null)
+    	{
+    		m_Core = new Core( new StandardCoreAPI() );
+    	}
+    	
     	m_Stream = new Stream(new DesktopStreamAPI());
     }
     
@@ -667,7 +677,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
     /**
      * Initializes the SDK and the controller.
      */
-    public boolean initializeTwitch()
+    public boolean initialize()
     {
 		if (m_SdkInitialized)
 		{
@@ -682,14 +692,14 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
         
         m_Stream.setStreamCallbacks(this);
         
-        ErrorCode err = m_Stream.initialize(m_ClientId, VideoEncoder.TTV_VID_ENC_DEFAULT, dllPath);
+        ErrorCode err = m_Core.initialize(m_ClientId, VideoEncoder.TTV_VID_ENC_DEFAULT, dllPath);
         if (!checkError(err))
         {
         	m_Stream.setStreamCallbacks(null);
         	return false;
         }
 		
-        err = m_Stream.setTraceLevel(MessageLevel.TTV_ML_ERROR);
+        err = m_Core.setTraceLevel(MessageLevel.TTV_ML_ERROR);
         if (!checkError(err))
         {
         	m_Stream.setStreamCallbacks(null);
@@ -709,7 +719,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
     /**
      * Cleans up and shuts down the SDK and the controller.  This will force broadcasting to terminate and the user to be logged out.
      */
-    public boolean shutdownTwitch()
+    public boolean shutdown()
     {
 		if (!m_SdkInitialized)
 		{
@@ -730,6 +740,9 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
         ErrorCode err = m_Stream.shutdown();
         checkError(err);
 
+        err = m_Core.shutdown();
+        checkError(err);
+        
         m_SdkInitialized = false;
         m_ShuttingDown = false;
 		setBroadcastState(BroadcastState.Uninitialized);

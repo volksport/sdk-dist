@@ -35,12 +35,6 @@ namespace Twitch.Broadcast
             set { m_ClientSecret = value; }
         }
 
-        public override string CaCertFilePath
-        {
-            get { return m_CaCertFilePath; }
-            set { m_CaCertFilePath = value; }
-        }
-
         public override bool EnableAudio
         {
             get { return m_EnableAudio; }
@@ -106,6 +100,7 @@ namespace Twitch.Broadcast
 
         public XnaBroadcastController()
         {
+            m_Core = new Twitch.Core(new Twitch.StandardCoreAPI());
             m_Stream = new Twitch.Broadcast.XnaStream(new Twitch.Broadcast.DesktopXnaStreamAPI());
         }
 

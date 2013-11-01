@@ -1,8 +1,8 @@
 ﻿package tv.twitch.chat;
 
 import java.util.*;
-import tv.twitch.broadcast.AuthToken;
-import tv.twitch.broadcast.ErrorCode;
+
+import tv.twitch.*;
 
 
 /**
@@ -12,7 +12,6 @@ import tv.twitch.broadcast.ErrorCode;
  * The typical order of operations a client of CC will take is:
  * 
  * - Subscribe for events via delegates on ChatController
- * - Initialize BroadcastController via BC.InitializeTwitch()
  * - Call CC.Connect() / call CC.ConnectAnonymous()
  * - Wait for the connection callback 
  * - Call CC.SendChatMessage() to send messages (if not connected anonymously)
@@ -111,6 +110,7 @@ public class ChatController implements IChatCallbacks
     
     protected String m_ClientId = "";
     protected String m_ClientSecret = "";
+    protected Core m_Core = null;
     protected Chat m_Chat = null;
 
     protected boolean m_ChatInitialized = false;
@@ -318,7 +318,7 @@ public class ChatController implements IChatCallbacks
     }
 
     /**
-     * The AuthToken obtained from using the BroadcastController.
+     * The AuthToken obtained from using the BroadcastController or some other means.
      * @return
      */
     public AuthToken getAuthToken()
@@ -456,7 +456,14 @@ public class ChatController implements IChatCallbacks
 
     public ChatController()
     {
-    	m_Chat = new Chat( new CoreChatAPI() );
+    	m_Core = Core.getInstance();
+    	
+    	if (Core.getInstance() == null)
+    	{
+    		m_Core = new Core( new StandardCoreAPI() );
+    	}
+    	
+    	m_Chat = new Chat( new StandardChatAPI() );
     }
 
     /**
@@ -524,8 +531,19 @@ public class ChatController implements IChatCallbacks
             return false;
         }
 
+        ErrorCode ret = m_Core.initialize(m_ClientId, null, null);
+        if (ErrorCode.failed(ret))
+        {
+            String err = ErrorCode.getString(ret);
+            reportError(String.format("Error initializing the sdk: %s", err));
+
+            fireDisconnected();
+            
+            return false;
+        }
+        
         m_ActiveEmoticonMode = m_EmoticonMode;
-        ErrorCode ret = m_Chat.initialize(channel, m_ActiveEmoticonMode != EmoticonMode.None);
+        ret = m_Chat.initialize(channel, m_ActiveEmoticonMode != EmoticonMode.None);
         if (ErrorCode.failed(ret))
         {
             String err = ErrorCode.getString(ret);
@@ -554,6 +572,15 @@ public class ChatController implements IChatCallbacks
             {
                 String err = ErrorCode.getString(ret);
                 reportError(String.format("Error shutting down chat: %s", err));
+                
+                return false;
+            }
+            
+            ret = m_Core.shutdown();
+            if (ErrorCode.failed(ret))
+            {
+                String err = ErrorCode.getString(ret);
+                reportError(String.format("Error shutting down the sdk: %s", err));
                 
                 return false;
             }
