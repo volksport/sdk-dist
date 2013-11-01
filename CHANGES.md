@@ -1,5 +1,32 @@
 #Twitch Broadcasting SDK - Change history
 
+#### October 03, 2013
+- Added TTV_VID_ENC_DISABLE to disable video (and audio) capture/encoding/streaming. 
+  This is being done as part of an ongoing effort to break up all functionality into modules that can be used independently.  
+
+#### Sept 24, 2013  
+Added a new API TTV_SubmitAudioSamples to allow the client to submit audio if desired (Currently only tested on iOS). New flags added to TTV_AudioParams to enable/disable capturing mic and/or system audio by the SDK. At least one of these flags MUST be set if audio is enabled.  
+
+#### Sept 19, 2013  
+- Changed the way shutdown works, so that data is dumped if there is a long queue of data. If the network is very
+  stalled, shutdown can still take a while as we have to wait for the OS to complete older send()s
+
+#### Sept 5, 2013  
+- Improved detection of QuickSync hardware encoding capability. In some cases, QuickSync wouldn't be detected and software encoding used when in fact hardware encoding was available.  
+
+#### August 19, 2013  
+- Added callbacks to metadata submission API.  
+- Added callback to TTV_GetStreamInfo.   
+- Changed TTV_EC_WEBAPI_RESULT_NO_STREAMINFO error to TTV_WRN_STREAMINFO_PENDING warning for TTV_GetStreamInfo.  
+- Added TTV_EC_SOUNDFLOWER_NOT_INSTALLED error for attempting TTV_Start with audio enabled on Mac when SoundFlower is not installed.  
+
+#### August 16, 2013  
+- Added userdata to all chat callbacks.  
+- Perform resolution validation synchronously when TTV_Starting asynchronously.   
+
+#### August 15, 2013  
+- Added a callback to TTV_SetStreamInfo.  
+
 #### August 5, 2013  
 - Moved all the chat code into a new twitchchat project. This won't impact any public API's, but you'll need to add twitchsdk/twitchchat/include/ to your include paths. Also, if building twitchsdk in your solution, you'll need to add this project.  
 
@@ -16,13 +43,13 @@
 - Fixed a crash in chat when receiving extremely long messages from the server.  
 
 ####July 15, 2013
-- Changed the code to ensure keyframes evrey 2 seconds to be compatible with future video tech at twitch.tv
+- Changed the code to ensure keyframes every 2 seconds to be compatible with future video tech at twitch.tv
 - A side effect of the change is that if no data is submitted, the last frame is auto resubmitted and this will keep the stream alive
 
 ####June 27, 2013  
 - Moved some common services into the new twitchcore project and you'll need to add twitchsdk/twitchcore/include/ to your include paths. This doesn't impact the public API, however if you were building twitchsdk as part of your solution, you'll also need to add this new project.  
 
-####June 26, 2013
+####June 26, 2013  
 - Added the ability to filter the trace output based on the channel/area of the trace. This will make it easier for us to use a high verbosity trace when tracking down bugs with you.
 - Changed the logging to use OutputDebugString instead of printf. This means that you will now see our trace messages from our DLL if you use TTV_SetTraceLevel, TTV_SetTraceChannelLevel without setting a file with TTV_SetTraceOutput
 
