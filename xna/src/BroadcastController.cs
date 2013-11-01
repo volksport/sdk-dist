@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Twitch;
 using ErrorCode = Twitch.ErrorCode;
 
 namespace Twitch.Broadcast
@@ -61,13 +62,13 @@ namespace Twitch.Broadcast
             Paused,                 //!< Streaming but paused.
             IngestTesting           //!< Running the ingest tester.
         }
-	
+    
         /// <summary>
         /// The callback signature for the event fired when a request for an auth token is complete.
         /// </summary>
         /// <param name="result">Whether or not the request was successful.</param>
         /// <param name="authToken">The auth token, if successful.</param>
-	    public delegate void AuthTokenRequestCompleteDelegate(ErrorCode result, AuthToken authToken);
+        public delegate void AuthTokenRequestCompleteDelegate(ErrorCode result, AuthToken authToken);
 
         /// <summary>
         /// The callback signature for the event which is fired when an attempt to login is complete.
@@ -130,7 +131,7 @@ namespace Twitch.Broadcast
         #endregion
 
         #region Member Variables
-	
+    
         public event AuthTokenRequestCompleteDelegate AuthTokenRequestComplete;
         public event LoginAttemptCompleteDelegate LoginAttemptComplete;
         public event GameNameListReceivedDelegate GameNameListReceived;
@@ -142,6 +143,7 @@ namespace Twitch.Broadcast
         public event BroadcastStartedDelegate BroadcastStarted;
         public event BroadcastStoppedDelegate BroadcastStopped;
 
+        protected Twitch.Core m_Core = null;
         protected Twitch.Broadcast.Stream m_Stream = null;
 
         protected bool m_SdkInitialized = false;    //!< Has Stream.Initialize() been called?
@@ -186,7 +188,7 @@ namespace Twitch.Broadcast
                 string err = Error.GetString(result);
                 ReportError(string.Format("RequestAuthTokenDoneCallback got failure: {0}", err));
             }
-		
+        
             try
             {
                 if (AuthTokenRequestComplete != null)
@@ -216,7 +218,7 @@ namespace Twitch.Broadcast
                 string err = Error.GetString(result);
                 ReportError(string.Format("LoginCallback got failure: {0}", err));
             }
-		
+        
             try
             {
                 if (LoginAttemptComplete != null)
@@ -675,26 +677,26 @@ namespace Twitch.Broadcast
         }
 
         /// <summary>
-        /// Initializes the SDK and the controller.
+        /// Initializes the controller.
         /// </summary>
         /// <returns>True if successful</returns>
-        public virtual bool InitializeTwitch()
+        public virtual bool Initialize()
         {
-		    if (m_SdkInitialized)
-		    {
+            if (m_SdkInitialized)
+            {
                 return false;
-		    }
+            }
 
             m_Stream.StreamCallbacks = this;
 
-            ErrorCode err = m_Stream.Initialize(this.ClientId, VideoEncoder.TTV_VID_ENC_DEFAULT, ".");
+            ErrorCode err = m_Core.Initialize(this.ClientId, VideoEncoder.TTV_VID_ENC_DEFAULT, null);
             if (!CheckError(err))
             {
                 m_Stream.StreamCallbacks = null;
                 return false;
             }
-		
-		    m_Stream.SetTraceLevel(MessageLevel.TTV_ML_ERROR);
+
+            m_Core.SetTraceLevel(MessageLevel.TTV_ML_ERROR);
             if (!CheckError(err))
             {
                 m_Stream.StreamCallbacks = null;
@@ -713,19 +715,19 @@ namespace Twitch.Broadcast
         }
 
         /// <summary>
-        /// Cleans up and shuts down the SDK and the controller.  This will force broadcasting to terminate and the user to be logged out.
+        /// Cleans up and shuts down the controller.  This will force broadcasting to terminate and the user to be logged out.
         /// </summary>
         /// <returns>True if successful</returns>
-        public virtual bool ShutdownTwitch()
+        public virtual bool Shutdown()
         {
             if (!m_SdkInitialized)
             {
                 return true;
             }
             else if (this.IsIngestTesting)
-		    {
-			    return false;
-		    }
+            {
+                return false;
+            }
 
             m_ShuttingDown = true;
 
@@ -734,12 +736,12 @@ namespace Twitch.Broadcast
             m_Stream.StreamCallbacks = null;
             m_Stream.StatCallbacks = null;
 
-            ErrorCode err = m_Stream.Shutdown();
+            ErrorCode err = m_Core.Shutdown();
             CheckError(err);
 
             m_SdkInitialized = false;
             m_ShuttingDown = false;
-		    SetBroadcastState(BroadcastState.Uninitialized);
+            SetBroadcastState(BroadcastState.Uninitialized);
 
             return true;
         }
@@ -790,7 +792,7 @@ namespace Twitch.Broadcast
         /// <param name="token">The AuthToken</param>
         /// <returns>Whether or not the auth token was set</returns>
         public virtual bool SetAuthToken(string username, AuthToken token)
-	    {
+        {
             if (this.IsIngestTesting)
             {
                 return false;
@@ -810,16 +812,16 @@ namespace Twitch.Broadcast
             }
 
             m_UserName = username;
-		    m_AuthToken = token;
-		
-		    if (this.IsInitialized)
-		    {
-			    SetBroadcastState(BroadcastState.Authenticated);
-		    }
+            m_AuthToken = token;
+        
+            if (this.IsInitialized)
+            {
+                SetBroadcastState(BroadcastState.Authenticated);
+            }
 
             return true;
-	    }
-	
+        }
+    
         /// <summary>
         /// Logs the current user out and clear the username and auth token.  This will terminate the broadcast if necessary.
         /// </summary>
@@ -1031,7 +1033,7 @@ namespace Twitch.Broadcast
                 m_VideoParams = null;
                 m_AudioParams = null;
 
-			    return false;
+                return false;
             }
 
             SetBroadcastState(BroadcastState.Starting);
@@ -1062,17 +1064,17 @@ namespace Twitch.Broadcast
 
             return true;
         }
-	
+    
         /// <summary>
         /// Pauses the current broadcast and displays the default pause screen.
         /// </summary>
         /// <returns>Whether or not successfully paused</returns>
         public virtual bool PauseBroadcasting()
-	    {
-	        if (!this.IsBroadcasting)
-	        {
-		        return false;
-	        }
+        {
+            if (!this.IsBroadcasting)
+            {
+                return false;
+            }
 
             ErrorCode ret = m_Stream.PauseVideo();
             if (Error.Failed(ret))
@@ -1090,22 +1092,22 @@ namespace Twitch.Broadcast
 
             return Error.Succeeded(ret);
         }
-	
+    
         /// <summary>
         /// Resumes broadcasting after being paused.
         /// </summary>
         /// <returns>Whether or not successfully resumed</returns>
         public virtual bool ResumeBroadcasting()
-	    {
-	        if (!this.IsPaused)
-	        {
-		        return false;
-	        }
-		
-		    SetBroadcastState(BroadcastState.Broadcasting);
+        {
+            if (!this.IsPaused)
+            {
+                return false;
+            }
+        
+            SetBroadcastState(BroadcastState.Broadcasting);
 
             return true;
-	    }
+        }
 
         /// <summary>
         /// Send a singular action metadata point to Twitch's metadata service.
@@ -1249,40 +1251,40 @@ namespace Twitch.Broadcast
                 }
             }
 
-	        switch (m_BroadcastState)
-	        {
-		        // Kick off an authentication request
-		        case BroadcastState.Authenticated:
-		        {
-			        SetBroadcastState(BroadcastState.LoggingIn);
+            switch (m_BroadcastState)
+            {
+                // Kick off an authentication request
+                case BroadcastState.Authenticated:
+                {
+                    SetBroadcastState(BroadcastState.LoggingIn);
 
                     ret = m_Stream.Login(m_AuthToken);
-			        if (Error.Failed(ret))
-			        {
-				        string err = Error.GetString(ret);
-				        ReportError(string.Format("Error in TTV_Login: {0}\n", err));
-			        }
-			        break;
-		        }
-		        // Login
-		        case BroadcastState.LoggedIn:
-		        {
-			        SetBroadcastState(BroadcastState.FindingIngestServer);
+                    if (Error.Failed(ret))
+                    {
+                        string err = Error.GetString(ret);
+                        ReportError(string.Format("Error in TTV_Login: {0}\n", err));
+                    }
+                    break;
+                }
+                // Login
+                case BroadcastState.LoggedIn:
+                {
+                    SetBroadcastState(BroadcastState.FindingIngestServer);
 
                     ret = m_Stream.GetIngestServers(m_AuthToken);
                     if (Error.Failed(ret))
-			        {
+                    {
                         SetBroadcastState(BroadcastState.LoggedIn);
 
-				        string err = Error.GetString(ret);
+                        string err = Error.GetString(ret);
                         ReportError(string.Format("Error in TTV_GetIngestServers: {0}\n", err));
-			        }
-			        break;
-		        }
-		        // Ready to stream
-		        case BroadcastState.ReceivedIngestServers:
-		        {
-			        SetBroadcastState(BroadcastState.ReadyToBroadcast);
+                    }
+                    break;
+                }
+                // Ready to stream
+                case BroadcastState.ReceivedIngestServers:
+                {
+                    SetBroadcastState(BroadcastState.ReadyToBroadcast);
 
                     // Kick off requests for the user and stream information that aren't 100% essential to be ready before streaming starts
                     ret = m_Stream.GetUserInfo(m_AuthToken);
@@ -1301,34 +1303,34 @@ namespace Twitch.Broadcast
                         ReportError(string.Format("Error in TTV_GetArchivingState: {0}\n", err));
                     }
 
-			        break;
-		        }
+                    break;
+                }
                 // Waiting for the start/stop callback
                 case BroadcastState.Starting:
                 case BroadcastState.Stopping:
                 {
                     break;
                 }
-		        // No action required
-		        case BroadcastState.FindingIngestServer:
-		        case BroadcastState.Authenticating:
-		        case BroadcastState.Initialized:
+                // No action required
+                case BroadcastState.FindingIngestServer:
+                case BroadcastState.Authenticating:
+                case BroadcastState.Initialized:
                 case BroadcastState.Uninitialized:
                 case BroadcastState.IngestTesting:
                 {
                     break;
                 }
-		        case BroadcastState.Broadcasting:
+                case BroadcastState.Broadcasting:
                 case BroadcastState.Paused:
                 {
                     UpdateStreamInfo();
-				    break;
-			    }
-		        default:
-		        {
-			        break;
-		        }
-	        }
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
         }
 
         protected virtual void UpdateStreamInfo()

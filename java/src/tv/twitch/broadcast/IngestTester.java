@@ -3,6 +3,9 @@
 import java.util.ArrayList;
 import java.util.List;
 
+import tv.twitch.AuthToken;
+import tv.twitch.ErrorCode;
+
 /**
  * Performs ingest bandwidth testing to determine the best server a user should connect to for broadcasting.  This will fill in the BitrateKbps 
  * field of the given IngestServers.  Testing may take a while because there are several servers to test and each one may be tested for several
