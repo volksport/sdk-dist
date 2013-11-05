@@ -95,9 +95,6 @@ typedef enum
 #define TTV_MAX_WIDTH	1920				/* Width and height must be multiples of 16 */
 #define TTV_MAX_HEIGHT	1200
 
-static_assert(TTV_MAX_WIDTH % 32 == 0, "TTV_MAX_WIDTH must be a multiple of 32");
-static_assert(TTV_MAX_HEIGHT % 16 == 0, "TTV_MAX_HEIGHT must be a multiple of 16");
-
 /**
  * TTV_VideoParams - Video parameters
  */
