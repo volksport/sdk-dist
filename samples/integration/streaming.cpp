@@ -273,6 +273,9 @@ void StartStreaming(unsigned int outputWidth, unsigned int outputHeight, unsigne
 	TTV_AudioParams audioParams;
 	audioParams.size = sizeof(TTV_AudioParams);
 	audioParams.audioEnabled = true;
+	audioParams.enableMicCapture = true;
+	audioParams.enablePlaybackCapture = true;
+	audioParams.enablePassthroughAudio = false;
 
 	TTV_ErrorCode ret = TTV_Start(&videoParams, &audioParams, &gIngestServer, 0, nullptr, nullptr);
 	if ( TTV_FAILED(ret) )

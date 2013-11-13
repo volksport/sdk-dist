@@ -260,6 +260,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	TTV_AudioParams audioParams;
 	audioParams.size = sizeof(TTV_AudioParams);
 	audioParams.audioEnabled = false;
+	audioParams.enableMicCapture = false;
+	audioParams.enablePlaybackCapture = false;
+	audioParams.enablePassthroughAudio = false;
 
 	auto testDuration = boost::chrono::seconds(variableMap["duration"].as<unsigned int>());
 
