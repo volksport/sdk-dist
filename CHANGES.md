@@ -1,5 +1,8 @@
 #Twitch Broadcasting SDK - Change history
 
+#### November 20, 2013
+- Added a OS version tests for Windows(Vista or newer) and Mac(10.8 or newer). Only impacts encoding and not chat only integrations
+
 #### October 03, 2013
 - Added TTV_VID_ENC_DISABLE to disable video (and audio) capture/encoding/streaming. 
   This is being done as part of an ongoing effort to break up all functionality into modules that can be used independently.  

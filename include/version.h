@@ -13,9 +13,9 @@
 const int kMajorVersion = 5;
 
 // Minor version number (automatically set on release)
-const int kMinorVersion = 8;
+const int kMinorVersion = 9;
 
 // Identifies the commit in the release branch in the sdk repo
-const char* kVersionIdentifier = "dffbf1c";
+const char* kVersionIdentifier = "d7dae2d";
 
 #endif /* TTVSDK_TWITCH_VERSION_H */
