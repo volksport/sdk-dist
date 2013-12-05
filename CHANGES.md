@@ -1,5 +1,9 @@
 #Twitch Broadcasting SDK - Change history
 
+### December 5, 2013
+- Added a streaming sample for iOS
+- Fixed a bug if TTV_Shutdown was called while waiting for TTV_Login
+
 #### November 20, 2013
 - Added a OS version tests for Windows(Vista or newer) and Mac(10.8 or newer). Only impacts encoding and not chat only integrations
 
