@@ -1,5 +1,10 @@
 #Twitch Broadcasting SDK - Change history
 
+### Januiary 7, 2014
+- Changed encoding to CBR
+- Changed frame dropping to ensure a frame is emmited exactly 1/fps
+- Added frame duplication to handle low frame rates
+
 ### December 5, 2013
 - Added a streaming sample for iOS
 - Fixed a bug if TTV_Shutdown was called while waiting for TTV_Login
