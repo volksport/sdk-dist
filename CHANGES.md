@@ -1,6 +1,9 @@
 #Twitch Broadcasting SDK - Change history
 
-### Januiary 7, 2014
+### January 8, 2014
+- Improved url encoding of all parameters to allow for non-ascii characters in passwords. As long as passwords are passed as utf8 they should all work.
+
+### January 7, 2014
 - Changed encoding to CBR
 - Changed frame dropping to ensure a frame is emmited exactly 1/fps
 - Added frame duplication to handle low frame rates
