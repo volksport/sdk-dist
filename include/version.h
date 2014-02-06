@@ -13,7 +13,7 @@
 const int kMajorVersion = 6;
 
 // Minor version number (automatically set on release)
-const int kMinorVersion = 0;
+const int kMinorVersion = 1;
 
 // Identifies the commit in the release branch in the sdk repo
 const char* kVersionIdentifier = "f5474d7";

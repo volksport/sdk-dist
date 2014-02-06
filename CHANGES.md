@@ -1,6 +1,9 @@
 #Twitch Broadcasting SDK - Change history
 
-#### January 13, 2013  
+#### February 3, 2014  
+- Updated the SDK License Agreement to change the name of Twitch's corporate entity from Justin.tv, Inc. to Twitch Interactive, Inc.  
+
+#### January 13, 2014  
 - Moved channelName from TTV_Chat_Init to TTV_Chat_Connect.  
 - Removed the channel name from TTV_ChatClearCallback.  
 - Made TTV_Chat_Init and TTV_Chat_Shutdown asynchronous if callbacks are provided.  Make sure you wait for successful initialization before connecting to a channel.  
