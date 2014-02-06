@@ -3,19 +3,19 @@
 *
 * This software is supplied under the terms of a license agreement with Justin.tv Inc. and
 * may not be copied or used except in accordance with the terms of that agreement
-* Copyright (c) 2012-2013 Justin.tv Inc.
+* Copyright (c) 2012-2014 Justin.tv Inc.
 *********************************************************************************************/
 
 #ifndef TTVSDK_TWITCH_VERSION_H
 #define TTVSDK_TWITCH_VERSION_H
 
 // Major version number (manually set)
-const int kMajorVersion = 5;
+const int kMajorVersion = 6;
 
 // Minor version number (automatically set on release)
-const int kMinorVersion = 16;
+const int kMinorVersion = 0;
 
 // Identifies the commit in the release branch in the sdk repo
-const char* kVersionIdentifier = "901b725";
+const char* kVersionIdentifier = "f5474d7";
 
 #endif /* TTVSDK_TWITCH_VERSION_H */
