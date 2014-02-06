@@ -95,6 +95,7 @@ extern IDirect3DDevice9* gGraphicsDevice;
 
 static IDirect3DVertexBuffer9* gTextureQuadVertexBuffer = nullptr;	// The vertex buffer used to render the entire font texture.
 static std::vector<EmoticonTextureData> gEmoticonTextures;
+static std::vector<EmoticonTextureData> gBadgeTextures;
 static D3DXMATRIX gOrthoViewMatrix;								// The screen tranlsation matrix.
 static D3DXMATRIX gScreenProjectionMatrix;						// The orthographic screen projection matrix.
 static FontData gNormalFont;
@@ -317,16 +318,11 @@ bool LoadFontIntoTexture(FT_Library freeTypeLibrary, const std::string& fontPath
 }
 
 
-void ProcessEmoticonData()
+void BindTextures(const TTV_ChatTextureSheetList& inputList, std::vector<EmoticonTextureData>& outputList)
 {
-	TTV_ChatEmoticonData* data = nullptr;
-
-	TTV_ErrorCode ret = TTV_Chat_GetEmoticonData(&data);
-	assert( TTV_SUCCEEDED(ret) );
-
-	for (size_t i=0; i<data->textures.count; ++i)
+	for (size_t i=0; i<inputList.count; ++i)
 	{
-		const TTV_ChatTextureSheet& sheet = data->textures.list[i];
+		const TTV_ChatTextureSheet& sheet = inputList.list[i];
 
 		EmoticonTextureData data;
 
@@ -338,7 +334,7 @@ void ProcessEmoticonData()
 		if ( FAILED(gGraphicsDevice->CreateTexture(sheet.width, sheet.height, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &data.texture, nullptr)) )
 		{
 			ReportError("Error creating texture");
-			gEmoticonTextures.push_back(data);
+			outputList.push_back(data);
 			continue;
 		}
 
@@ -348,7 +344,7 @@ void ProcessEmoticonData()
 		if ( FAILED(data.texture->LockRect(0, &rect, nullptr, D3DLOCK_DISCARD)) )
 		{
 			ReportError("Error locking texture");
-			gEmoticonTextures.push_back(data);
+			outputList.push_back(data);
 			continue;
 		}
 
@@ -361,14 +357,47 @@ void ProcessEmoticonData()
 		data.width = static_cast<float>(sheet.width);
 		data.height = static_cast<float>(sheet.height);
 
-		gEmoticonTextures.push_back(data);
+		outputList.push_back(data);
 	}
+}
 
-	// get the badge data
-	memcpy(&gBadgeData, &data->badges, sizeof(gBadgeData));
 
-	// free the data
-	ret = TTV_Chat_FreeEmoticonData(data);
+void ProcessEmoticonData()
+{
+	TTV_ChatEmoticonData* data = nullptr;
+
+	TTV_ErrorCode ret = TTV_Chat_GetEmoticonData(&data);
+	assert( TTV_SUCCEEDED(ret) );
+
+	if (TTV_SUCCEEDED(ret))
+	{
+		BindTextures(data->textures, gEmoticonTextures);
+
+		// free the data
+		ret = TTV_Chat_FreeEmoticonData(data);
+		assert( TTV_SUCCEEDED(ret) );
+	}
+}
+
+
+void ProcessBadgeData()
+{
+	TTV_ChatBadgeData* data = nullptr;
+
+	TTV_ErrorCode ret = TTV_Chat_GetBadgeData(&data);
+	assert( TTV_SUCCEEDED(ret) );
+
+	if (TTV_SUCCEEDED(ret))
+	{
+		BindTextures(data->textures, gBadgeTextures);
+
+		// copy the badge data
+		memcpy(&gBadgeData, data, sizeof(gBadgeData));
+
+		// free the data
+		ret = TTV_Chat_FreeBadgeData(data);
+		assert( TTV_SUCCEEDED(ret) );
+	}
 }
 
 
@@ -488,7 +517,7 @@ int RenderString(int left, int bottom, unsigned int rgba, FontData& font, const 
 }
 
 
-int RenderEmoticon(int left, int bottom, FontData& font, const TTV_ChatMessageToken* token)
+int RenderImage(int left, int bottom, FontData& font, std::vector<EmoticonTextureData>& textureList, const TTV_ChatMessageToken* token)
 {
 	if (token->type == TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE)
 	{
@@ -499,7 +528,7 @@ int RenderEmoticon(int left, int bottom, FontData& font, const TTV_ChatMessageTo
 		}
 
 		// get the texture
-		EmoticonTextureData& data = gEmoticonTextures[image.sheetIndex];
+		EmoticonTextureData& data = textureList[image.sheetIndex];
 		if (data.texture == nullptr)
 		{
 			return left;
@@ -614,7 +643,7 @@ void AddChatUser(const TTV_ChatUserInfo* user)
 {
 	std::shared_ptr<ChatUser> entry( new ChatUser() );
 
-	strncpy(entry->username, user->displayName, sizeof(entry->username));
+	strncpy_s(entry->username, sizeof(entry->username), user->displayName, sizeof(entry->username));
 	entry->username[sizeof(entry->username)-1] = '\0';
 	entry->font = &gNormalFont;
 	entry->nameColorARGB = user->nameColorARGB;
@@ -766,17 +795,17 @@ int RenderChatLine(int left, int bottom, std::shared_ptr<ChatLine> line, unsigne
 	const TTV_ChatTokenizedMessage& msg = line->list->messageList[line->index];
 
 	// render the badges
-	if (msg.modes & TTV_CHAT_USERMODE_BROADCASTER) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.broadcasterIcon);
-	else if (msg.modes & TTV_CHAT_USERMODE_MODERATOR) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.moderatorIcon);
+	if (msg.modes & TTV_CHAT_USERMODE_BROADCASTER) left = RenderImage(left, bottom, *line->font, gBadgeTextures, &gBadgeData.broadcasterIcon);
+	else if (msg.modes & TTV_CHAT_USERMODE_MODERATOR) left = RenderImage(left, bottom, *line->font, gBadgeTextures, &gBadgeData.moderatorIcon);
 
-	if (msg.modes & TTV_CHAT_USERMODE_ADMINSTRATOR) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.adminIcon);
-	if (msg.modes & TTV_CHAT_USERMODE_STAFF) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.staffIcon);
-	if (msg.subscriptions & TTV_CHAT_USERSUB_SUBSCRIBER) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.channelSubscriberIcon);
-	if (msg.subscriptions & TTV_CHAT_USERSUB_TURBO) left = RenderEmoticon(left, bottom, *line->font, &gBadgeData.turboIcon);
+	if (msg.modes & TTV_CHAT_USERMODE_ADMINSTRATOR) left = RenderImage(left, bottom, *line->font, gBadgeTextures, &gBadgeData.adminIcon);
+	if (msg.modes & TTV_CHAT_USERMODE_STAFF) left = RenderImage(left, bottom, *line->font, gBadgeTextures, &gBadgeData.staffIcon);
+	if (msg.subscriptions & TTV_CHAT_USERSUB_SUBSCRIBER) left = RenderImage(left, bottom, *line->font, gBadgeTextures, &gBadgeData.channelSubscriberIcon);
+	if (msg.subscriptions & TTV_CHAT_USERSUB_TURBO) left = RenderImage(left, bottom, *line->font, gBadgeTextures, &gBadgeData.turboIcon);
 
 	// render the username
 	utf8char username[kMaxChatUserNameLength + 8];
-	sprintf_s(username, sizeof(username), line == gInputText ? "%s " : "%s: ", msg.displayName);
+	sprintf_s(username, line == gInputText ? "%s " : "%s: ", msg.displayName);
 	left = RenderString(left, bottom, msg.nameColorARGB, *line->font, username);
 
 	for (size_t t=0; t<msg.tokenCount; ++t)
@@ -791,7 +820,7 @@ int RenderChatLine(int left, int bottom, std::shared_ptr<ChatLine> line, unsigne
 			}
 			case TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE:
 			{
-				left = RenderEmoticon(left, bottom, *line->font, token);
+				left = RenderImage(left, bottom, *line->font, gEmoticonTextures, token);
 				break;
 			}
 			case TTV_CHAT_MSGTOKEN_URL_IMAGE:
@@ -863,6 +892,12 @@ void DeinitChatRenderer()
 		SAFE_RELEASE(gEmoticonTextures[i].texture);
 	}
 	gEmoticonTextures.clear();
+
+	for (size_t i=0; i<gBadgeTextures.size(); ++i)
+	{
+		SAFE_RELEASE(gBadgeTextures[i].texture);
+	}
+	gBadgeTextures.clear();
 
 	ClearChatMessages();
 	ClearChatUsers();

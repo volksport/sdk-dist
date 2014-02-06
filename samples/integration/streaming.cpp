@@ -192,11 +192,8 @@ void InitializeStreaming(const std::string& username, const std::string& passwor
 	memCallbacks.allocCallback = AllocCallback;
 	memCallbacks.freeCallback = FreeCallback;
 
-	// The intel encoder is used on Windows
-	TTV_VideoEncoder vidEncoder = TTV_VID_ENC_INTEL;
-
 	// Initialize the SDK
-	TTV_ErrorCode ret = TTV_Init(&memCallbacks, clientId.c_str(), vidEncoder, dllLoadPath.c_str());
+	TTV_ErrorCode ret = TTV_Init(&memCallbacks, clientId.c_str(), dllLoadPath.c_str());
 	if ( TTV_FAILED(ret) )
 	{
 		const char* err = TTV_ErrorToString(ret);
@@ -216,7 +213,7 @@ void InitializeStreaming(const std::string& username, const std::string& passwor
 	
 	gStreamState = SS_Authenticating;
 
-	ret = TTV_RequestAuthToken(&authParams, AuthDoneCallback, nullptr, &gAuthToken);
+	ret = TTV_RequestAuthToken(&authParams, (TTV_RequestAuthToken_Broadcast | TTV_RequestAuthToken_Chat), AuthDoneCallback, nullptr, &gAuthToken);
 	if ( TTV_FAILED(ret) )
 	{
 		gStreamState = SS_Initialized;

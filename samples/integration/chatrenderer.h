@@ -10,13 +10,15 @@
 void InitializeChatRenderer(unsigned int windowWidth, unsigned int windowHeight);
 void DeinitChatRenderer();
 
-void ProcessEmoticonData(); // Triggers the download of emoticon data from Twitch.
+void ProcessEmoticonData(); // Sets up the emoticon data so it can be used during rendering.
+void ProcessBadgeData(); // Sets up the badge data so it can be used during rendering.
 
 void AddChatUser(const TTV_ChatUserInfo* user);
 void RemoveChatUser(const TTV_ChatUserInfo* user);
 void UpdateChatUser(const TTV_ChatUserInfo* user);
 
 void AddChatMessages(const TTV_ChatTokenizedMessageList* messageList);
+void ClearChatUsers();
 void ClearChatMessages();
 
 void RenderChatText(); // Renders the chat messages to the screen.

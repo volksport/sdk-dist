@@ -16,7 +16,7 @@ namespace Twitch.Broadcast
     /// 
     /// The whole test can be cancelled via Cancel().  The current server test can be skipped via SkipCurrentServer() which will trigger the testing of the next server.
     /// </summary>
-    public class IngestTester : IStreamCallbacks, IStatCallbacks
+    public class IngestTester
     {
         public delegate void TestStateChangedDelegate(IngestTester source, TestState state);
 
@@ -28,6 +28,7 @@ namespace Twitch.Broadcast
             TestingServer,
             DoneTestingServer,
             Finished,
+            Cancelling,
             Cancelled,
             Failed
         }
@@ -44,7 +45,7 @@ namespace Twitch.Broadcast
 
         protected TestState m_TestState = TestState.Uninitalized;
         protected long m_TestDurationMilliseconds = 8000;
-        protected long m_DelayBetweenServerTestsMilliseconds = 1000;
+        protected long m_DelayBetweenServerTestsMilliseconds = 2000;
         protected UInt64 m_TotalSent = 0;
         protected RTMPState m_RTMPState = RTMPState.Invalid;
         protected VideoParams m_IngestTestVideoParams = null;
@@ -62,8 +63,14 @@ namespace Twitch.Broadcast
         protected UInt64 m_LastTotalSent = 0;
         protected float m_TotalProgress = 0;
         protected float m_ServerProgress = 0;
-        protected bool m_WaitingForStartStopCallback = false;
+        protected bool m_WaitingForStartCallback = false;
+        protected bool m_WaitingForStopCallback = false;
+        protected bool m_Broadcasting = false;
 
+        protected StreamCallbackListener m_StreamCallbackListener = null;
+        protected StatCallbackListener m_StatCallbackListener = null;
+
+        #region Properties
 
         public TestState State
         {
@@ -119,107 +126,204 @@ namespace Twitch.Broadcast
             get { return m_ServerProgress; }
         }
 
-        #region IStreamCallbacks
-
-        void IStreamCallbacks.RequestAuthTokenCallback(ErrorCode result, AuthToken authToken)
-        {
-        }
-
-        void IStreamCallbacks.LoginCallback(ErrorCode result, ChannelInfo channelInfo)
-        {
-        }
-
-        void IStreamCallbacks.GetIngestServersCallback(ErrorCode result, IngestList ingestList)
-        {
-        }
-
-        void IStreamCallbacks.GetUserInfoCallback(ErrorCode result, UserInfo userInfo)
-        {
-        }
-
-        void IStreamCallbacks.GetStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
-        {
-        }
-
-        void IStreamCallbacks.GetArchivingStateCallback(ErrorCode result, ArchivingState state)
-        {
-        }
-
-        void IStreamCallbacks.RunCommercialCallback(ErrorCode result)
-        {
-        }
-
-        void IStreamCallbacks.SetStreamInfoCallback(ErrorCode result)
-        {
-        }
-
-        void IStreamCallbacks.GetGameNameListCallback(ErrorCode result, GameInfoList list)
-        {
-        }
-
-        void IStreamCallbacks.BufferUnlockCallback(UIntPtr buffer)
-	    {
-	    }
-
-        void IStreamCallbacks.StartCallback(ErrorCode ret)
-        {
-            m_WaitingForStartStopCallback = false;
-
-            // started
-            if (Error.Succeeded(ret))
-            {
-                SetTestState(TestState.ConnectingToServer);
-
-                m_Timer.Reset();
-                m_Timer.Start();
-            }
-            // failed to start so skip it
-            else
-            {
-                m_ServerTestSucceeded = false;
-                SetTestState(TestState.DoneTestingServer);
-            }
-        }
-
-        void IStreamCallbacks.StopCallback(ErrorCode ret)
-        {
-            m_WaitingForStartStopCallback = false;
-
-            SetTestState(TestState.DoneTestingServer);
-        }
-
-        void IStreamCallbacks.SendActionMetaDataCallback(ErrorCode ret)
-        {
-        }
-
-        void IStreamCallbacks.SendStartSpanMetaDataCallback(ErrorCode ret)
-        {
-        }
-
-        void IStreamCallbacks.SendEndSpanMetaDataCallback(ErrorCode ret)
-        {
-        }
-    
         #endregion
 
-        #region IStatCallbacks
-
-        void IStatCallbacks.StatCallback(StatType type, ulong data)
+        protected abstract class IngestTesterAccess
         {
-            switch (type)
-            {
-                case StatType.TTV_ST_RTMPSTATE:
-                    m_RTMPState = (RTMPState)data;
-                    break;
+            protected IngestTester m_IngestTester;
 
-                case StatType.TTV_ST_RTMPDATASENT:
-                    m_TotalSent = data;
-                    break;
+            protected IngestTesterAccess(IngestTester tester)
+            {
+                m_IngestTester = tester;
+            }
+
+            protected bool WaitingForStartCallback
+            {
+                get { return m_IngestTester.m_WaitingForStartCallback; }
+                set { m_IngestTester.m_WaitingForStartCallback = value; }
+            }
+
+            protected bool WaitingForStopCallback
+            {
+                get { return m_IngestTester.m_WaitingForStopCallback; }
+                set { m_IngestTester.m_WaitingForStopCallback = value; }
+            }
+
+            protected bool Broadcasting
+            {
+                get { return m_IngestTester.m_Broadcasting; }
+                set { m_IngestTester.m_Broadcasting = value; }
+            }
+
+            protected bool ServerTestSucceeded
+            {
+                get { return m_IngestTester.m_ServerTestSucceeded; }
+                set { m_IngestTester.m_ServerTestSucceeded = value; }
+            }
+
+            protected bool CancelTest
+            {
+                get { return m_IngestTester.m_CancelTest; }
+                set { m_IngestTester.m_CancelTest = value; }
+            }
+
+            protected System.Diagnostics.Stopwatch Timer
+            {
+                get { return m_IngestTester.m_Timer; }
+            }
+
+            protected RTMPState RTMPState
+            {
+                get { return m_IngestTester.m_RTMPState; }
+                set { m_IngestTester.m_RTMPState = value; }
+            }
+
+            protected UInt64 TotalSent
+            {
+                get { return m_IngestTester.m_TotalSent; }
+                set { m_IngestTester.m_TotalSent = value; }
+            }
+
+            protected IngestServer CurrentServer
+            {
+                get { return m_IngestTester.m_CurrentServer; }
+                set { m_IngestTester.m_CurrentServer = value; }
+            }
+
+            protected Stream Api
+            {
+                get { return m_IngestTester.m_Stream; }
+            }
+
+            protected void SetTestState(TestState state)
+            {
+                m_IngestTester.SetTestState(state);
             }
         }
 
-        #endregion
+        protected class StreamCallbackListener : IngestTesterAccess, IStreamCallbacks
+        {
+            public StreamCallbackListener(IngestTester tester)
+                : base(tester)
+            {
+            }
 
+            void IStreamCallbacks.RequestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+            {
+            }
+
+            void IStreamCallbacks.LoginCallback(ErrorCode result, ChannelInfo channelInfo)
+            {
+            }
+
+            void IStreamCallbacks.GetIngestServersCallback(ErrorCode result, IngestList ingestList)
+            {
+            }
+
+            void IStreamCallbacks.GetUserInfoCallback(ErrorCode result, UserInfo userInfo)
+            {
+            }
+
+            void IStreamCallbacks.GetStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
+            {
+            }
+
+            void IStreamCallbacks.GetArchivingStateCallback(ErrorCode result, ArchivingState state)
+            {
+            }
+
+            void IStreamCallbacks.RunCommercialCallback(ErrorCode result)
+            {
+            }
+
+            void IStreamCallbacks.SetStreamInfoCallback(ErrorCode result)
+            {
+            }
+
+            void IStreamCallbacks.GetGameNameListCallback(ErrorCode result, GameInfoList list)
+            {
+            }
+
+            void IStreamCallbacks.BufferUnlockCallback(UIntPtr buffer)
+            {
+            }
+
+            void IStreamCallbacks.StartCallback(ErrorCode ret)
+            {
+                this.WaitingForStartCallback = false;
+
+                // started
+                if (Error.Succeeded(ret))
+                {
+                    this.Broadcasting = true;
+                    this.Timer.Reset();
+                    this.Timer.Start();
+
+                    SetTestState(TestState.ConnectingToServer);
+                }
+                // failed to start so skip it
+                else
+                {
+                    this.ServerTestSucceeded = false;
+                    SetTestState(TestState.DoneTestingServer);
+                }
+            }
+
+            void IStreamCallbacks.StopCallback(ErrorCode ret)
+            {
+        	    if (Error.Failed(ret))
+        	    {
+        		    // this should never happen and there's not really any way to recover
+        		    System.Diagnostics.Debug.WriteLine("IngestTester.stopCallback failed to stop - " + this.CurrentServer.ServerName + ": " + ret.ToString());
+        	    }
+        	
+    		    this.WaitingForStopCallback = false;
+        	    this.Broadcasting = false;
+        	
+	            SetTestState(TestState.DoneTestingServer);
+	        
+	            this.CurrentServer = null;
+	        
+	            if (this.CancelTest)
+	            {
+	        	    SetTestState(TestState.Cancelling);
+	            }
+            }
+
+            void IStreamCallbacks.SendActionMetaDataCallback(ErrorCode ret)
+            {
+            }
+
+            void IStreamCallbacks.SendStartSpanMetaDataCallback(ErrorCode ret)
+            {
+            }
+
+            void IStreamCallbacks.SendEndSpanMetaDataCallback(ErrorCode ret)
+            {
+            }
+        }
+
+        protected class StatCallbackListener : IngestTesterAccess, IStatCallbacks
+        {
+            public StatCallbackListener(IngestTester tester)
+                : base(tester)
+            {
+            }
+
+            void IStatCallbacks.StatCallback(StatType type, ulong data)
+            {
+                switch (type)
+                {
+                    case StatType.TTV_ST_RTMPSTATE:
+                        this.RTMPState = (RTMPState)data;
+                        break;
+
+                    case StatType.TTV_ST_RTMPDATASENT:
+                        this.TotalSent = data;
+                        break;
+                }
+            }
+        }
 
         internal IngestTester(Stream stream, IngestList ingestList)
         {
@@ -233,16 +337,6 @@ namespace Twitch.Broadcast
             m_IngestList = ingestList;
         }
 
-        ~IngestTester()
-        {
-            if (m_CurrentServer != null)
-            {
-                CleanupServerTest(m_CurrentServer);
-            }
-
-            Cleanup();
-        }
-
         /// <summary>
         /// Begins the ingest testing.
         /// </summary>
@@ -254,15 +348,21 @@ namespace Twitch.Broadcast
                 return;
             }
 
+            m_StreamCallbackListener = new StreamCallbackListener(this);
+            m_StatCallbackListener = new StatCallbackListener(this);
+
             m_CurrentServerIndex = 0;
             m_CancelTest = false;
             m_SkipServer = false;
+            m_Broadcasting = false;
+            m_WaitingForStartCallback = false;
+            m_WaitingForStopCallback = false;
 
             m_PreviousStatCallbacks = m_Stream.StatCallbacks;
-            m_Stream.StatCallbacks = this;
+            m_Stream.StatCallbacks = m_StatCallbackListener;
 
             m_PreviousStreamCallbacks = m_Stream.StreamCallbacks;
-            m_Stream.StreamCallbacks = this;
+            m_Stream.StreamCallbacks = m_StreamCallbackListener;
 
             m_IngestTestVideoParams = new VideoParams();
             m_IngestTestVideoParams.TargetFps = Twitch.Broadcast.Constants.TTV_MAX_FPS;
@@ -321,14 +421,10 @@ namespace Twitch.Broadcast
                 return;
             }
 
-            if (m_WaitingForStartStopCallback)
+            // nothing to be done while waiting for a callback
+            if (m_WaitingForStartCallback || m_WaitingForStopCallback)
             {
                 return;
-            }
-
-            if (m_CancelTest)
-            {
-                SetTestState(TestState.Cancelled);
             }
 
             switch (m_TestState)
@@ -344,15 +440,13 @@ namespace Twitch.Broadcast
                             m_CurrentServer.BitrateKbps = 0;
                         }
 
-                        CleanupServerTest(m_CurrentServer);
-                        m_CurrentServer = null;
+                        StopServerTest(m_CurrentServer);
                     }
-                    // wait for the stop to complete before starting the next server
-                    else if (!m_WaitingForStartStopCallback &&
-                             m_Timer.ElapsedMilliseconds >= m_DelayBetweenServerTestsMilliseconds)
+                    // start the next test
+                    else
                     {
                         m_Timer.Stop();
-
+                        m_Timer.Reset();
                         m_SkipServer = false;
                         m_ServerTestSucceeded = true;
 
@@ -373,13 +467,18 @@ namespace Twitch.Broadcast
                             SetTestState(TestState.Finished);
                         }
                     }
-
-                    break;
+                
+            	    break;
                 }
                 case TestState.ConnectingToServer:
                 case TestState.TestingServer:
                 {
                     UpdateServerTest(m_CurrentServer);
+                    break;
+                }
+                case TestState.Cancelling:
+                {
+            	    SetTestState(TestState.Cancelled);
                     break;
                 }
                 default:
@@ -393,21 +492,7 @@ namespace Twitch.Broadcast
             // test finished
             if (m_TestState == TestState.Cancelled || m_TestState == TestState.Finished)
             {
-                if (m_CurrentServer != null)
-                {
-                    if (m_TestState == TestState.Cancelled)
-                    {
-                        m_CurrentServer.BitrateKbps = 0;
-                    }
-
-                    CleanupServerTest(m_CurrentServer);
-                    m_CurrentServer = null;
-                } 
-                    
-                if (m_IngestBuffers != null)
-                {
-                    Cleanup();
-                }
+        	    Cleanup();
             }
         }
 
@@ -443,6 +528,11 @@ namespace Twitch.Broadcast
             }
     
             m_CancelTest = true;
+
+            if (m_CurrentServer != null)
+            {
+                m_CurrentServer.BitrateKbps = 0;
+            }
         }
 
         protected bool StartServerTest(IngestServer server)
@@ -453,17 +543,19 @@ namespace Twitch.Broadcast
             m_RTMPState = RTMPState.Idle;
             m_CurrentServer = server;
 
-            // start the stream asynchronously
+            // start the stream
+            m_WaitingForStartCallback = true;
             SetTestState(TestState.ConnectingToServer);
-            m_WaitingForStartStopCallback = true;
-            ErrorCode ret = m_Stream.Start(m_IngestTestVideoParams, m_IngestTestAudioParams, server, StartFlags.TTV_Start_BandwidthTest, k_AsyncStartStop);
+
+            ErrorCode ret = m_Stream.Start(m_IngestTestVideoParams, m_IngestTestAudioParams, server, StartFlags.TTV_Start_BandwidthTest, true);
             if (Error.Failed(ret))
             {
+                m_WaitingForStartCallback = false;
                 m_ServerTestSucceeded = false;
                 SetTestState(TestState.DoneTestingServer);
                 return false;
             }
-                
+
             // the amount of data sent before the test of this server starts
             m_LastTotalSent = m_TotalSent;
 
@@ -473,12 +565,33 @@ namespace Twitch.Broadcast
             return true;
         }
 
-        protected void CleanupServerTest(IngestServer server)
+        protected void StopServerTest(IngestServer server)
         {
-            m_WaitingForStartStopCallback = true;
-            m_Stream.Stop(k_AsyncStartStop);
+    	    if (m_WaitingForStartCallback)
+    	    {
+    		    // wait for the start callback and do the stop after that comes in
+    		    m_SkipServer = true;
+    	    }
+    	    else if (m_Broadcasting)
+    	    {
+    		    m_WaitingForStopCallback = true;
+	        
+	            ErrorCode ec = m_Stream.Stop(true);
+	            if (Error.Failed(ec))
+	            {
+	        	    // this should never happen so fake the callback to indicate it's stopped
+                    (m_StreamCallbackListener as IStreamCallbacks).StopCallback(ErrorCode.TTV_EC_SUCCESS);
+	        	
+	        	    System.Diagnostics.Debug.WriteLine("Stop failed: " + ec.ToString());
+	            }
 
-            m_Stream.PollStats();
+	            m_Stream.PollStats();
+    	    }
+    	    else
+    	    {
+    		    // simulate a stop callback
+                (m_StreamCallbackListener as IStreamCallbacks).StopCallback(ErrorCode.TTV_EC_SUCCESS);
+    	    }
         }
 
         protected void UpdateProgress()
@@ -529,14 +642,13 @@ namespace Twitch.Broadcast
 
         protected bool UpdateServerTest(IngestServer server)
         {
-            if (m_SkipServer || m_Timer.ElapsedMilliseconds >= m_TestDurationMilliseconds)
+            if (m_SkipServer || m_CancelTest || m_Timer.ElapsedMilliseconds >= m_TestDurationMilliseconds)
             {
                 SetTestState(TestState.DoneTestingServer);
                 return true;
             }
 
-            // not started yet
-            if (m_WaitingForStartStopCallback)
+            if (m_WaitingForStartCallback || m_WaitingForStopCallback)
             {
                 return true;
             }
@@ -584,13 +696,13 @@ namespace Twitch.Broadcast
                 m_IngestBuffers = null;
             }
 
-            if (m_Stream.StatCallbacks == this)
+            if (m_Stream.StatCallbacks == m_StatCallbackListener)
             {
                 m_Stream.StatCallbacks = m_PreviousStatCallbacks;
                 m_PreviousStatCallbacks = null;
             }
 
-            if (m_Stream.StreamCallbacks == this)
+            if (m_Stream.StreamCallbacks == m_StreamCallbackListener)
             {
                 m_Stream.StreamCallbacks = m_PreviousStreamCallbacks;
                 m_PreviousStreamCallbacks = null;

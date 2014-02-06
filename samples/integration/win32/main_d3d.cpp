@@ -18,6 +18,14 @@
 
 #pragma region Global Variables
 
+namespace
+{
+	std::string gUserName = "<username>";					// The cached username.
+	std::string gPassword = "<password>";					// The cached password.
+	std::string gClientId = "<client id>";					// The cached client id.
+	std::string gClientSecret = "<client secret>";			// The cached client secret.
+}
+
 HINSTANCE gInstanceHandle = 0;								// The current application instance
 HWND gWindowHandle = 0;										// The main window handle.
 TCHAR gWindowTitle[128];									// The title bar text
@@ -44,6 +52,7 @@ bool gStreamingDesired = false;								// Whether or not the app wants to stream
 bool gPaused = false;										// Whether or not the streaming is paused.
 bool gFocused = false;										// Whether the window has focus.
 bool gReinitializeRequired = true;							// Whether the device requires reinitialization.
+bool gAutoConnectToChat = true;								// Whether or not to automatically connect to the chat channel initially.
 
 FLOAT gCameraFlySpeed = 100.0f;								// The number of units per second to move the camera.
 FLOAT gCameraRotateSpeed = 90.0f;							// The number of degrees to rotate per second.
@@ -355,8 +364,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	GetCursorPos(&gLastMousePos);
 
 	// Initialize the Twitch SDK
-	std::string channelName = "<username>";
-	InitializeStreaming("<username>", "<password>", "<clientId>", "<clientSecret>", GetIntelDllPath());
+	InitializeStreaming(gUserName, gPassword, gClientId, gClientSecret, GetIntelDllPath());
 
 	// Main message loop
 	MSG msg;
@@ -450,7 +458,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 		if (GetChatState() == CHAT_STATE(Uninitialized) && 
 			GetStreamState() >= STREAM_STATE(Authenticated))
 		{
-			InitializeChat(channelName.c_str());
+			if (gAutoConnectToChat)
+			{
+				gAutoConnectToChat = false;
+				InitializeChat(gUserName.c_str());
+			}
 		}
 
 		if (GetChatState() != CHAT_STATE(Uninitialized))
@@ -705,6 +717,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						{
 							StartStreaming(gBroadcastWidth, gBroadcastHeight, gBroadcastFramesPerSecond);
 						}
+
+						break;
+					}
+					case VK_F8:
+					{
+						#undef CHAT_STATE
+						#define CHAT_STATE(__state__) CS_##__state__
+
+						// initialize chat after we have authenticated
+						if (GetChatState() == CHAT_STATE(Uninitialized))
+						{
+							InitializeChat(gUserName.c_str());
+						}
+						else if (GetChatState() == CHAT_STATE(Connected))
+						{
+							ShutdownChat();
+						}
+
+						#undef CHAT_STATE
 
 						break;
 					}

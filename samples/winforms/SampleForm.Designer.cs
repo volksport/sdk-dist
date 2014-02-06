@@ -33,16 +33,20 @@
             this.mSubmitFrameTimer = new System.Windows.Forms.Timer(this.components);
             this.mChatTimer = new System.Windows.Forms.Timer(this.components);
             this.ChatTab = new System.Windows.Forms.TabPage();
+            this.mChatShutdownButton = new System.Windows.Forms.Button();
+            this.mChatInitializeButton = new System.Windows.Forms.Button();
             this.mChatMessagesGroupbox = new System.Windows.Forms.GroupBox();
+            this.mChatStateLabel = new System.Windows.Forms.Label();
             this.mChatSendButton = new System.Windows.Forms.Button();
             this.mChatInputTextbox = new System.Windows.Forms.TextBox();
             this.mChatMessagesTextbox = new System.Windows.Forms.TextBox();
             this.mChatUsersListbox = new System.Windows.Forms.ListBox();
             this.mChatConnectionGroupbox = new System.Windows.Forms.GroupBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.mEmoticonModeCombobox = new System.Windows.Forms.ComboBox();
             this.label9 = new System.Windows.Forms.Label();
             this.mChatDisconnectButton = new System.Windows.Forms.Button();
             this.mChatChannelText = new System.Windows.Forms.TextBox();
-            this.mChatConnectAnonymousButton = new System.Windows.Forms.Button();
             this.mChatConnectButton = new System.Windows.Forms.Button();
             this.mChatStatusLabel = new System.Windows.Forms.Label();
             this.StreamTab = new System.Windows.Forms.TabPage();
@@ -109,8 +113,6 @@
             this.mShutdownButton = new System.Windows.Forms.Button();
             this.mInitButton = new System.Windows.Forms.Button();
             this.Tabs = new System.Windows.Forms.TabControl();
-            this.mEmoticonModeCombobox = new System.Windows.Forms.ComboBox();
-            this.label4 = new System.Windows.Forms.Label();
             this.ChatTab.SuspendLayout();
             this.mChatMessagesGroupbox.SuspendLayout();
             this.mChatConnectionGroupbox.SuspendLayout();
@@ -149,6 +151,10 @@
             // 
             // ChatTab
             // 
+            this.ChatTab.Controls.Add(this.label4);
+            this.ChatTab.Controls.Add(this.mChatShutdownButton);
+            this.ChatTab.Controls.Add(this.mEmoticonModeCombobox);
+            this.ChatTab.Controls.Add(this.mChatInitializeButton);
             this.ChatTab.Controls.Add(this.mChatMessagesGroupbox);
             this.ChatTab.Controls.Add(this.mChatConnectionGroupbox);
             this.ChatTab.Controls.Add(this.mChatStatusLabel);
@@ -160,8 +166,29 @@
             this.ChatTab.Text = "Chat";
             this.ChatTab.UseVisualStyleBackColor = true;
             // 
+            // mChatShutdownButton
+            // 
+            this.mChatShutdownButton.Location = new System.Drawing.Point(20, 547);
+            this.mChatShutdownButton.Name = "mChatShutdownButton";
+            this.mChatShutdownButton.Size = new System.Drawing.Size(118, 23);
+            this.mChatShutdownButton.TabIndex = 15;
+            this.mChatShutdownButton.Text = "Shutdown";
+            this.mChatShutdownButton.UseVisualStyleBackColor = true;
+            this.mChatShutdownButton.Click += new System.EventHandler(this.mChatShutdownButton_Click);
+            // 
+            // mChatInitializeButton
+            // 
+            this.mChatInitializeButton.Location = new System.Drawing.Point(20, 518);
+            this.mChatInitializeButton.Name = "mChatInitializeButton";
+            this.mChatInitializeButton.Size = new System.Drawing.Size(118, 23);
+            this.mChatInitializeButton.TabIndex = 14;
+            this.mChatInitializeButton.Text = "Initialize";
+            this.mChatInitializeButton.UseVisualStyleBackColor = true;
+            this.mChatInitializeButton.Click += new System.EventHandler(this.mChatInitializeButton_Click);
+            // 
             // mChatMessagesGroupbox
             // 
+            this.mChatMessagesGroupbox.Controls.Add(this.mChatStateLabel);
             this.mChatMessagesGroupbox.Controls.Add(this.mChatSendButton);
             this.mChatMessagesGroupbox.Controls.Add(this.mChatInputTextbox);
             this.mChatMessagesGroupbox.Controls.Add(this.mChatMessagesTextbox);
@@ -172,6 +199,15 @@
             this.mChatMessagesGroupbox.TabIndex = 13;
             this.mChatMessagesGroupbox.TabStop = false;
             this.mChatMessagesGroupbox.Text = "Chat Messages";
+            // 
+            // mChatStateLabel
+            // 
+            this.mChatStateLabel.Location = new System.Drawing.Point(642, 459);
+            this.mChatStateLabel.Name = "mChatStateLabel";
+            this.mChatStateLabel.Size = new System.Drawing.Size(208, 21);
+            this.mChatStateLabel.TabIndex = 18;
+            this.mChatStateLabel.Text = "Uninitialized";
+            this.mChatStateLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // mChatSendButton
             // 
@@ -209,19 +245,34 @@
             // 
             // mChatConnectionGroupbox
             // 
-            this.mChatConnectionGroupbox.Controls.Add(this.label4);
-            this.mChatConnectionGroupbox.Controls.Add(this.mEmoticonModeCombobox);
             this.mChatConnectionGroupbox.Controls.Add(this.label9);
             this.mChatConnectionGroupbox.Controls.Add(this.mChatDisconnectButton);
             this.mChatConnectionGroupbox.Controls.Add(this.mChatChannelText);
-            this.mChatConnectionGroupbox.Controls.Add(this.mChatConnectAnonymousButton);
             this.mChatConnectionGroupbox.Controls.Add(this.mChatConnectButton);
-            this.mChatConnectionGroupbox.Location = new System.Drawing.Point(14, 509);
+            this.mChatConnectionGroupbox.Location = new System.Drawing.Point(14, 592);
             this.mChatConnectionGroupbox.Name = "mChatConnectionGroupbox";
-            this.mChatConnectionGroupbox.Size = new System.Drawing.Size(856, 109);
+            this.mChatConnectionGroupbox.Size = new System.Drawing.Size(856, 114);
             this.mChatConnectionGroupbox.TabIndex = 12;
             this.mChatConnectionGroupbox.TabStop = false;
             this.mChatConnectionGroupbox.Text = "Chat Connection";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(156, 518);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(81, 13);
+            this.label4.TabIndex = 16;
+            this.label4.Text = "Emoticon Mode";
+            // 
+            // mEmoticonModeCombobox
+            // 
+            this.mEmoticonModeCombobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.mEmoticonModeCombobox.FormattingEnabled = true;
+            this.mEmoticonModeCombobox.Location = new System.Drawing.Point(156, 537);
+            this.mEmoticonModeCombobox.Name = "mEmoticonModeCombobox";
+            this.mEmoticonModeCombobox.Size = new System.Drawing.Size(126, 21);
+            this.mEmoticonModeCombobox.TabIndex = 15;
             // 
             // label9
             // 
@@ -234,7 +285,7 @@
             // 
             // mChatDisconnectButton
             // 
-            this.mChatDisconnectButton.Location = new System.Drawing.Point(6, 77);
+            this.mChatDisconnectButton.Location = new System.Drawing.Point(6, 46);
             this.mChatDisconnectButton.Name = "mChatDisconnectButton";
             this.mChatDisconnectButton.Size = new System.Drawing.Size(118, 23);
             this.mChatDisconnectButton.TabIndex = 13;
@@ -248,16 +299,6 @@
             this.mChatChannelText.Name = "mChatChannelText";
             this.mChatChannelText.Size = new System.Drawing.Size(181, 20);
             this.mChatChannelText.TabIndex = 12;
-            // 
-            // mChatConnectAnonymousButton
-            // 
-            this.mChatConnectAnonymousButton.Location = new System.Drawing.Point(6, 48);
-            this.mChatConnectAnonymousButton.Name = "mChatConnectAnonymousButton";
-            this.mChatConnectAnonymousButton.Size = new System.Drawing.Size(118, 23);
-            this.mChatConnectAnonymousButton.TabIndex = 11;
-            this.mChatConnectAnonymousButton.Text = "Connect Anonymous";
-            this.mChatConnectAnonymousButton.UseVisualStyleBackColor = true;
-            this.mChatConnectAnonymousButton.Click += new System.EventHandler(this.mChatConnectAnonymous_Click);
             // 
             // mChatConnectButton
             // 
@@ -959,24 +1000,6 @@
             this.Tabs.Size = new System.Drawing.Size(886, 740);
             this.Tabs.TabIndex = 6;
             // 
-            // mEmoticonModeCombobox
-            // 
-            this.mEmoticonModeCombobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.mEmoticonModeCombobox.FormattingEnabled = true;
-            this.mEmoticonModeCombobox.Location = new System.Drawing.Point(348, 38);
-            this.mEmoticonModeCombobox.Name = "mEmoticonModeCombobox";
-            this.mEmoticonModeCombobox.Size = new System.Drawing.Size(126, 21);
-            this.mEmoticonModeCombobox.TabIndex = 15;
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(348, 19);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(81, 13);
-            this.label4.TabIndex = 16;
-            this.label4.Text = "Emoticon Mode";
-            // 
             // SampleForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1094,7 +1117,6 @@
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.Button mChatDisconnectButton;
         private System.Windows.Forms.TextBox mChatChannelText;
-        private System.Windows.Forms.Button mChatConnectAnonymousButton;
         private System.Windows.Forms.Button mChatConnectButton;
         private System.Windows.Forms.GroupBox mChatMessagesGroupbox;
         private System.Windows.Forms.TextBox mChatMessagesTextbox;
@@ -1104,6 +1126,9 @@
         private System.Windows.Forms.CheckBox mEnableAudioCheckbox;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.ComboBox mEmoticonModeCombobox;
+        private System.Windows.Forms.Label mChatStateLabel;
+        private System.Windows.Forms.Button mChatShutdownButton;
+        private System.Windows.Forms.Button mChatInitializeButton;
 
     }
 }

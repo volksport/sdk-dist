@@ -3,7 +3,7 @@
 *
 * This software is supplied under the terms of a license agreement with Justin.tv Inc. and
 * may not be copied or used except in accordance with the terms of that agreement
-* Copyright (c) 2012-2013 Justin.tv Inc.
+* Copyright (c) 2012-2014 Justin.tv Inc.
 *********************************************************************************************/
 
 #ifndef TTVSDK_TWITCH_SDK_H
@@ -26,13 +26,11 @@ extern "C"
 *
 * @param[in] memCallbacks - Memory allocation/deallocation callback functions provided by the client. If nullptr, malloc/free will be used
 * @param[in] clientID - The Twitch client ID assigned to your application
-* @param[in] vidEncoder - The video encoder to use or TTV_VID_ENC_DISABLE if you do not intend to use video encoding/broadcasting
 * @param[in] dllPath - [Optional] Windows Only - Path to DLL's to load if no in exe folder (e.g. Intel DLL) 
 * @return - TTV_EC_SUCCESS if function succeeds; error code otherwise
 */
 TTVSDK_API TTV_ErrorCode TTV_Init(const TTV_MemCallbacks* memCallbacks, 
-								  const char* clientID,
-								  TTV_VideoEncoder vidEncoder,
+								  const char* clientID,								  
 								  const wchar_t* dllPath);
 
 
@@ -78,11 +76,13 @@ TTVSDK_API TTV_ErrorCode TTV_PollTasks();
 /**
 * TTV_RequestAuthToken - Request an authentication key based on the provided username and password.
 * @param[in] authParams - Authentication parameters
+* @param[in] flags - A bitfield of feature options.  See twitchsdktypes.h for valid options.
 * @param[in] callback - The callback function to be called when the request is completed
 * @param[in] userData - Optional pointer to be passed through to the callback function
 * @param[out] authToken - The authentication token to be written to
 */					   
 TTVSDK_API TTV_ErrorCode TTV_RequestAuthToken(const TTV_AuthParams* authParams,
+											  uint32_t flags,
 											  TTV_TaskCallback callback,
 											  void* userData,
 											  TTV_AuthToken* authToken);
@@ -392,7 +392,7 @@ TTVSDK_API const char* TTV_ErrorToString(TTV_ErrorCode err);
 *
 * @param[in] str - The string to match.
 * @param[in] callback - The callback which will be called when the result is ready.
-* @param[in] games - The location the result will be written to.
+* @param[in] gameList - The location the result will be written to.
 * @param[in] userData - Data passed along in the callback.
 * @return - TTV_EC_SUCCESS is the request is issued correctly.
 *			TTV_WRN_PREV_GAME_NAME_MATCH_REQUEST_DROPPED if a previous request was dropped because they're being issues too quickly.

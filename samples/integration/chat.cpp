@@ -18,105 +18,149 @@ extern std::string gUserName;
 
 #define CHAT_STATE(__state__) CS_##__state__
 
-static ChatState gChatState = CHAT_STATE(Uninitialized);
-
-
-void ChatStatusCallback(TTV_ErrorCode result, void* /*userdata*/)
+namespace
 {
-	if (TTV_SUCCEEDED(result))
-	{
-	}
-	else if (result == TTV_EC_CHAT_LOST_CONNECTION)
-	{
-		gChatState = CHAT_STATE(Disconnected);
-	}
-	else
-	{
-		gChatState = CHAT_STATE(Disconnected);
-		ASSERT_ON_ERROR(result);
-	}
-}
+	ChatState gChatState = CHAT_STATE(Uninitialized);
+	TTV_ErrorCode gAsyncResult = TTV_EC_SUCCESS;
+	bool gRequestedEmoticonData = false;
+	bool gRequestedBadgeData = false;
 
-void ChatMembershipCallback(TTV_ChatEvent evt, const TTV_ChatChannelInfo* channelInfo, void* /*userdata*/)
-{
-	switch (evt)
+	void InitializationCallback(TTV_ErrorCode result, void* /*userdata*/)
 	{
-	case TTV_CHAT_JOINED_CHANNEL:
-		gChatState = CHAT_STATE(Connected);
-		break;
-	case TTV_CHAT_LEFT_CHANNEL:
-		gChatState = CHAT_STATE(Disconnected);
-		break;
-	default:
-		break;
-	}
-}
+		gAsyncResult = result;
 
-void ChatUserCallback (const TTV_ChatUserList* joinList, const TTV_ChatUserList* leaveList, const TTV_ChatUserList* userInfoList, void* /*userdata*/)
-{
-	for (uint i = 0; i < leaveList->userCount; ++i)
-	{
-		RemoveChatUser(&leaveList->userList[i]);
+		if (TTV_SUCCEEDED(result))
+		{
+			gChatState = CHAT_STATE(Initialized);
+		}
+		else
+		{
+			gChatState = CHAT_STATE(Uninitialized);
+		}
 	}
 
-	for (uint i = 0; i < joinList->userCount; ++i)
+	void ShutdownCallback(TTV_ErrorCode result, void* /*userdata*/)
 	{
-		AddChatUser(&joinList->userList[i]);
+		gAsyncResult = result;
+
+		if (TTV_SUCCEEDED(result))
+		{
+			gChatState = CHAT_STATE(Uninitialized);
+		}
+		else
+		{
+			gChatState = CHAT_STATE(Initialized);
+		}
 	}
 
-	for (uint i = 0; i < userInfoList->userCount; ++i)
+	void ChatStatusCallback(TTV_ErrorCode result, void* /*userdata*/)
 	{
-		UpdateChatUser(&userInfoList->userList[i]);
+		if (TTV_SUCCEEDED(result))
+		{
+		}
+		else if (result == TTV_EC_CHAT_LOST_CONNECTION)
+		{
+			gChatState = CHAT_STATE(Disconnected);
+		}
+		else
+		{
+			gChatState = CHAT_STATE(Disconnected);
+			ASSERT_ON_ERROR(result);
+		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Important to free user lists when we are done with them
-	//////////////////////////////////////////////////////////////////////////
-	TTV_Chat_FreeUserList(joinList);
-	TTV_Chat_FreeUserList(leaveList);
-	TTV_Chat_FreeUserList(userInfoList);
-}
-
-void ChatTokenizedMessageCallback(const TTV_ChatTokenizedMessageList* messageList, void* /*userdata*/)
-{
-	assert (messageList);
-
-	AddChatMessages(messageList);
-}
-
-void ChatClearCallback(const utf8char* channelName, void* /*userdata*/)
-{
-	ClearChatMessages();
-}
-
-
-void EmoticonDataDownloadCallback(TTV_ErrorCode error, void* /*userdata*/)
-{
-	assert( TTV_SUCCEEDED(error) );
-
-	// grab the texture and badge data
-	if (TTV_SUCCEEDED(error))
+	void ChatMembershipCallback(TTV_ChatEvent evt, const TTV_ChatChannelInfo* channelInfo, void* /*userdata*/)
 	{
-		ProcessEmoticonData();
+		switch (evt)
+		{
+		case TTV_CHAT_JOINED_CHANNEL:
+			gChatState = CHAT_STATE(Connected);
+			break;
+		case TTV_CHAT_LEFT_CHANNEL:
+			gChatState = CHAT_STATE(Disconnected);
+			break;
+		default:
+			break;
+		}
+	}
+
+	void ChatUserCallback (const TTV_ChatUserList* joinList, const TTV_ChatUserList* leaveList, const TTV_ChatUserList* userInfoList, void* /*userdata*/)
+	{
+		for (uint i = 0; i < leaveList->userCount; ++i)
+		{
+			RemoveChatUser(&leaveList->userList[i]);
+		}
+
+		for (uint i = 0; i < joinList->userCount; ++i)
+		{
+			AddChatUser(&joinList->userList[i]);
+		}
+
+		for (uint i = 0; i < userInfoList->userCount; ++i)
+		{
+			UpdateChatUser(&userInfoList->userList[i]);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Important to free user lists when we are done with them
+		//////////////////////////////////////////////////////////////////////////
+		TTV_Chat_FreeUserList(joinList);
+		TTV_Chat_FreeUserList(leaveList);
+		TTV_Chat_FreeUserList(userInfoList);
+	}
+
+	void ChatTokenizedMessageCallback(const TTV_ChatTokenizedMessageList* messageList, void* /*userdata*/)
+	{
+		assert (messageList);
+
+		AddChatMessages(messageList);
+	}
+
+	void ChatClearCallback(void* /*userdata*/)
+	{
+		ClearChatMessages();
+	}
+
+	void EmoticonDataDownloadCallback(TTV_ErrorCode error, void* /*userdata*/)
+	{
+		assert( TTV_SUCCEEDED(error) );
+
+		// grab the texture and badge data
+		if (TTV_SUCCEEDED(error))
+		{
+			ProcessEmoticonData();
+		}
+		// failed, try again
+		else
+		{
+			gRequestedEmoticonData = false;
+		}
+	}
+
+	void BadgeDataDownloadCallback(TTV_ErrorCode error, void* /*userdata*/)
+	{
+		assert( TTV_SUCCEEDED(error) );
+
+		// grab the texture and badge data
+		if (TTV_SUCCEEDED(error))
+		{
+			ProcessBadgeData();
+		}
+		// failed, try again
+		else
+		{
+			gRequestedBadgeData = false;
+		}
 	}
 }
 
 
 void InitializeChat(const utf8char* channel)
 {
-	TTV_ChatCallbacks chatCallbacks;
-	memset(&chatCallbacks, 0, sizeof(chatCallbacks));
-	chatCallbacks.statusCallback = ChatStatusCallback;
-	chatCallbacks.membershipCallback = ChatMembershipCallback;
-	chatCallbacks.userCallback = ChatUserCallback;
-	chatCallbacks.messageCallback = nullptr;
-	chatCallbacks.tokenizedMessageCallback = ChatTokenizedMessageCallback;
-	chatCallbacks.clearCallback = ChatClearCallback;
-	chatCallbacks.unsolicitedUserData = nullptr;
-
 	TTV_ErrorCode ret = TTV_Chat_Init(
-		channel,		
-		&chatCallbacks);
+		TTV_CHAT_TOKENIZATION_OPTION_EMOTICON_TEXTURES,
+		InitializationCallback,
+		nullptr);
 	ASSERT_ON_ERROR(ret);
 
 	TTV_SetTraceLevel(TTV_ML_CHAT);
@@ -127,7 +171,20 @@ void InitializeChat(const utf8char* channel)
 
 void ShutdownChat()
 {
-	TTV_Chat_Shutdown();
+	gChatState = CHAT_STATE(ShuttingDown);
+
+	(void)TTV_Chat_ClearEmoticonData();
+	(void)TTV_Chat_ClearBadgeData();
+
+	TTV_ErrorCode ret = TTV_Chat_Shutdown(ShutdownCallback, nullptr);
+
+	if (TTV_SUCCEEDED(ret))
+	{
+		while (gChatState != CHAT_STATE(Uninitialized))
+		{
+			FlushChatEvents();
+		}
+	}
 }
 
 
@@ -144,28 +201,64 @@ void FlushChatEvents()
 	switch (gChatState)
 	{
 		case CHAT_STATE(Uninitialized):
+		case CHAT_STATE(Initializing):
 		{
 			break;
 		}
 		case CHAT_STATE(Initialized):
 		{
-			gChatState = CHAT_STATE(Connecting);
+			// start downloading the emoticon data
+			TTV_ErrorCode ret = TTV_EC_SUCCESS;
+			
+			if (!gRequestedEmoticonData)
+			{
+				gRequestedEmoticonData = true;
+
+				ret = TTV_Chat_DownloadEmoticonData(EmoticonDataDownloadCallback, nullptr);
+				ASSERT_ON_ERROR(ret);
+			}
 
 			// connect to the channel
-			TTV_ErrorCode ret = TTV_Chat_Connect(gUserName.c_str(), gAuthToken.data);
-			ASSERT_ON_ERROR(ret);
+			gChatState = CHAT_STATE(Connecting);
 
-			// start downloading the emoticon data
-			ret = TTV_Chat_DownloadEmoticonData(USE_TEXTURE_ATLAS != 0, EmoticonDataDownloadCallback, nullptr);
+			TTV_ChatCallbacks chatCallbacks;
+			memset(&chatCallbacks, 0, sizeof(chatCallbacks));
+			chatCallbacks.statusCallback = ChatStatusCallback;
+			chatCallbacks.membershipCallback = ChatMembershipCallback;
+			chatCallbacks.userCallback = ChatUserCallback;
+			chatCallbacks.messageCallback = nullptr;
+			chatCallbacks.tokenizedMessageCallback = ChatTokenizedMessageCallback;
+			chatCallbacks.clearCallback = ChatClearCallback;
+			chatCallbacks.unsolicitedUserData = nullptr;
+
+			ret = TTV_Chat_Connect(gUserName.c_str(), gAuthToken.data, &chatCallbacks);
 			ASSERT_ON_ERROR(ret);
 
 			break;
 		}
 		case CHAT_STATE(Connecting):
+		{
 			break;
+		}
 		case CHAT_STATE(Connected):
+		{
+			// start downloading the badge data
+			if (!gRequestedBadgeData)
+			{
+				gRequestedBadgeData = true;
+
+				TTV_ErrorCode ret = TTV_Chat_DownloadBadgeData(BadgeDataDownloadCallback, nullptr);
+				ASSERT_ON_ERROR(ret);
+			}
+
 			break;
+		}
 		case CHAT_STATE(Disconnected):
+		case CHAT_STATE(ShuttingDown):
+		{
+			ClearChatUsers();
+			ClearChatMessages();
 			break;
+		}
 	}
 }

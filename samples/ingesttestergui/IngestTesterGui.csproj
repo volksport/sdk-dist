@@ -8,8 +8,8 @@
     <ProjectGuid>{DCAE3A98-107B-4C05-86FE-922C63DBF908}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>winforms</RootNamespace>
-    <AssemblyName>winforms</AssemblyName>
+    <RootNamespace>ingesttester</RootNamespace>
+    <AssemblyName>ingesttester</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -106,6 +106,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="IngestTesterForm.resx">
       <DependentUpon>IngestTesterForm.cs</DependentUpon>
@@ -150,8 +151,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(ProjectDir)..\..\lib\twitchsdk.dll" "$(ProjectDir)$(OutDir)twitchsdk.dll" /Y
-xcopy "$(ProjectDir)..\..\lib\twitchsdk.pdb" "$(ProjectDir)$(OutDir)twitchsdk.pdb" /Y</PostBuildEvent>
+    <PostBuildEvent>echo f | xcopy "$(ProjectDir)..\..\lib\Win32\$(ConfigurationName)Bindings\twitchsdk.dll" "$(ProjectDir)$(OutDir)twitchsdk.dll" /Y
+
+echo f | xcopy "$(ProjectDir)..\..\lib\Win32\$(ConfigurationName)Bindings\twitchsdk.pdb" "$(ProjectDir)$(OutDir)twitchsdk.pdb" /Y</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>

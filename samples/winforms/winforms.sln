@@ -154,8 +154,8 @@ Global
 		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.Release|Win32.Build.0 = ReleaseBindings|Win32
 		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.Release|x64.ActiveCfg = ReleaseBindings|x64
 		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.Release|x64.Build.0 = ReleaseBindings|x64
-		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.Release|x86.ActiveCfg = release|Win32
-		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.Release|x86.Build.0 = release|Win32
+		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.Release|x86.ActiveCfg = ReleaseBindings|Win32
+		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.Release|x86.Build.0 = ReleaseBindings|Win32
 		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.ReleaseMD|Any CPU.ActiveCfg = ReleaseMD|Win32
 		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.ReleaseMD|Mixed Platforms.ActiveCfg = ReleaseMD|Win32
 		{E6B2756F-D5A7-46C3-A58C-B7775467B154}.ReleaseMD|Mixed Platforms.Build.0 = ReleaseMD|Win32
@@ -190,8 +190,8 @@ Global
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|Win32.Build.0 = ReleaseBindings|Win32
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|x64.ActiveCfg = ReleaseBindings|x64
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|x64.Build.0 = ReleaseBindings|x64
-		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|x86.ActiveCfg = Release|Win32
-		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|x86.Build.0 = Release|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|x86.ActiveCfg = ReleaseBindings|Win32
+		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.Release|x86.Build.0 = ReleaseBindings|Win32
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|Any CPU.ActiveCfg = ReleaseMD|Win32
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|Mixed Platforms.ActiveCfg = ReleaseMD|Win32
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|Mixed Platforms.Build.0 = ReleaseMD|Win32
@@ -262,8 +262,8 @@ Global
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.Release|Win32.Build.0 = ReleaseBindings|Win32
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.Release|x64.ActiveCfg = ReleaseBindings|x64
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.Release|x64.Build.0 = ReleaseBindings|x64
-		{77186405-DA32-40B5-BC68-4E805518C2B7}.Release|x86.ActiveCfg = Release|Win32
-		{77186405-DA32-40B5-BC68-4E805518C2B7}.Release|x86.Build.0 = Release|Win32
+		{77186405-DA32-40B5-BC68-4E805518C2B7}.Release|x86.ActiveCfg = ReleaseBindings|Win32
+		{77186405-DA32-40B5-BC68-4E805518C2B7}.Release|x86.Build.0 = ReleaseBindings|Win32
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.ReleaseMD|Any CPU.ActiveCfg = ReleaseMD|Win32
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.ReleaseMD|Mixed Platforms.ActiveCfg = ReleaseMD|Win32
 		{77186405-DA32-40B5-BC68-4E805518C2B7}.ReleaseMD|Mixed Platforms.Build.0 = ReleaseMD|Win32

@@ -1,5 +1,17 @@
 #Twitch Broadcasting SDK - Change history
 
+#### January 13, 2013  
+- Moved channelName from TTV_Chat_Init to TTV_Chat_Connect.  
+- Removed the channel name from TTV_ChatClearCallback.  
+- Made TTV_Chat_Init and TTV_Chat_Shutdown asynchronous if callbacks are provided.  Make sure you wait for successful initialization before connecting to a channel.  
+- Added TTV_Chat_ClearEmoticonData for clearing the internal cache of emoticon data.  
+- Separated downloading of emoticon data from badge data so the emoticon data can be cached between channel connections.  
+- Added new functions for managing badge data: TTV_Chat_DownloadBadgeData, TTV_Chat_ClearBadgeData, TTV_Chat_GetBadgeData and TTV_Chat_FreeBadgeData.  
+- Removed TTV_Chat_GetChannelUsers and TTV_ChatQueryChannelUsersCallback since they're not needed.  Please use TTV_ChatChannelUserChangeCallback for managing users.  
+- Removed TTV_Chat_ConnectAnonymous.  
+- Added flags to TTV_RequestAuthToken.  You must now specify which feature options you want to use.  
+- Renamed TTV_ChatMessage to TTV_ChatRawMessage and TTV_ChatMessageList to TTV_ChatRawMessageList.  
+
 ### January 8, 2014
 - Improved url encoding of all parameters to allow for non-ascii characters in passwords. As long as passwords are passed as utf8 they should all work.
 
@@ -7,11 +19,9 @@
 - Changed encoding to CBR
 - Changed frame dropping to ensure a frame is emmited exactly 1/fps
 - Added frame duplication to handle low frame rates
-
 ### December 5, 2013
 - Added a streaming sample for iOS
 - Fixed a bug if TTV_Shutdown was called while waiting for TTV_Login
-
 #### November 20, 2013
 - Added a OS version tests for Windows(Vista or newer) and Mac(10.8 or newer). Only impacts encoding and not chat only integrations
 

@@ -11,10 +11,12 @@
  */
 #define CHAT_STATE_LIST\
 	CHAT_STATE(Uninitialized)\
+	CHAT_STATE(Initializing)\
 	CHAT_STATE(Initialized)\
 	CHAT_STATE(Connecting)\
 	CHAT_STATE(Connected)\
-	CHAT_STATE(Disconnected)
+	CHAT_STATE(Disconnected)\
+	CHAT_STATE(ShuttingDown)
 
 #undef CHAT_STATE
 #define CHAT_STATE(__state__) CS_##__state__,

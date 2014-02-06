@@ -50,6 +50,7 @@ import tv.twitch.AuthToken;
 import tv.twitch.ErrorCode;
 import tv.twitch.broadcast.*;
 import tv.twitch.chat.*;
+import tv.twitch.chat.ChatController.ChatState;
 import tv.twitch.broadcast.BroadcastController.BroadcastState;
 
 import static org.lwjgl.opengl.ARBTransposeMatrix.*;
@@ -64,7 +65,7 @@ import static org.lwjgl.opengl.GL11.*;
  * @version $Revision$
  * $Id$
  */
-public class Gears implements BroadcastController.Listener, IngestTester.Listener, ChatController.Listener
+public class Gears
 {
 	private float	view_rotx	= 20.0f;
 	private float	view_roty	= 30.0f;
@@ -75,8 +76,8 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 	private float	angle;
 
 	private int broadcastFramesPerSecond = 30;
+	private String[] chatChannels = new String[]{ "<channel>" };
 	private String username = "";
-	private String chatChannel = "";
 	private String password = "";
 	private String clientId = "";
 	private String clientSecret = "";
@@ -87,213 +88,279 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
     private IngestTester ingestTester = null;
 
     private ChatController chatController = null;
+    private ChatController.EmoticonMode emoticonParsingMode = ChatController.EmoticonMode.Url;
     private boolean enableChat = true; 
     
-	//region BroadcastController.Listener
-	
-	public void onAuthTokenRequestComplete(ErrorCode result, AuthToken authToken)
-	{
-	}
-
-	public void onLoginAttemptComplete(ErrorCode result)
-	{
-		if (ErrorCode.succeeded(result))
+    private BroadcastController.Listener broadcastListener = new BroadcastController.Listener()
+    {
+	    @Override
+		public void onAuthTokenRequestComplete(ErrorCode result, AuthToken authToken)
 		{
-			if (enableChat)
+		}
+	
+		@Override
+		public void onLoginAttemptComplete(ErrorCode result)
+		{
+			if (ErrorCode.succeeded(result))
 			{
-				initChat();
+				if (enableChat)
+				{
+					initChat();
+				}
 			}
 		}
-	}
-
-	public void onGameNameListReceived(ErrorCode result, GameInfo[] list)
-	{
-		if (ErrorCode.succeeded(result))
-		{
-			System.out.println("Game names:");
-			for (int i=0; i<list.length; ++i)
-			{
-				System.out.println("    " + list[i].name);
-			}
-		}
-	}
-
-	public void onBroadcastStateChanged(BroadcastState state)
-	{
-		System.out.println(state.toString());
-	}
-
-	public void onLoggedOut()
-	{
-	}
-	
-	public void onStreamInfoUpdated(StreamInfo info)
-	{
-		System.out.println("Num viewers: " + info.viewers);
-	}
-	
-	public void onIngestListReceived(IngestList list)
-	{
-	}
-
-	public void onframeSubmissionIssue(ErrorCode result)
-	{
-		System.out.println("FrameSubmissionIssue: " + result.toString());
-	}
-	
-	public void onBroadcastStarted()
-	{
-		System.out.println("BroadcastStarted");
-	}
-	
-	public void onBroadcastStopped()
-	{
-		System.out.println("BroadcastStopped");
-	}
-    
-    //endregion
-	
-	//region ChatController.Listener
-	
-	public void onTokenizedMessagesReceived(ChatTokenizedMessage[] messages)
-	{
-        StringBuffer sb = new StringBuffer();
-        
-        for (int i = 0; i < messages.length; ++i)
-        {
-            ChatTokenizedMessage msg = messages[i];
-            sb.append(msg.displayName).append(": ");
-
-            for (int t = 0; t < msg.tokenList.length; ++t)
-            {
-                ChatMessageToken token = msg.tokenList[t];
-                switch (token.type)
-                {
-                    case TTV_CHAT_MSGTOKEN_TEXT:
-                    {
-                        ChatTextMessageToken mt = (ChatTextMessageToken)token;
-                        sb.append(mt.text);
-                        break;
-                    }
-                    case TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE:
-                    {
-                        ChatTextureImageMessageToken mt = (ChatTextureImageMessageToken)token;
-                        sb.append( String.format("[%d,%d,%d,%d,%d]", mt.sheetIndex, mt.x1, mt.y1, mt.x2, mt.y2) );
-                        break;
-                    }
-                    case TTV_CHAT_MSGTOKEN_URL_IMAGE:
-                    {
-                        ChatUrlImageMessageToken mt = (ChatUrlImageMessageToken)token;
-                        sb.append("[").append(mt.url).append("]");
-                        break;
-                    }
-                }
-            }
-            sb.append("\n");
-        }
-
-        System.out.println(sb.toString());
-	}
-
-	public void onRawMessagesReceived(ChatMessage[] messages)
-	{
-		System.out.println("Received raw chat messages:");
 		
-		for (int i=0; i<messages.length; ++i)
+		@Override
+		public void onGameNameListReceived(ErrorCode result, GameInfo[] list)
 		{
-			System.out.println(messages[i].userName + ": " + messages[i].message);
+			if (ErrorCode.succeeded(result))
+			{
+				System.out.println("Game names:");
+				for (int i=0; i<list.length; ++i)
+				{
+					System.out.println("    " + list[i].name);
+				}
+			}
 		}
-	}
 	
-    public void onUsersChanged(ChatUserInfo[] joinList, ChatUserInfo[] leaveList, ChatUserInfo[] userInfoList)
-    {
-        for (int i = 0; i < leaveList.length; ++i)
-        {
-        	System.out.println("User left: " + leaveList[i].displayName);
-        }
-
-        for (int i = 0; i < userInfoList.length; ++i)
-        {
-        	System.out.println("User changed: " + userInfoList[i].displayName);
-        }
-
-        for (int i = 0; i < joinList.length; ++i)
-        {
-        	System.out.println("User joined: " + joinList[i].displayName);
-        }
-    }
-
-    public void onConnected()
-    {
-    	System.out.println("Connected to channel");
-    }
-
-    public void onDisconnected()
-    {
-    	System.out.println("Disconnected from channel");
-    }
-    
-    public void onMessagesCleared()
-    {
-    	System.out.println("Messages cleared");
-    }
-
-    public void onEmoticonDataAvailable()
-    {
-    	System.out.println("onEmoticonDataAvailable");
-    }
-
-    public void onEmoticonDataExpired()
-    {
-    	System.out.println("onEmoticonDataExpired");
-    }
+		@Override
+		public void onBroadcastStateChanged(BroadcastState state)
+		{
+			System.out.println("BroadcastState: " + state.toString());
+		}
 	
-	//endregion
+		@Override
+		public void onLoggedOut()
+		{
+		}
+		
+		@Override
+		public void onStreamInfoUpdated(StreamInfo info)
+		{
+			System.out.println("Num viewers: " + info.viewers);
+		}
+		
+		@Override
+		public void onIngestListReceived(IngestList list)
+		{
+		}
 	
-	//region IngestTester.Listener
+		@Override
+		public void onFrameSubmissionIssue(ErrorCode result)
+		{
+			System.out.println("FrameSubmissionIssue: " + result.toString());
+		}
+		
+		@Override
+		public void onBroadcastStarted()
+		{
+			System.out.println("BroadcastStarted");
+		}
+		
+		@Override
+		public void onBroadcastStopped()
+		{
+			System.out.println("BroadcastStopped");
+		}
 	
-	public void onIngestTestStateChanged(IngestTester source, IngestTester.TestState state)
+		@Override
+		public void onStartFailure(ErrorCode result) 
+		{
+			System.out.println("onStartFailure: " + result.toString());
+		}
+    };
+	
+	private ChatController.Listener chatListener = new ChatController.Listener()
 	{
-        String str = "[" + (int)(ingestTester.getTotalProgress() * 100) + "%] " + state.toString();
-
-        switch (state)
-        {
-            case ConnectingToServer:
-            {
-            	str += ": " + source.getCurrentServer().serverName + "...";
-                break;
-            }
-            case DoneTestingServer:
-            {
-            	str += ": " + source.getCurrentServer().serverName + "... " + source.getCurrentServer().bitrateKbps + " kbps";
-                break;
-            }
-            case Finished:
-            case Cancelled:
-            {
-            	ingestTester.setListener(null);
-                ingestTester = null;
-                break;
-            }
-            default:
-            {
-                break;
-            }
-        }
-        
-        if (state == IngestTester.TestState.Finished)
-        {
-        	if (source.getIngestList().getBestServer() != null)
-        	{
-        		str += ": Selecting best server - " + source.getIngestList().getBestServer().serverName;
-        		broadcastController.setIngestServer(source.getIngestList().getBestServer());
-        	}
-        }
-        
-        System.out.println(str);
-    }
+		@Override
+		public void onInitializationComplete(ErrorCode result) 
+		{
+			if (ErrorCode.failed(result))
+			{
+				chatController = null;
+			}
+		}
 	
-	//endregion
+		@Override
+		public void onShutdownComplete(ErrorCode result) 
+		{
+			if (ErrorCode.succeeded(result))
+			{
+				chatController = null;
+			}
+		}
+	
+		@Override
+		public void onChatStateChanged(ChatState state) 
+		{
+			System.out.println("ChatState: " + state.toString());
+		}
+	
+		@Override
+	    public void onEmoticonDataAvailable()
+	    {
+	    	System.out.println("onEmoticonDataAvailable");
+	    }
+	
+	    @Override
+	    public void onEmoticonDataExpired()
+	    {
+	    	System.out.println("onEmoticonDataExpired");
+	    }
+	
+	    @Override
+		public void onTokenizedMessagesReceived(String channelName, ChatTokenizedMessage[] messages)
+		{
+	    	System.out.println("Received tokenized chat messages:");
+	    	
+	    	StringBuffer sb = new StringBuffer();
+	        
+	        for (int i = 0; i < messages.length; ++i)
+	        {
+	            ChatTokenizedMessage msg = messages[i];
+	            sb.append("    <").append(channelName).append("> ").append(msg.displayName).append(": ");
+	
+	            for (int t = 0; t < msg.tokenList.length; ++t)
+	            {
+	                ChatMessageToken token = msg.tokenList[t];
+	                switch (token.type)
+	                {
+	                    case TTV_CHAT_MSGTOKEN_TEXT:
+	                    {
+	                        ChatTextMessageToken mt = (ChatTextMessageToken)token;
+	                        sb.append(mt.text);
+	                        break;
+	                    }
+	                    case TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE:
+	                    {
+	                        ChatTextureImageMessageToken mt = (ChatTextureImageMessageToken)token;
+	                        sb.append( String.format("[%d,%d,%d,%d,%d]", mt.sheetIndex, mt.x1, mt.y1, mt.x2, mt.y2) );
+	                        break;
+	                    }
+	                    case TTV_CHAT_MSGTOKEN_URL_IMAGE:
+	                    {
+	                        ChatUrlImageMessageToken mt = (ChatUrlImageMessageToken)token;
+	                        sb.append("[").append(mt.url).append("]");
+	                        break;
+	                    }
+	                }
+	            }
+	            sb.append("\n");
+	        }
+	
+	        System.out.println(sb.toString());
+		}
+	
+		@Override
+		public void onRawMessagesReceived(String channelName, ChatRawMessage[] messages)
+		{
+	    	System.out.println("Received raw chat messages:");
+	    	
+	    	StringBuffer sb = new StringBuffer();
+	        
+	        for (int i = 0; i < messages.length; ++i)
+	        {
+	            ChatRawMessage msg = messages[i];
+	            sb.append("    <").append(channelName).append("> ").append(msg.userName).append(": ").append(messages[i].message).append("\n");
+	        }
+	
+	        System.out.println(sb.toString());
+		}
+		
+		@Override
+	    public void onUsersChanged(String channelName, ChatUserInfo[] joinList, ChatUserInfo[] leaveList, ChatUserInfo[] userInfoList)
+	    {
+	        for (int i = 0; i < leaveList.length; ++i)
+	        {
+	        	System.out.println("<" + channelName + "> User left: " + leaveList[i].displayName);
+	        }
+	
+	        for (int i = 0; i < userInfoList.length; ++i)
+	        {
+	        	System.out.println("<" + channelName + "> User changed: " + userInfoList[i].displayName);
+	        }
+	
+	        for (int i = 0; i < joinList.length; ++i)
+	        {
+	        	System.out.println("<" + channelName + "> User joined: " + joinList[i].displayName);
+	        }
+	    }
+	
+	    @Override
+	    public void onConnected(String channelName)
+	    {
+	    	System.out.println("Connected to channel: " + channelName);
+	    }
+	
+	    @Override
+	    public void onDisconnected(String channelName)
+	    {
+	    	System.out.println("Disconnected from channel: " + channelName);
+	    }
+	    
+	    @Override
+	    public void onMessagesCleared(String channelName)
+	    {
+	    	System.out.println("Messages cleared: " + channelName);
+	    }
+	
+		@Override
+		public void onBadgeDataAvailable(String channelName) 
+		{
+			System.out.println("onBadgeDataAvailable: " + channelName);
+		}
+	
+		@Override
+		public void onBadgeDataExpired(String channelName)
+		{
+			System.out.println("onBadgeDataExpired: " + channelName);
+		}
+	};
+		
+	private IngestTester.Listener ingestTesterListener = new IngestTester.Listener()
+	{
+		@Override
+		public void onIngestTestStateChanged(IngestTester source, IngestTester.TestState state)
+		{
+	        String str = "[" + (int)(source.getTotalProgress() * 100) + "%] " + state.toString();
+	
+	        switch (state)
+	        {
+	            case ConnectingToServer:
+	            {
+	            	str += ": " + source.getCurrentServer().serverName + "...";
+	                break;
+	            }
+	            case DoneTestingServer:
+	            {
+	            	str += ": " + source.getCurrentServer().serverName + "... " + source.getCurrentServer().bitrateKbps + " kbps";
+	                break;
+	            }
+	            case Finished:
+	            case Cancelled:
+	            {
+	            	source.setListener(null);
+	                ingestTester = null;
+	                break;
+	            }
+	            default:
+	            {
+	                break;
+	            }
+	        }
+	        
+	        if (state == IngestTester.TestState.Finished)
+	        {
+	        	if (source.getIngestList().getBestServer() != null)
+	        	{
+	        		str += ": Selecting best server - " + source.getIngestList().getBestServer().serverName;
+	        		broadcastController.setIngestServer(source.getIngestList().getBestServer());
+	        	}
+	        }
+	        
+	        System.out.println(str);
+	    }
+	};
 	
 	
 	public static void main(String[] args) {
@@ -398,6 +465,18 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 		}
 	}
 
+	private String getActiveChatChannelName()
+	{
+		if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT))
+		{
+			return chatChannels[Math.min(1, chatChannels.length-1)];
+		}
+		else
+		{
+			return chatChannels[0];
+		}
+	}
+	
 	private void handleInput()
 	{
 		while (Keyboard.next())
@@ -459,7 +538,10 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 				else
 				{
 					ingestTester = broadcastController.startIngestTest();
-					ingestTester.setListener(this);
+					if (ingestTester != null)
+					{
+						ingestTester.setListener(ingestTesterListener);
+					}
 				}
 			}
 			else if (Keyboard.getEventKey() == Keyboard.KEY_G) 
@@ -484,40 +566,47 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 			}
 			else if (Keyboard.getEventKey() == Keyboard.KEY_C) 
 			{
-				if (chatController != null)
+				String channelName = getActiveChatChannelName();
+				
+				if (chatController != null && 
+					chatController.getCurrentState() == ChatController.ChatState.Initialized)
 				{
-					if (chatController.getIsConnected())
+					if (chatController.getIsConnected(channelName))
 					{
-						chatController.disconnect();
+						chatController.disconnect(channelName);
 					}
 					else
 					{
-						chatController.connect(chatChannel);
+						chatController.connect(channelName);
 					}
 				}
 			}
 			else if (Keyboard.getEventKey() == Keyboard.KEY_V) 
 			{
-				if (chatController != null)
+				String channelName = getActiveChatChannelName();
+				
+				if (chatController != null && 
+					chatController.getCurrentState() == ChatController.ChatState.Initialized)
 				{
-					if (chatController.getIsConnected())
+					if (chatController.getIsConnected(channelName))
 					{
-						chatController.disconnect();
+						chatController.disconnect(channelName);
 					}
 					else
 					{
-						chatController.connectAnonymous(chatChannel);
+						chatController.connectAnonymous(channelName);
 					}
 				}
 			}
 			else if (Keyboard.getEventKey() == Keyboard.KEY_M) 
 			{
-				if (chatController != null)
+				String channelName = getActiveChatChannelName();
+				
+				if (chatController != null && 
+					chatController.getCurrentState() == ChatController.ChatState.Initialized &&
+					chatController.getIsConnected(channelName))
 				{
-					if (chatController.getIsConnected())
-					{
-						chatController.sendChatMessage("Test chat message: " + System.currentTimeMillis());
-					}
+					chatController.sendChatMessage(channelName, "Test chat message: " + System.currentTimeMillis());
 				}
 			}
 		}
@@ -645,11 +734,15 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 		}
 		
 		broadcastController = new BroadcastController();
-		broadcastController.setListener(this);
+		broadcastController.setListener(broadcastListener);
 		
 		broadcastController.setClientId(clientId);
 		broadcastController.setClientSecret(clientSecret);
-		broadcastController.initialize();
+		
+		if (!broadcastController.initialize())
+		{
+			broadcastController = null;
+		}		
 	}
 	
 	private void shutdownBroadcasting()
@@ -659,7 +752,8 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 			return;
 		}
 		
-		broadcastController.shutdown();
+		// it's best not to force a sync shutdown and wait for all async operations to finish but we're exiting the sample
+		broadcastController.forceSyncShutdown();
 		broadcastController.setListener(null);
 	}
 	
@@ -671,12 +765,14 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 		}
 		
 		chatController = new ChatController();
-		chatController.setListener(this);
+		chatController.setClientId(clientId);
+		chatController.setClientSecret(clientSecret);
+		chatController.setListener(chatListener);
 		chatController.setUserName(username);
 		chatController.setAuthToken(broadcastController.getAuthToken());
-		chatController.setEmoticonParsingModeMode(ChatController.EmoticonMode.Url);
+		chatController.setEmoticonParsingModeMode(emoticonParsingMode);
 		
-		if (!chatController.connect(chatChannel))
+		if (!chatController.initialize())
 		{
 			chatController = null;
 		}
@@ -689,7 +785,8 @@ public class Gears implements BroadcastController.Listener, IngestTester.Listene
 			return;
 		}
 		
-		chatController.disconnect();
+		// it's best not to force a sync shutdown and wait for the shutdown callback but we're exiting the sample
+		chatController.forceSyncShutdown();
 	}
 	
 	/**

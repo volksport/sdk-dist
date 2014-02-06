@@ -3,7 +3,7 @@
 *
 * This software is supplied under the terms of a license agreement with Justin.tv Inc. and
 * may not be copied or used except in accordance with the terms of that agreement
-* Copyright (c) 2012-2013 Justin.tv Inc.
+* Copyright (c) 2012-2014 Justin.tv Inc.
 *********************************************************************************************/
 
 #ifndef TTVSDK_TWITCH_SDK_TYPES_H
@@ -11,7 +11,6 @@
 
 #include "errno.h"
 #include "twitchcore/types/coretypes.h"
-
 
 /**
  * TTV_AuthParams - Authentication parameters for broadcasting on Twitch. A broadcast key is ultimately needed; but it may be obtained by using username/password.
@@ -304,5 +303,11 @@ typedef struct
  */
 
 #define TTV_Start_BandwidthTest 0x1
+
+/**
+ * All of the valid flags for TTV_RequestAuthToken()
+ */
+#define TTV_RequestAuthToken_Broadcast	(1 << 0)
+#define TTV_RequestAuthToken_Chat		(1 << 1)
 
 #endif	/* TTVSDK_TWITCH_SDK_TYPES_H */

@@ -92,7 +92,13 @@ namespace Twitch.Broadcast
 
         public WinFormsBroadcastController()
         {
-            m_Core = new Twitch.Core(new Twitch.StandardCoreAPI());
+            m_Core = Core.Instance;
+
+            if (m_Core == null)
+            {
+                m_Core = new Core(new StandardCoreAPI());
+            } 
+            
             m_Stream = new Twitch.Broadcast.Stream(new Twitch.Broadcast.DesktopStreamAPI());
         }
 

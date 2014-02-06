@@ -24,6 +24,8 @@ char gPassword[kMaxPassword];
 TTV_AuthToken gAuthToken;
 bool gReceivedAuthToken = false;
 bool gWaitingForAuthToken = false;
+bool gWaitingForInitialization = false;
+bool gWaitingForShutdown = false;
 
 void* AllocCallback (size_t size, size_t alignment)
 {
@@ -38,6 +40,21 @@ void FreeCallback (void* ptr)
 //////////////////////////////////////////////////////////////////////////
 // Callbacks for chat module
 //////////////////////////////////////////////////////////////////////////
+
+void ChatInitializationCallback(TTV_ErrorCode error, void* userdata)
+{
+	TTV_ErrorCode* p = reinterpret_cast<TTV_ErrorCode*>(userdata);
+	*p = error;
+	gWaitingForInitialization = false;
+}
+
+void ChatShutdownCallback(TTV_ErrorCode error, void* userdata)
+{
+	TTV_ErrorCode* p = reinterpret_cast<TTV_ErrorCode*>(userdata);
+	*p = error;
+	gWaitingForShutdown = false;
+}
+
 void ChatQueryChannelUsersCallback (const TTV_ChatUserList* userList, void* /*userdata*/)
 {
 	OutputDebugString (_T("ChatQueryChannelUsersCallback \n"));
@@ -109,7 +126,7 @@ void ChatUserCallback (const TTV_ChatUserList* joinList, const TTV_ChatUserList*
 	TTV_Chat_FreeUserList(userInfoList);
 }
 
-void ChatMessageCallback (const TTV_ChatMessageList* messageList, void* /*userdata*/)
+void ChatMessageCallback (const TTV_ChatRawMessageList* messageList, void* /*userdata*/)
 {
 	assert (messageList);
 	assert (hMessages);
@@ -125,7 +142,7 @@ void ChatMessageCallback (const TTV_ChatMessageList* messageList, void* /*userda
 	}
 }
 
-void ChatClearCallback(const utf8char* channelName, void* /*userdata*/)
+void ChatClearCallback(void* /*userdata*/)
 {
 	assert (hMessages);
 
@@ -251,7 +268,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 
 	TTV_ErrorCode ret = TTV_Init(
 		&memCallbacks, 
-		gClientId,		
+		gClientId,
 		_T(""));
 	ASSERT_ON_ERROR(ret);
 
@@ -281,6 +298,26 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 		HACCEL hAccelTable;
 		hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_CHAT));
 
+		TTV_ErrorCode asyncResult = TTV_EC_SUCCESS;
+
+		//////////////////////////////////////////////////////////////////////////
+		// Initialize the Chat module
+		//////////////////////////////////////////////////////////////////////////
+		gWaitingForInitialization = true;
+		ret = TTV_Chat_Init(
+			TTV_CHAT_TOKENIZATION_OPTION_NONE,
+			ChatInitializationCallback,
+			&asyncResult);
+		ASSERT_ON_ERROR(ret);
+
+		// wait for the initialization callback
+		while (gWaitingForInitialization)
+		{
+			Sleep(100);
+			TTV_Chat_FlushEvents();
+		}
+		ASSERT_ON_ERROR(asyncResult);
+
 		gReceivedAuthToken = false;
 		while (!gReceivedAuthToken)
 		{
@@ -299,7 +336,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 			authParams.clientSecret = gClientSecret;
 
 			gWaitingForAuthToken = true;
-			TTV_ErrorCode ret = TTV_RequestAuthToken(&authParams, AuthDoneCallback, nullptr, &gAuthToken);
+			TTV_ErrorCode ret = TTV_RequestAuthToken(&authParams, TTV_RequestAuthToken_Chat, AuthDoneCallback, nullptr, &gAuthToken);
 			if ( TTV_FAILED(ret) )
 			{
 				const char* err = TTV_ErrorToString(ret);
@@ -318,22 +355,15 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 
 		if (gReceivedAuthToken)
 		{
-			//////////////////////////////////////////////////////////////////////////
-			// Initialize the Chat module
-			//////////////////////////////////////////////////////////////////////////
-			ret = TTV_Chat_Init(
-				gUserName,				
-				&chatCallbacks);
-			ASSERT_ON_ERROR(ret);
-
-			ret = TTV_Chat_DownloadEmoticonData(false, 
+			ret = TTV_Chat_DownloadEmoticonData( 
 				EmoticonDataDownloadCallback, 
 				nullptr);
 			ASSERT_ON_ERROR(ret);
 
 			ret = TTV_Chat_Connect(
 				gUserName,
-				gAuthToken.data
+				gAuthToken.data,
+				&chatCallbacks
 				);
 			ASSERT_ON_ERROR(ret);
 
@@ -361,15 +391,28 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR 
 					}
 				}
 			}
-
-			//////////////////////////////////////////////////////////////////////////
-			// Cleanup
-			//////////////////////////////////////////////////////////////////////////
-			TTV_Chat_Shutdown();
 		}
+
+		//////////////////////////////////////////////////////////////////////////
+		// Cleanup
+		//////////////////////////////////////////////////////////////////////////
+		gWaitingForShutdown = true;
+		ret = TTV_Chat_Shutdown(
+			ChatShutdownCallback,
+			&asyncResult);
+		ASSERT_ON_ERROR(ret);
+
+		// wait for the shutdown callback
+		while (gWaitingForShutdown)
+		{
+			Sleep(100);
+			TTV_Chat_FlushEvents();
+		}
+		ASSERT_ON_ERROR(asyncResult);
 	}
 
-	TTV_Shutdown();
+	ret = TTV_Shutdown();
+	ASSERT_ON_ERROR(ret);
 
 	return (int) msg.wParam;
 }

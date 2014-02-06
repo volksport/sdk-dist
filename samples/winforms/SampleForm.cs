@@ -29,7 +29,7 @@ namespace WinformsSample
 
             // force a state update
             HandleBroadcastStateChanged(Twitch.Broadcast.BroadcastController.BroadcastState.Uninitialized);
-            HandleDisconnected();
+            mChatMessagesGroupbox.Enabled = false;
 
             mMaxKbpsTrackbar.Minimum = (int)Twitch.Broadcast.Constants.TTV_MIN_BITRATE;
             mMaxKbpsTrackbar.Maximum = (int)Twitch.Broadcast.Constants.TTV_MAX_BITRATE;
@@ -55,8 +55,6 @@ namespace WinformsSample
             }
             mEmoticonModeCombobox.SelectedIndex = 0;
 
-            HandleDisconnected();
-
             mBroadcastController.AuthTokenRequestComplete += this.HandleAuthTokenRequestComplete;
             mBroadcastController.StreamInfoUpdated += this.HandleStreamInfoUpdated;
             mBroadcastController.LoginAttemptComplete += this.HandleLoginAttemptComplete;
@@ -69,11 +67,12 @@ namespace WinformsSample
             mChatController.TokenizedMessagesReceived += this.HandleTokenizedMessagesReceived;
             mChatController.RawMessagesReceived += this.HandleRawMessagesReceived;
             mChatController.UsersChanged += this.HandleUsersChanged;
-            mChatController.Connected += this.HandleConnected;
-            mChatController.Disconnected += this.HandleDisconnected;
+            mChatController.ChatStateChanged += HandleChatStateChanged;
             mChatController.MessagesCleared += this.HandleClearMessages;
             mChatController.EmoticonDataAvailable += this.HandleEmoticonDataAvailable;
             mChatController.EmoticonDataExpired += this.HandleEmoticonDataExpired;
+            mChatController.Connected += this.HandleChatConnected;
+            mChatController.Disconnected += this.HandleChatDisconnected;
         }
 
         #region Stream
@@ -210,15 +209,8 @@ namespace WinformsSample
 
         private void SampleForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (mBroadcastController.IsInitialized)
-            {
-                mBroadcastController.Shutdown();
-            }
-
-            if (mChatController.IsConnected)
-            {
-                mChatController.Disconnect();
-            }
+            mChatController.ForceSyncShutdown();
+            mBroadcastController.ForceSyncShutdown();
         }
 
         private void mSubmitFrameTimer_Tick(object sender, EventArgs e)
@@ -464,7 +456,7 @@ namespace WinformsSample
             mAdvancedBroadcastGroupbox.Enabled = state == Twitch.Broadcast.BroadcastController.BroadcastState.ReadyToBroadcast;
             mBroadcastControlsGroupbox.Enabled = state == Twitch.Broadcast.BroadcastController.BroadcastState.Broadcasting || state == Twitch.Broadcast.BroadcastController.BroadcastState.Paused;
             mIngestTestingGroupbox.Enabled = state == Twitch.Broadcast.BroadcastController.BroadcastState.ReadyToBroadcast || state == Twitch.Broadcast.BroadcastController.BroadcastState.IngestTesting;
-            mAudioGroupbox.Enabled = state == Twitch.Broadcast.BroadcastController.BroadcastState.ReadyToBroadcast || state == Twitch.Broadcast.BroadcastController.BroadcastState.Paused;
+            mAudioGroupbox.Enabled = state != Twitch.Broadcast.BroadcastController.BroadcastState.Uninitialized;
             mGameNameListGroupbox.Enabled = state != Twitch.Broadcast.BroadcastController.BroadcastState.Uninitialized;
             mLoginGroupbox.Enabled = mBroadcastController.IsInitialized && !mBroadcastController.IsLoggedIn;
             mBroadcastInfoGroupbox.Enabled = mBroadcastController.IsLoggedIn;
@@ -531,31 +523,34 @@ namespace WinformsSample
 
         #region Chat
 
+        private void mChatInitializeButton_Click(object sender, EventArgs e)
+        {
+            mChatController.ClientId = mClientIdText.Text;
+            mChatController.EmoticonParsingMode = (Twitch.Chat.ChatController.EmoticonMode)mEmoticonModeCombobox.SelectedItem;
+            mChatController.Initialize();
+        }
+
+        private void mChatShutdownButton_Click(object sender, EventArgs e)
+        {
+            mChatController.Shutdown();
+        }
+
         private void mChatConnectButton_Click(object sender, EventArgs e)
         {
-            mChatController.AuthToken = mBroadcastController.AuthToken;
             mChatController.UserName = mBroadcastController.UserName;
-            mChatController.EmoticonParsingMode = (Twitch.Chat.ChatController.EmoticonMode)mEmoticonModeCombobox.SelectedItem;
+            mChatController.AuthToken = mBroadcastController.AuthToken;
 
             mChatController.Connect(mChatChannelText.Text);
         }
 
-        private void mChatConnectAnonymous_Click(object sender, EventArgs e)
-        {
-            mChatController.AuthToken = mBroadcastController.AuthToken;
-            mChatController.UserName = mBroadcastController.UserName;
-
-            mChatController.ConnectAnonymous(mChatChannelText.Text);
-        }
-
         private void mChatDisconnectButton_Click(object sender, EventArgs e)
         {
-            mChatController.Disconnect();
+            mChatController.Disconnect(mChatChannelText.Text);
         }
 
         private void mChatSendButton_Click(object sender, EventArgs e)
         {
-            mChatController.SendChatMessage(mChatInputTextbox.Text);
+            mChatController.SendChatMessage(mChatChannelText.Text, mChatInputTextbox.Text);
             mChatInputTextbox.Text = "";
         }
 
@@ -567,8 +562,23 @@ namespace WinformsSample
         }
 
         #region Callbacks
+        
+        protected void HandleChatConnected(string channelName)
+        {
+            mChatStateLabel.Text = "Connected";
 
-        protected void HandleRawMessagesReceived(Twitch.Chat.ChatMessage[] messages)
+            mChatMessagesGroupbox.Enabled = true;
+        }
+
+        protected void HandleChatDisconnected(string channelName)
+        {
+            mChatStateLabel.Text = "Disconnected";
+            mChatUsersListbox.Items.Clear();
+            mChatMessagesTextbox.Clear();
+            mChatMessagesGroupbox.Enabled = false;
+        }
+
+        protected void HandleRawMessagesReceived(string channelName, Twitch.Chat.ChatRawMessage[] messages)
         {
             for (int i = 0; i < messages.Length; ++i)
             {
@@ -577,7 +587,7 @@ namespace WinformsSample
             }
         }
 
-        protected void HandleTokenizedMessagesReceived(Twitch.Chat.ChatTokenizedMessage[] messages)
+        protected void HandleTokenizedMessagesReceived(string channelName, Twitch.Chat.ChatTokenizedMessage[] messages)
         {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < messages.Length; ++i)
@@ -617,7 +627,7 @@ namespace WinformsSample
             }
         }
 
-        protected void HandleUsersChanged(Twitch.Chat.ChatUserInfo[] joins, Twitch.Chat.ChatUserInfo[] leaves, Twitch.Chat.ChatUserInfo[] infoChanges)
+        protected void HandleUsersChanged(string channelName, Twitch.Chat.ChatUserInfo[] joins, Twitch.Chat.ChatUserInfo[] leaves, Twitch.Chat.ChatUserInfo[] infoChanges)
         {
             for (int i = 0; i < leaves.Length; ++i)
             {
@@ -636,19 +646,24 @@ namespace WinformsSample
             }
         }
 
-        protected void HandleConnected()
+        protected void HandleChatStateChanged(Twitch.Chat.WinFormsChatController.ChatState state)
         {
-            mChatMessagesGroupbox.Enabled = true;
+            mChatStateLabel.Text = state.ToString();
+
+            switch (state)
+            {
+                case Twitch.Chat.ChatController.ChatState.Uninitialized:
+                    break;
+                case Twitch.Chat.ChatController.ChatState.Initializing:
+                    break;
+                case Twitch.Chat.ChatController.ChatState.Initialized:
+                    break;
+                case Twitch.Chat.ChatController.ChatState.ShuttingDown:
+                    break;
+            }
         }
 
-        protected void HandleDisconnected()
-        {
-            mChatMessagesGroupbox.Enabled = false;
-
-            mChatUsersListbox.Items.Clear();
-        }
-
-        protected void HandleClearMessages()
+        protected void HandleClearMessages(string channelName)
         {
             mChatMessagesTextbox.Text = "";
         }
@@ -658,6 +673,14 @@ namespace WinformsSample
         }
 
         protected void HandleEmoticonDataExpired()
+        {
+        }
+
+        protected void HandleBadgeDataAvailable(string channelName)
+        {
+        }
+
+        protected void HandleBadgeDataExpired(string channelName)
         {
         }
 

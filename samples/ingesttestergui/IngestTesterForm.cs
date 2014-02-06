@@ -11,8 +11,8 @@ namespace IngestTesterGui
 {
     public partial class IngestTesterForm: Form
     {
-        protected Twitch.BroadcastController mBroadcastController = new Twitch.BroadcastController();
-        protected Twitch.IngestTester mIngestTester = null;
+        protected Twitch.Broadcast.BroadcastController mBroadcastController = new Twitch.Broadcast.WinFormsBroadcastController();
+        protected Twitch.Broadcast.IngestTester mIngestTester = null;
         protected String mTwitchUsername = "";
         protected String mTwitchPassword = "";
         protected bool mBeginIngestTest = false;
@@ -29,21 +29,40 @@ namespace IngestTesterGui
             mBroadcastController.LoginAttemptComplete += this.HandleLoginAttemptComplete;
             mBroadcastController.IngestListReceived += this.HandleIngestListReceived;
 
+            mBroadcastController.ClientId = mClientId;
+            mBroadcastController.ClientSecret = mClientSecret;
+            mBroadcastController.Initialize();
+        }
+
+        private void IngestTesterForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            mBroadcastController.ForceSyncShutdown();
         }
 
         protected void HandleAuthTokenRequestComplete(Twitch.ErrorCode result, Twitch.AuthToken authToken)
         {
             if (Twitch.Error.Failed(result))
             {
-                MessageBox.Show("Auth token request failed, please check your credentials and CA cert file path and try again.");
-                mBroadcastController.ShutdownTwitch();
+                mTwitchUsername = null;
+                mTwitchPassword = null;
+                MessageBox.Show("Login failed, please check your credentials and try again.");
             }
         }
 
-        protected void HandleBroadcastStateChanged(Twitch.BroadcastController.BroadcastState state)
+        protected void HandleLoginAttemptComplete(Twitch.ErrorCode result)
+        {
+            if (Twitch.Error.Failed(result))
+            {
+                mTwitchUsername = null;
+                mTwitchPassword = null;
+                MessageBox.Show("Login failed, please check your credentials and try again.");
+            }
+        }
+
+        protected void HandleBroadcastStateChanged(Twitch.Broadcast.BroadcastController.BroadcastState state)
         {
             String stateString = state.ToString();
-            if (state == Twitch.BroadcastController.BroadcastState.ReadyToBroadcast)
+            if (state == Twitch.Broadcast.BroadcastController.BroadcastState.ReadyToBroadcast)
             {
                 // If reached the ReadyToBroadcast state from "Start Ingest Test" button press
                 if (mBeginIngestTest)
@@ -63,27 +82,18 @@ namespace IngestTesterGui
             mStatusLabel.Text = "Status - " + stateString;
         }
 
-        protected void HandleLoginAttemptComplete(Twitch.ErrorCode result)
-        {
-            if (Twitch.Error.Failed(result))
-            {
-                MessageBox.Show("Login failed, please try initializing again");
-                mBroadcastController.ShutdownTwitch();
-            }
-        }
-
         protected class IngestListEntry
         {
-            protected Twitch.IngestServer mServer = null;
+            protected Twitch.Broadcast.IngestServer mServer = null;
             public bool Default { get; set; }
             public bool Selected { get; set; }
 
-            public Twitch.IngestServer Server
+            public Twitch.Broadcast.IngestServer Server
             {
                 get { return mServer; }
             }
 
-            public IngestListEntry(Twitch.IngestServer server)
+            public IngestListEntry(Twitch.Broadcast.IngestServer server)
             {
                 mServer = server;
             }
@@ -99,7 +109,7 @@ namespace IngestTesterGui
             }
         }
 
-        protected void HandleIngestListReceived(Twitch.IngestList list)
+        protected void HandleIngestListReceived(Twitch.Broadcast.IngestList list)
         {
             mIngestListListbox.Items.Clear();
 
@@ -119,11 +129,13 @@ namespace IngestTesterGui
 
         private void mStreamTasksTimer_Tick(object sender, EventArgs e)
         {
+            GC.Collect();
+
             mBroadcastController.Update();
 
             if (mIngestTester != null)
             {
-                if (mIngestTester.State == Twitch.IngestTester.TestState.TestingServer)
+                if (mIngestTester.State == Twitch.Broadcast.IngestTester.TestState.TestingServer)
                 {
                     mIngestTestStatusText.Text = "[" + (int)(mIngestTester.TotalProgress * 100) + "%] " + mIngestTester.State.ToString() + ": " + mIngestTester.CurrentServer.ServerName + "... " + mIngestTester.CurrentServer.BitrateKbps + " kbps [" + (int)(mIngestTester.ServerProgress * 100) + "%]";
                     RefreshListbox(mIngestListListbox);
@@ -142,15 +154,6 @@ namespace IngestTesterGui
             {
                 MessageBox.Show("Please provide a Twitch password");
                 return;
-            }
-
-            // On first call, initialize Twitch sdk
-            if (!mBroadcastController.IsInitialized)
-            {
-                mBroadcastController.ClientId = mClientId;
-                mBroadcastController.ClientSecret = mClientSecret;
-                mBroadcastController.CaCertFilePath = "";
-                mBroadcastController.InitializeTwitch();
             }
 
             // Request a new auth token if the provided Twitch username has changed.
@@ -175,28 +178,28 @@ namespace IngestTesterGui
             }
         }
 
-        void mIngestTester_OnTestStateChanged(Twitch.IngestTester source, Twitch.IngestTester.TestState state)
+        void mIngestTester_OnTestStateChanged(Twitch.Broadcast.IngestTester source, Twitch.Broadcast.IngestTester.TestState state)
         {
             mIngestTestStatusText.Text = "[" + (int)(mIngestTester.TotalProgress * 100) + "%] " + state.ToString();
 
             switch (state)
             {
-                case Twitch.IngestTester.TestState.ConnectingToServer:
+                case Twitch.Broadcast.IngestTester.TestState.ConnectingToServer:
                 {
                     mIngestTestStatusText.Text += ": " + source.CurrentServer.ServerName + "...";
                     break;
                 }
-                case Twitch.IngestTester.TestState.TestingServer:
-                case Twitch.IngestTester.TestState.DoneTestingServer:
+                case Twitch.Broadcast.IngestTester.TestState.TestingServer:
+                case Twitch.Broadcast.IngestTester.TestState.DoneTestingServer:
                 {
                     mIngestTestStatusText.Text += ": " + source.CurrentServer.ServerName + "... " + source.CurrentServer.BitrateKbps + " kbps";
                     break;
                 }
-                case Twitch.IngestTester.TestState.Finished:
+                case Twitch.Broadcast.IngestTester.TestState.Finished:
                 {
                     String bestServerName = "";
                     float bestBitrate = 0;
-                    Twitch.IngestServer curServer;
+                    Twitch.Broadcast.IngestServer curServer = null;
 
                     for (int i = 0; i < mIngestListListbox.Items.Count; i++)
                     {
@@ -216,7 +219,7 @@ namespace IngestTesterGui
                     mIngestTester = null;
                     break;
                 }
-                case Twitch.IngestTester.TestState.Cancelled:
+                case Twitch.Broadcast.IngestTester.TestState.Cancelled:
                 {
                     mSkipIngestServerButton.Enabled = false;
                     mCancelIngestTestButton.Enabled = false;
@@ -252,11 +255,6 @@ namespace IngestTesterGui
             }
 
             mIngestTester.Cancel();
-        }
-
-        private void mShutdownButton_Click(object sender, EventArgs e)
-        {
-            mBroadcastController.ShutdownTwitch();
         }
 
         private bool BeginIngestTest()

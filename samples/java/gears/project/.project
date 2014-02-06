@@ -16,14 +16,19 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>testsrc</name>
+			<type>2</type>
+			<location>X:/tests/bindings/java/wrapper/src</location>
+		</link>
+		<link>
 			<name>twitch</name>
 			<type>2</type>
-			<location>X:/dev/sdk/twitchsdk/bindings/java/src</location>
+			<location>X:/twitchsdk/bindings/java/src</location>
 		</link>
 		<link>
 			<name>twitchsrc</name>
 			<type>2</type>
-			<location>X:/dev/sdk/twitchsdk/bindings/java/src</location>
+			<location>X:/twitchsdk/bindings/java/src</location>
 		</link>
 	</linkedResources>
 </projectDescription>

@@ -36,7 +36,7 @@ import tv.twitch.*;
  * available in the ReadyForBroadcasting state.  This returns an instance of IngestTester which is a single-use instance.  This class will perform a test which will measure 
  * the connection speed to each of the Twitch ingest servers.  See the documentation of the class for details.  While the test is underway the BC is unavailable for any operations.
  */
-public class BroadcastController implements IStreamCallbacks, IStatCallbacks
+public class BroadcastController
 {
     //region Types
 
@@ -107,7 +107,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
          * The callback signature for the event which is fired when there was an issue submitting frames to the SDK for encoding.
          * @param result
          */
-        void onframeSubmissionIssue(ErrorCode result);
+        void onFrameSubmissionIssue(ErrorCode result);
         
         /**
          * The callback signature for the event which is fired when broadcasting begins.
@@ -118,6 +118,12 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
          * The callback signature for the event which is fired when broadcasting ends.
          */
         void onBroadcastStopped();
+
+        /**
+         * The callback signature for the event which is fired when an attempt to start broadcasting fails.
+         * @param ret The reason for failure.
+         */
+        void onStartFailure(ErrorCode ret);
     }
     
     //endregion
@@ -132,6 +138,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
     
     //region Member Variables
 
+    private String lastReportedError = null;
     protected Listener m_Listener = null;
 	
     protected String m_ClientId = "";
@@ -164,306 +171,334 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
 
     protected long m_LastStreamInfoUpdateTime = 0;
     protected IngestTester m_IngestTester = null;
-    
+    private ErrorCode initializationError;
+
     //endregion
 
 
     //region IStreamCallbacks
-    
-    public void requestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+
+    protected IStreamCallbacks streamCallbacks = new IStreamCallbacks()
     {
-        if (ErrorCode.succeeded(result))
-        {
-            // Now that the user is authorized the information can be requested about which server to stream to
-            m_AuthToken = authToken;
-            setBroadcastState(BroadcastState.Authenticated);
-        }
-        else
-        {
-            m_AuthToken.data = "";
-            setBroadcastState(BroadcastState.Initialized);
+	    @Override
+	    public void requestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+	    {
+	        if (ErrorCode.succeeded(result))
+	        {
+	            // Now that the user is authorized the information can be requested about which server to stream to
+	            m_AuthToken = authToken;
+	            setBroadcastState(BroadcastState.Authenticated);
+	        }
+	        else
+	        {
+	            m_AuthToken.data = "";
+	            setBroadcastState(BroadcastState.Initialized);
+	
+	            String err = ErrorCode.getString(result);
+	            reportError(String.format("RequestAuthTokenDoneCallback got failure: %s", err));
+	        }
+	
+	        try
+	        {
+	            if (m_Listener != null)
+	            {
+	            	m_Listener.onAuthTokenRequestComplete(result, authToken);
+	            }
+	        }
+	        catch (Exception x)
+	        {
+	            reportError(x.toString());
+	        }
+	    }
+	
+	    @Override
+	    public void loginCallback(ErrorCode result, ChannelInfo channelInfo)
+	    {
+	        if (ErrorCode.succeeded(result))
+	        {
+	            m_ChannelInfo = channelInfo;
+	            setBroadcastState(BroadcastState.LoggedIn);
+	            m_LoggedIn = true;
+	        }
+	        else
+	        {
+	            setBroadcastState(BroadcastState.Initialized);
+	            m_LoggedIn = false;
+	
+	            String err = ErrorCode.getString(result);
+	            reportError(String.format("LoginCallback got failure: %s", err));
+	        }
+	
+	        try
+	        {
+	            if (m_Listener != null)
+	            {
+	            	m_Listener.onLoginAttemptComplete(result);
+	            }
+	        }
+	        catch (Exception x)
+	        {
+	            reportError(x.toString());
+	        }
+	    }
+	
+	    @Override
+	    public void getIngestServersCallback(ErrorCode result, IngestList ingestList)
+	    {
+	        if (ErrorCode.succeeded(result))
+	        {
+	            m_IngestList = ingestList;
+	
+	            // assume we're going to use the default ingest server unless overridden by the client
+	            m_IngestServer = m_IngestList.getDefaultServer();
+	
+	            setBroadcastState(BroadcastState.ReceivedIngestServers);
+	
+	            try
+	            {
+	                if (m_Listener != null)
+	                {
+	                	m_Listener.onIngestListReceived(ingestList);
+	                }
+	            }
+	            catch (Exception x)
+	            {
+	                reportError(x.toString());
+	            }
+	        }
+	        else
+	        {
+	            String err = ErrorCode.getString(result);
+	            reportError(String.format("IngestListCallback got failure: %s", err));
+	
+	            // try again
+	            setBroadcastState(BroadcastState.LoggingIn);
+	        }
+	    }
+	
+	    @Override
+	    public void getUserInfoCallback(ErrorCode result, UserInfo userInfo)
+	    {
+	        m_UserInfo = userInfo;
+	
+	        if (ErrorCode.failed(result))
+	        {
+	            String err = ErrorCode.getString(result);
+	            reportError(String.format("UserInfoDoneCallback got failure: %s", err));
+	        }
+	    }
+	
+	    @Override
+	    public void getStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
+	    {
+	        if (ErrorCode.succeeded(result))
+	        {
+	            m_StreamInfo = streamInfo;
+	
+	            try
+	            {
+	                if (m_Listener != null)
+	                {
+	                	m_Listener.onStreamInfoUpdated(streamInfo);
+	                }
+	            }
+	            catch (Exception x)
+	            {
+	                reportError(x.toString());
+	            }
+	        }
+	        else
+	        {
+	            String err = ErrorCode.getString(result);
+	            reportWarning(String.format("StreamInfoDoneCallback got failure: %s", err));
+	        }
+	    }
+	
+	    @Override
+	    public void getArchivingStateCallback(ErrorCode result, ArchivingState state)
+	    {
+	        m_ArchivingState = state;
+	
+	        if (ErrorCode.failed(result))
+	        {
+	            //String err = ErrorCode.getString(result);
+	            //reportWarning(String.Format("ArchivingStateDoneCallback got failure: {0}", err));
+	        }
+	    }
+	
+	    @Override
+	    public void runCommercialCallback(ErrorCode result)
+	    {
+	        if (ErrorCode.failed(result))
+	        {
+	            String err = ErrorCode.getString(result);
+	            reportWarning(String.format("RunCommercialCallback got failure: %s", err));
+	        }
+	    }
+	
+	    @Override
+	    public void setStreamInfoCallback(ErrorCode result)
+	    {
+	        if (ErrorCode.failed(result))
+	        {
+	            String err = ErrorCode.getString(result);
+	            reportWarning(String.format("SetStreamInfoCallback got failure: %s", err));
+	        }
+	    }
+	
+	    @Override
+	    public void getGameNameListCallback(ErrorCode result, GameInfoList list)
+	    {
+	        if (ErrorCode.failed(result))
+	        {
+	            String err = ErrorCode.getString(result);
+	            reportError(String.format("GameNameListCallback got failure: %s", err));
+	        }
+	
+	        try
+	        {
+	            if (m_Listener != null)
+	            {
+	            	m_Listener.onGameNameListReceived(result, list == null ? new GameInfo[0] : list.list);
+	            }
+	        }
+	        catch (Exception x)
+	        {
+	            reportError(x.toString());
+	        }
+	    }
+	
+	    @Override
+	    public void bufferUnlockCallback(long address)
+	    {
+	    	FrameBuffer buffer = FrameBuffer.lookupBuffer(address);
+	
+	        // Put back on the free list
+	        m_FreeBufferList.add(buffer);
+	    }
+	
+	    @Override
+	    public void startCallback(ErrorCode ret)
+	    {
+	        if (ErrorCode.succeeded(ret))
+	        {
+	            try
+	            {
+	                if (m_Listener != null)
+	                {
+	                    m_Listener.onBroadcastStarted();
+	                }
+	            }
+	            catch (Exception x)
+	            {
+	                reportError(x.toString());
+	            }
+	
+	            setBroadcastState(BroadcastState.Broadcasting);
+	        }
+	        else
+	        {
+	            m_VideoParams = null;
+	            m_AudioParams = null;
+	
+	            setBroadcastState(BroadcastState.ReadyToBroadcast);
+		            
+	            try
+	            {
+	                if (m_Listener != null)
+	                {
+	                	m_Listener.onStartFailure(ret);
+	                }
+	            }
+	            catch (Exception x)
+	            {
+	                reportError(x.toString());
+	            }
 
-            String err = ErrorCode.getString(result);
-            reportError(String.format("RequestAuthTokenDoneCallback got failure: %s", err));
-        }
-		
-        try
-        {
-            if (m_Listener != null)
-            {
-            	m_Listener.onAuthTokenRequestComplete(result, authToken);
-            }
-        }
-        catch (Exception x)
-        {
-            reportError(x.toString());
-        }
-    }
+	            String err = ErrorCode.getString(ret);
+	            reportError(String.format("startCallback got failure: %s", err));
+	        }
+	    }
+	
+	    @Override
+	    public void stopCallback(ErrorCode ret)
+	    {
+	        if (ErrorCode.succeeded(ret))
+	        {
+	            m_VideoParams = null;
+	            m_AudioParams = null;
+	
+	            cleanupBuffers();
+	
+	            try
+	            {
+	                if (m_Listener != null)
+	                {
+	                	m_Listener.onBroadcastStopped();
+	                }
+	            }
+	            catch (Exception x)
+	            {
+	                reportError(x.toString());
+	            }
+	
+	            if (m_LoggedIn)
+	            {
+	                setBroadcastState(BroadcastState.ReadyToBroadcast);
+	            }
+	            else
+	            {
+	                setBroadcastState(BroadcastState.Initialized);
+	            }
+	        }
+	        else
+	        {
+	        	// there's not really a good state to go into here
+	        	setBroadcastState(BroadcastState.ReadyToBroadcast);
+	        	
+	            String err = ErrorCode.getString(ret);
+	            reportError(String.format("stopCallback got failure: %s", err));        	
+	        }
+	    }
+	    
+	    @Override
+	    public void sendActionMetaDataCallback(ErrorCode ret)
+	    {
+	        if (ErrorCode.failed(ret))
+	        {
+	            String err = ErrorCode.getString(ret);
+	            reportError(String.format("sendActionMetaDataCallback got failure: %s", err));
+	        }
+	    }
+	    
+	    @Override
+	    public void sendStartSpanMetaDataCallback(ErrorCode ret)
+	    {
+	        if (ErrorCode.failed(ret))
+	        {
+	            String err = ErrorCode.getString(ret);
+	            reportError(String.format("sendStartSpanMetaDataCallback got failure: %s", err));
+	        }
+	    }
+	    
+	    @Override
+	    public void sendEndSpanMetaDataCallback(ErrorCode ret)
+	    {
+	        if (ErrorCode.failed(ret))
+	        {
+	            String err = ErrorCode.getString(ret);
+	            reportError(String.format("sendEndSpanMetaDataCallback got failure: %s", err));
+	        }
+	    }
+    };
 
-    public void loginCallback(ErrorCode result, ChannelInfo channelInfo)
+    protected IStatCallbacks statCallbacks = new IStatCallbacks()
     {
-        if (ErrorCode.succeeded(result))
-        {
-            m_ChannelInfo = channelInfo;
-            setBroadcastState(BroadcastState.LoggedIn);
-            m_LoggedIn = true;
-        }
-        else
-        {
-            setBroadcastState(BroadcastState.Initialized);
-            m_LoggedIn = false;
-
-            String err = ErrorCode.getString(result);
-            reportError(String.format("LoginCallback got failure: %s", err));
-        }
-		
-        try
-        {
-            if (m_Listener != null)
-            {
-            	m_Listener.onLoginAttemptComplete(result);
-            }
-        }
-        catch (Exception x)
-        {
-            reportError(x.toString());
-        }
-    }
-
-    public void getIngestServersCallback(ErrorCode result, IngestList ingestList)
-    {
-        if (ErrorCode.succeeded(result))
-        {
-            m_IngestList = ingestList;
-
-            // assume we're going to use the default ingest server unless overridden by the client
-            m_IngestServer = m_IngestList.getDefaultServer();
-
-            setBroadcastState(BroadcastState.ReceivedIngestServers);
-            
-            try
-            {
-                if (m_Listener != null)
-                {
-                	m_Listener.onIngestListReceived(ingestList);
-                }
-            }
-            catch (Exception x)
-            {
-                reportError(x.toString());
-            }
-        }
-        else
-        {
-            String err = ErrorCode.getString(result);
-            reportError(String.format("IngestListCallback got failure: %s", err));
-
-            // try again
-            setBroadcastState(BroadcastState.LoggingIn);
-        }
-    }
-
-    public void getUserInfoCallback(ErrorCode result, UserInfo userInfo)
-    {
-        m_UserInfo = userInfo;
-
-        if (ErrorCode.failed(result))
-        {
-            String err = ErrorCode.getString(result);
-            reportError(String.format("UserInfoDoneCallback got failure: %s", err));
-        }
-    }
-
-    public void getStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
-    {
-        if (ErrorCode.succeeded(result))
-        {
-            m_StreamInfo = streamInfo;
-
-            try
-            {
-                if (m_Listener != null)
-                {
-                	m_Listener.onStreamInfoUpdated(streamInfo);
-                }
-            }
-            catch (Exception x)
-            {
-                reportError(x.toString());
-            }
-        }
-        else
-        {
-            //String err = ErrorCode.getString(result);
-            //reportWarning(String.Format("StreamInfoDoneCallback got failure: {0}", err));
-        }
-    }
-
-    public void getArchivingStateCallback(ErrorCode result, ArchivingState state)
-    {
-        m_ArchivingState = state;
-
-        if (ErrorCode.failed(result))
-        {
-            //String err = ErrorCode.getString(result);
-            //reportWarning(String.Format("ArchivingStateDoneCallback got failure: {0}", err));
-        }
-    }
-    
-    public void runCommercialCallback(ErrorCode result)
-    {
-        if (ErrorCode.failed(result))
-        {
-            String err = ErrorCode.getString(result);
-            reportWarning(String.format("RunCommercialCallback got failure: %s", err));
-        }
-    }
-
-    public void setStreamInfoCallback(ErrorCode result)
-    {
-        if (ErrorCode.failed(result))
-        {
-            String err = ErrorCode.getString(result);
-            reportWarning(String.format("SetStreamInfoCallback got failure: %s", err));
-        }
-    }
-
-    public void getGameNameListCallback(ErrorCode result, GameInfoList list)
-    {
-        if (ErrorCode.failed(result))
-        {
-            String err = ErrorCode.getString(result);
-            reportError(String.format("GameNameListCallback got failure: %s", err));
-        } 
-        
-        try
-        {
-            if (m_Listener != null)
-            {
-            	m_Listener.onGameNameListReceived(result, list == null ? new GameInfo[0] : list.list);
-            }
-        }
-        catch (Exception x)
-        {
-            reportError(x.toString());
-        }
-    }
-
-    public void bufferUnlockCallback(long address)
-    {
-    	FrameBuffer buffer = FrameBuffer.lookupBuffer(address);
-    	
-        // Put back on the free list
-        m_FreeBufferList.add(buffer);
-    }
-
-    public void startCallback(ErrorCode ret)
-    {
-        if (ErrorCode.succeeded(ret))
-        {
-            try
-            {
-                if (m_Listener != null)
-                {
-                    m_Listener.onBroadcastStarted();
-                }
-            }
-            catch (Exception x)
-            {
-                reportError(x.toString());
-            } 
-            
-            setBroadcastState(BroadcastState.Broadcasting);
-        }
-        else
-        {
-            m_VideoParams = null;
-            m_AudioParams = null;
-            
-            setBroadcastState(BroadcastState.ReadyToBroadcast);
-
-            String err = ErrorCode.getString(ret);
-            reportError(String.format("startCallback got failure: %s", err));
-        }
-    }
-
-    public void stopCallback(ErrorCode ret)
-    {
-        if (ErrorCode.succeeded(ret))
-        {
-            m_VideoParams = null;
-            m_AudioParams = null;
-
-            cleanupBuffers();
-
-            try
-            {
-                if (m_Listener != null)
-                {
-                	m_Listener.onBroadcastStopped();
-                }
-            }
-            catch (Exception x)
-            {
-                reportError(x.toString());
-            }
-
-            if (m_LoggedIn)
-            {
-                setBroadcastState(BroadcastState.ReadyToBroadcast);
-            }
-            else
-            {
-                setBroadcastState(BroadcastState.Initialized);
-            }
-        }
-        else
-        {
-        	// there's not really a good state to go into here
-        	setBroadcastState(BroadcastState.ReadyToBroadcast);
-        	
-            String err = ErrorCode.getString(ret);
-            reportError(String.format("stopCallback got failure: %s", err));        	
-        }
-    }
-    
-    public void sendActionMetaDataCallback(ErrorCode ret)
-    {
-        if (ErrorCode.failed(ret))
-        {
-            String err = ErrorCode.getString(ret);
-            reportError(String.format("sendActionMetaDataCallback got failure: %s", err));
-        }
-    }
-    
-    public void sendStartSpanMetaDataCallback(ErrorCode ret)
-    {
-        if (ErrorCode.failed(ret))
-        {
-            String err = ErrorCode.getString(ret);
-            reportError(String.format("sendStartSpanMetaDataCallback got failure: %s", err));
-        }
-    }
-    
-    public void sendEndSpanMetaDataCallback(ErrorCode ret)
-    {
-        if (ErrorCode.failed(ret))
-        {
-            String err = ErrorCode.getString(ret);
-            reportError(String.format("sendEndSpanMetaDataCallback got failure: %s", err));
-        }
-    }
-
-    //endregion
-
-    
-    //region IStatCallbacks
-    
-    public void statCallback(StatType type, long data)
-    {
-    }
-    
-    //endregion
+	    @Override
+	    public void statCallback(StatType type, long data)
+	    {
+	    }
+    };
 
     //region Properties
 
@@ -654,6 +689,16 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
     	// TODO: implement OS detection 
     	return true;
     }
+
+    public String getLastReportedError() 
+    {
+        return lastReportedError;
+    }
+
+    public ErrorCode getInitializationError()
+    {
+        return initializationError;
+    }
     
     //endregion
 
@@ -690,12 +735,13 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
             dllPath = "./";
         }
         
-        m_Stream.setStreamCallbacks(this);
+        m_Stream.setStreamCallbacks(streamCallbacks);
         
-        ErrorCode err = m_Core.initialize(m_ClientId, VideoEncoder.TTV_VID_ENC_DEFAULT, dllPath);
+        ErrorCode err = m_Core.initialize(m_ClientId, dllPath);
         if (!checkError(err))
         {
         	m_Stream.setStreamCallbacks(null);
+            initializationError = err;
         	return false;
         }
 		
@@ -703,6 +749,8 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
         if (!checkError(err))
         {
         	m_Stream.setStreamCallbacks(null);
+        	m_Core.shutdown();
+            initializationError = err;
         	return false;
         }
 
@@ -712,8 +760,12 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
             setBroadcastState(BroadcastState.Initialized);
             return true;
         }
-        
-        return false;
+        else
+        {
+            initializationError = err;
+            m_Core.shutdown();
+            return false;        	
+        }
     }
 
     /**
@@ -736,11 +788,8 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
 
         m_Stream.setStreamCallbacks(null);
         m_Stream.setStatCallbacks(null);
-        
-        ErrorCode err = m_Stream.shutdown();
-        checkError(err);
 
-        err = m_Core.shutdown();
+        ErrorCode err = m_Core.shutdown();
         checkError(err);
         
         m_SdkInitialized = false;
@@ -749,7 +798,37 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
 		
 		return true;
     }
-
+    
+    /**
+     * Ensures the controller is fully shutdown before returning.  This may fire callbacks to listeners during the shutdown.
+     */
+    public void forceSyncShutdown()
+    {
+		if (m_BroadcastState != BroadcastState.Uninitialized)
+		{
+	    	if (m_IngestTester != null)
+	    	{
+	    		m_IngestTester.cancel();
+	    	}
+	    	
+	    	while (m_IngestTester != null)
+	    	{
+	    		try
+	    		{
+	    			java.lang.Thread.sleep(200);
+	    		}
+	    		catch (Exception x)
+	    		{
+	    			reportError(x.toString());
+	    		}
+	    		
+	            this.update();
+	        }
+	    	
+			this.shutdown();
+		}
+    }
+    
     /**
      * Asynchronously request an authentication key based on the provided username and password.  When the request completes 
      * onAuthTokenRequestComplete will be fired.  This does not need to be called every time the user wishes to stream.  A valid 
@@ -776,7 +855,11 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
         authParams.password = password;
         authParams.clientSecret = m_ClientSecret;
 
-        ErrorCode err = m_Stream.requestAuthToken(authParams);
+        HashSet<AuthFlag> flags = new HashSet<AuthFlag>();
+        flags.add(AuthFlag.TTV_AuthOption_Broadcast);
+        flags.add(AuthFlag.TTV_AuthOption_Chat);
+        
+        ErrorCode err = m_Stream.requestAuthToken(authParams, flags);
         checkError(err);
 
         if (ErrorCode.succeeded(err))
@@ -886,7 +969,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
             return false;
         }
 
-        if (channel == null || channel == "")
+        if (channel == null || channel.equals(""))
         {
         	channel = m_UserName;
         }
@@ -1363,7 +1446,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
         }
 
         m_IngestTester = new IngestTester(m_Stream, m_IngestList);
-        m_IngestTester.Start();
+        m_IngestTester.start();
 
         setBroadcastState(BroadcastState.IngestTesting);
 
@@ -1377,7 +1460,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
     {
         if (getIsIngestTesting())
         {
-            m_IngestTester.Cancel();
+            m_IngestTester.cancel();
         }
     }
 
@@ -1466,7 +1549,7 @@ public class BroadcastController implements IStreamCallbacks, IStatCallbacks
 
             if (m_Listener != null)
             {
-            	m_Listener.onframeSubmissionIssue(ret);
+            	m_Listener.onFrameSubmissionIssue(ret);
             }
         }
         

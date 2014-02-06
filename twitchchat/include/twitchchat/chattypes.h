@@ -3,13 +3,26 @@
 *
 * This software is supplied under the terms of a license agreement with Justin.tv Inc. and
 * may not be copied or used except in accordance with the terms of that agreement
-* Copyright (c) 2012-2013 Justin.tv Inc.
+* Copyright (c) 2012-2014 Justin.tv Inc.
 *********************************************************************************************/
 
 #pragma once
 
 #include "twitchcore/types/errortypes.h"
 #include "twitchcore/types/coretypes.h"
+
+/**
+ * TTV_ChatTokenizationOption - Controls the way chat messages are passed to the client.  If tokenization is disabled then TTV_ChatChannelRawMessageCallback
+ * will be called in the chat callbacks structure.  Otherwise, it will call TTV_ChatChannelTokenizedMessageCallback.
+ * This is a bitfield but not all flags are compatible, such as parsing emoticons as URLS and textures.
+ */
+typedef enum
+{
+	TTV_CHAT_TOKENIZATION_OPTION_NONE					= 0,		//!< Don't apply tokenization and fire callbacks via TTV_ChatChannelRawMessageCallback.
+	TTV_CHAT_TOKENIZATION_OPTION_EMOTICON_URLS			= 1 << 0,	//!< Pass emoticon URLs when tokenizing.  Not compatible with TTV_CHAT_TOKENIZATION_OPTION_EMOTICON_TEXTURES.
+	TTV_CHAT_TOKENIZATION_OPTION_EMOTICON_TEXTURES		= 1 << 1	//!< Pass texture atlas coordinates when tokenizing.  Not compatible with TTV_CHAT_TOKENIZATION_OPTION_EMOTICON_URLS.
+
+} TTV_ChatTokenizationOption;
 
 /**
  * TTV_ChatEvent - The various events coming from the chat system.
@@ -103,7 +116,7 @@ typedef struct
  */
 #define kMaxChatMessageLength 510
 /**
- * TTV_ChatMessage - A message from a user in a chat channel.
+ * TTV_ChatRawMessage - A message from a user in a chat channel that does not have emoticon info.
  */
 typedef struct
 {
@@ -114,18 +127,18 @@ typedef struct
 	uint32_t nameColorARGB;								//!< The ARGB color of the name text.
 	bool action;										//!< Whether or not the message is an action.  If true, it should be displayed entirely in the name text color and of the form "<userName> <message>".
 
-} TTV_ChatMessage;
+} TTV_ChatRawMessage;
 
 
 /**
- * TTV_ChatMessageList - A list of chat messages.
+ * TTV_ChatRawMessageList - A list of chat messages which do not contain emoticon info.
  */
 typedef struct
 {
-	TTV_ChatMessage* messageList;					//!< The ordered array of chat messages.
+	TTV_ChatRawMessage* messageList;				//!< The ordered array of chat messages.
 	uint32_t messageCount;							//!< The number of messages in the list.
 
-} TTV_ChatMessageList;
+} TTV_ChatRawMessageList;
 
 
 /**
@@ -247,10 +260,13 @@ typedef struct
 
 
 /**
- * TTV_ChatBadgeData - Information about how to render badges based on the subscriptions and user modes.
+ * TTV_ChatBadgeData - Information about how to render badges based on the subscriptions and user modes for a specific channel.
  */
 typedef struct
 {
+	utf8char channel[kMaxChatChannelNameLength+1];
+	TTV_ChatTextureSheetList textures;
+
 	TTV_ChatMessageToken turboIcon;
 	TTV_ChatMessageToken channelSubscriberIcon;
 	TTV_ChatMessageToken broadcasterIcon;
@@ -262,16 +278,33 @@ typedef struct
 
 
 /**
- * TTV_ChatEmoticonData - Information to use when rendering emoticons and badges.
+ * TTV_ChatEmoticonData - Information to use when rendering emoticons for all channels.
  */
 typedef struct 
 {
-	utf8char channel[kMaxChatChannelNameLength+1];
 	TTV_ChatTextureSheetList textures;
-	TTV_ChatBadgeData badges;
 
 } TTV_ChatEmoticonData;
 
+
+/**
+ * TTV_ChatInitializationCallback - The callback to the client indicated the result of the chat system initializing.  Once this is called
+ * and indicates success the client will now be able to initiate a connection and download emoticon data.
+ *
+ * @param error The result code of the initialization.  TTV_EC_SUCCESS indicates success.
+ * @param userdata The custom data provided by the client.
+ */
+typedef void (*TTV_ChatInitializationCallback) (TTV_ErrorCode error, void* userdata);
+
+
+/**
+ * TTV_ChatShutdownCallback - The callback to the client indicated the result of the chat system shutting down.  Once this is called the 
+ * chat system is no longer available until reinitialized.
+ *
+ * @param error The result code of the initialization.  TTV_EC_SUCCESS indicates success.
+ * @param userdata The custom data provided by the client.
+ */
+typedef void (*TTV_ChatShutdownCallback) (TTV_ErrorCode error, void* userdata);
 
 /**
  * Callback signature for connection and disconnection events from the chat service.  Once a connecion is successful, this may be
@@ -309,39 +342,32 @@ typedef void (*TTV_ChatChannelMembershipCallback) (TTV_ChatEvent evt, const TTV_
 typedef void (*TTV_ChatChannelUserChangeCallback) (const TTV_ChatUserList* joinList, const TTV_ChatUserList* leaveList, const TTV_ChatUserList* infoChangeList, void* userdata);
 
 /**
- * Callback signature for a reply to TTV_ChatGetChannelUsers for a request for the user list for a chat channel.  The list returned in the callback must be freed by 
- * calling TTV_Chat_FreeUserList when the application is done with it or it will leak each time the callback is called.
- *
- * @param userList The list of users.
- * @param userdata The userdata specified in TTV_ChatCallbacks.
- */
-typedef void (*TTV_ChatQueryChannelUsersCallback) (const TTV_ChatUserList* userList, void* userdata);
-
-/**
  * Callback signature for notifications of a raw message event occurring in chat.  This list is freed automatically when the call to the callback returns
  * so be sure not to retain a reference to the list.
  *
  * @param messageList The list of messages.
  * @param userdata The userdata specified in TTV_ChatCallbacks.
  */
-typedef void (*TTV_ChatChannelMessageCallback) (const TTV_ChatMessageList* messageList, void* userdata);
+typedef void (*TTV_ChatChannelMessageCallback) (const TTV_ChatRawMessageList* messageList, void* userdata);
 
 /**
  * Callback signature for notifications of a tokenized message event occurring in chat.  This list is NOT freed automatically when the call to the callback returns
  * so be sure to call TTV_Chat_FreeTokenizedMessageList when done with the list.
+ *
+ * @param messageList The list of messages.
+ * @param userdata The userdata specified in TTV_ChatCallbacks.
  */
 typedef void (*TTV_ChatChannelTokenizedMessageCallback) (const TTV_ChatTokenizedMessageList* messageList, void* userdata);
 
 /**
  * Callback signature for notifications that the chatroom should be cleared.
  *
- * @param channelName The name of the channel that was cleared.
  * @param userdata The userdata specified in TTV_ChatCallbacks.
  */
-typedef void (*TTV_ChatClearCallback) (const utf8char* channelName, void* userdata);
+typedef void (*TTV_ChatClearCallback) (void* userdata);
 
 /**
- * Callback to indicate the result of the request to fetch emoticon data.
+ * Callback to indicate the result of the request to fetch emoticon or badge data.
  *
  * @param error Specifies any error or warning that may have occurred while preparing the emoticon data.
  * @param userdata The userdata specified in TTV_ChatCallbacks.

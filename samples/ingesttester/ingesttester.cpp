@@ -74,7 +74,7 @@ TTV_ErrorCode Authenticate(TTV_AuthToken* authToken, const po::variables_map& va
 
 	std::cout << "- Requesting Authentication";
 
-	TTV_ErrorCode ret = TTV_RequestAuthToken(&authParams, AuthDoneCallback, NULL, authToken);
+	TTV_ErrorCode ret = TTV_RequestAuthToken(&authParams, TTV_RequestAuthToken_Broadcast, AuthDoneCallback, NULL, authToken);
 	ASSERT_ON_ERROR(ret);
 	
 	while (gWaitingForCallback && TTV_SUCCEEDED(ret))

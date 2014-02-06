@@ -140,8 +140,7 @@ namespace Twitch.Broadcast
                 else if (Application.platform == RuntimePlatform.OSXEditor ||
                          Application.platform == RuntimePlatform.OSXPlayer)
                 {
-                    // only support 32-bit Mac
-                    return IntPtr.Size == 4;
+                    return true;
                 }
                 else if (Application.platform == RuntimePlatform.IPhonePlayer)
                 {
@@ -612,7 +611,12 @@ namespace Twitch.Broadcast
         {
             LoadTwitchLibraries();
 
-            m_Core = new Core(new StandardCoreAPI());
+            m_Core = Core.Instance;
+
+            if (m_Core == null)
+            {
+                m_Core = new Core(new StandardCoreAPI());
+            } 
 
             if (Application.platform == RuntimePlatform.WindowsEditor ||
                 Application.platform == RuntimePlatform.WindowsPlayer)
@@ -809,7 +813,7 @@ namespace Twitch.Broadcast
 	    }
 		
 		#region Error Handling
-		
+
         protected override bool CheckError(Twitch.ErrorCode err)
 	    {
 	        if (Error.Failed(err))
@@ -820,13 +824,13 @@ namespace Twitch.Broadcast
 
             return true;
 	    }
-	
-	    protected override void ReportError(string err)
+
+        protected override void ReportError(string err)
 	    {
 	        Debug.LogError(err);
 	    }
-	
-	    protected override void ReportWarning(string err)
+
+        protected override void ReportWarning(string err)
 	    {
 	        Debug.LogError(err);
 	    }

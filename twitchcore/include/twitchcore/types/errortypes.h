@@ -3,7 +3,7 @@
 *
 * This software is supplied under the terms of a license agreement with Justin.tv Inc. and
 * may not be copied or used except in accordance with the terms of that agreement
-* Copyright (c) 2012-2013 Justin.tv Inc.
+* Copyright (c) 2012-2014 Justin.tv Inc.
 *********************************************************************************************/
 
 #pragma once
@@ -295,8 +295,11 @@ typedef enum
 #define TTV_FAILED(err) ( (err) > TTV_EC_SUCCESS )
 #define TTV_SUCCEEDED(err) ( (err) <= TTV_EC_SUCCESS)
 #define TTV_RETURN_ON_NULL(ptr,err) { if ( (ptr) == nullptr) RETURN_CLIENT_ERROR(err); }
+#define TTV_RETURN_ON_NOT_NULL(ptr,err) { if ( (ptr) != nullptr) RETURN_CLIENT_ERROR(err); }
 #define TTV_RETURN_ON_EMPTY_STRING(str, err) { if (str == nullptr || str == '\0') RETURN_CLIENT_ERROR(err); }
+#define TTV_RETURN_ON_EMPTY_STDSTRING(str, err) { if (str.size() == 0) RETURN_CLIENT_ERROR(err); }
 #define TTV_RETURN_ON_ERROR(err) { if (TTV_FAILED(err)) RETURN_CLIENT_ERROR(err);}
+#define TTV_RETURN_ON_DIFFERENT(a, b, err) { if ( (a) != (b) ) RETURN_CLIENT_ERROR(err);}
 
 #define TTV_TO_WSA_ERROR(ttv_ec) (int)(ttv_ec-TTV_EC_SOCKET_ERR+WSABASEERR)
 #define WSA_TO_TTV_ERROR(wsa_ec) (TTV_ErrorCode) (wsa_ec-WSABASEERR+TTV_EC_SOCKET_ERR)

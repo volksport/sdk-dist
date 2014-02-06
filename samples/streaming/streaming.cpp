@@ -193,7 +193,7 @@ void InitializeStreaming(const std::string& username, const std::string& passwor
 	memCallbacks.freeCallback = FreeCallback;
 
 	// Initialize the SDK
-	TTV_ErrorCode ret = TTV_Init(&memCallbacks, clientId.c_str(), TTV_VID_ENC_DEFAULT, dllLoadPath.c_str());
+	TTV_ErrorCode ret = TTV_Init(&memCallbacks, clientId.c_str(), dllLoadPath.c_str());
 	if ( TTV_FAILED(ret) )
 	{
 		const char* err = TTV_ErrorToString(ret);
@@ -213,7 +213,7 @@ void InitializeStreaming(const std::string& username, const std::string& passwor
 	
 	gStreamState = SS_Authenticating;
 
-	ret = TTV_RequestAuthToken(&authParams, AuthDoneCallback, nullptr, &gAuthToken);
+	ret = TTV_RequestAuthToken(&authParams, TTV_RequestAuthToken_Broadcast, AuthDoneCallback, nullptr, &gAuthToken);
 	if ( TTV_FAILED(ret) )
 	{
 		gStreamState = SS_Initialized;

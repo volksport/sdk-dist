@@ -2,61 +2,120 @@
 using System.Collections.Generic;
 using Twitch;
 
-namespace Twitch
+namespace Twitch.Broadcast
 {
-    public partial class BroadcastController
+    public class WinFormsBroadcastController : BroadcastController
     {
         #region Member Variables
 
         protected string m_ClientId = "";
         protected string m_ClientSecret = "";
         protected string m_CaCertFilePath = "";
-        protected string m_DllPath = "";
         protected bool m_EnableAudio = true;
 
-        protected Stream m_Stream = null;
-        protected List<IntPtr> m_CaptureBuffers = new List<IntPtr>();
-        protected List<IntPtr> m_FreeBufferList = new List<IntPtr>();
+        protected List<UIntPtr> m_CaptureBuffers = new List<UIntPtr>();
+        protected List<UIntPtr> m_FreeBufferList = new List<UIntPtr>();
 
         #endregion
 
         #region Properties
 
-        protected string DefaultCaCertFilePath
+        public override string ClientId
         {
-            get { return "./curl-ca-bundle.crt"; }
+            get { return m_ClientId; }
+            set { m_ClientId = value; }
+        }
+
+        public override string ClientSecret
+        {
+            get { return m_ClientSecret; }
+            set { m_ClientSecret = value; }
+        }
+
+        public override bool EnableAudio
+        {
+            get { return m_EnableAudio; }
+            set { m_EnableAudio = value; }
+        }
+
+        public override bool IsAudioSupported
+        {
+            get
+            {
+                // http://stackoverflow.com/questions/2819934/detect-windows-7-in-net
+
+                OperatingSystem os = System.Environment.OSVersion;
+
+                if (os.Platform != PlatformID.Win32Windows)
+                {
+                    Version v = os.Version;
+
+                    if (v.Major < 6) // Windows Vista
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                // not a valid Windows
+                return false;
+            }
+        }
+
+        public override bool IsPlatformSupported
+        {
+            get
+            {
+                // http://stackoverflow.com/questions/2819934/detect-windows-7-in-net
+
+                OperatingSystem os = System.Environment.OSVersion;
+
+                if (os.Platform != PlatformID.Win32Windows)
+                {
+                    Version v = os.Version;
+
+                    if (v.Major < 6) // Windows Vista
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                // not a valid Windows
+                return false;
+            }
         }
 
         #endregion
 
-        #region IStreamCallbacks
+        public WinFormsBroadcastController()
+        {
+            m_Core = Core.Instance;
 
-        void IStreamCallbacks.BufferUnlockCallback(IntPtr buffer)
+            if (m_Core == null)
+            {
+                m_Core = new Core(new StandardCoreAPI());
+            } 
+            
+            m_Stream = new Twitch.Broadcast.Stream(new Twitch.Broadcast.DesktopStreamAPI());
+        }
+
+        protected override void HandleBufferUnlock(UIntPtr buffer)
         {
             // Put back on the free list
             m_FreeBufferList.Add(buffer);
         }
-
-        #endregion
-
-        public BroadcastController()
-        {
-            m_Stream = new Stream(new DesktopStreamAPI());
-        }
-
-        protected PixelFormat DeterminePixelFormat()
-        {
-            return PixelFormat.TTV_PF_BGRA;
-        }
-
-        protected bool AllocateBuffers(uint width, uint height)
+        
+        protected override bool AllocateBuffers()
         {
             // Allocate exactly 3 buffers to use as the capture destination while streaming.
             // These buffers are passed to the SDK.
             for (uint i = 0; i < 3; ++i)
             {
-                IntPtr buffer = IntPtr.Zero;
-                ErrorCode ret = m_Stream.AllocateFrameBuffer(width * height * 4, out buffer);
+                UIntPtr buffer = UIntPtr.Zero;
+                ErrorCode ret = m_Stream.AllocateFrameBuffer(m_VideoParams.OutputWidth * m_VideoParams.OutputHeight * 4, out buffer);
                 if (Error.Failed(ret))
                 {
                     string err = Error.GetString(ret);
@@ -71,12 +130,12 @@ namespace Twitch
             return true;
         }
 
-        protected void CleanupBuffers()
+        protected override void CleanupBuffers()
         {
             // Delete the capture buffers
             for (int i = 0; i < m_CaptureBuffers.Count; ++i)
             {
-                IntPtr buffer = m_CaptureBuffers[i];
+                UIntPtr buffer = m_CaptureBuffers[i];
                 ErrorCode ret = m_Stream.FreeFrameBuffer(buffer);
                 if (Error.Failed(ret))
                 {
@@ -89,21 +148,21 @@ namespace Twitch
             m_CaptureBuffers.Clear();
         }
 
-        public IntPtr GetNextFreeBuffer()
+        public UIntPtr GetNextFreeBuffer()
         {
             if (m_FreeBufferList.Count == 0)
             {
                 //ReportError(string.Format("Out of free buffers, this should never happen"));
-                return IntPtr.Zero;
+                return UIntPtr.Zero;
             }
 
-            IntPtr buffer = m_FreeBufferList[m_FreeBufferList.Count - 1];
+            UIntPtr buffer = m_FreeBufferList[m_FreeBufferList.Count - 1];
             m_FreeBufferList.RemoveAt(m_FreeBufferList.Count - 1);
 
             return buffer;
         }
 
-        public ErrorCode SubmitFrame(IntPtr buffer)
+        public ErrorCode SubmitFrame(UIntPtr buffer)
         {
             if (this.IsPaused)
             {
@@ -134,27 +193,15 @@ namespace Twitch
                     StopBroadcasting();
                 }
 
-                try
-                {
-                    if (FrameSubmissionIssue != null)
-                    {
-                        FrameSubmissionIssue(ret);
-                    }
-                }
-                catch (Exception x)
-                {
-                    ReportError(x.ToString());
-                }
+                FireFrameSubmissionIssue(ret);
             }
 
             return ret;
         }
 
-        protected void PlatformUpdate()
-        {
-        }
-
-        protected bool CheckError(Twitch.ErrorCode err)
+        #region Error Checking
+        
+        protected override bool CheckError(Twitch.ErrorCode err)
         {
             if (Error.Failed(err))
             {
@@ -165,14 +212,16 @@ namespace Twitch
             return true;
         }
 
-        protected void ReportError(string err)
+        protected override void ReportError(string err)
         {
-            Console.Error.WriteLine(err);
+            System.Windows.Forms.MessageBox.Show(err, "Error");
         }
 
-        protected void ReportWarning(string err)
+        protected override void ReportWarning(string err)
         {
-            Console.Error.WriteLine(err);
+            System.Windows.Forms.MessageBox.Show(err, "Warning");
         }
+
+        #endregion
     }
 }

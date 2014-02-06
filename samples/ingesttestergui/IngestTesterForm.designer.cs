@@ -76,7 +76,6 @@
             this.mPasswordText.PasswordChar = '*';
             this.mPasswordText.Size = new System.Drawing.Size(244, 20);
             this.mPasswordText.TabIndex = 33;
-            this.mPasswordText.Text = "alecttv";
             // 
             // label2
             // 
@@ -93,7 +92,6 @@
             this.mUsernameText.Name = "mUsernameText";
             this.mUsernameText.Size = new System.Drawing.Size(246, 20);
             this.mUsernameText.TabIndex = 31;
-            this.mUsernameText.Text = "alecistestingtwitch";
             // 
             // mIngestListListbox
             // 
@@ -190,8 +188,10 @@
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.mAppCredentialsGroupbox);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.Name = "IngestTesterForm";
             this.Text = "Twitch Ingest Tester";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.IngestTesterForm_FormClosing);
             this.mAppCredentialsGroupbox.ResumeLayout(false);
             this.mAppCredentialsGroupbox.PerformLayout();
             this.groupBox1.ResumeLayout(false);

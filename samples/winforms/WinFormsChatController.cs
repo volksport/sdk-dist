@@ -13,6 +13,9 @@ namespace Twitch.Chat
 
         protected string m_ClientId = "";
         protected string m_ClientSecret = "";
+        protected EmoticonMode m_EmoticonMode = EmoticonMode.None;
+        protected int m_MessageFlushInterval = 500;
+        protected int m_UserChangeEventInterval = 2000;
 
         #endregion
 
@@ -30,11 +33,47 @@ namespace Twitch.Chat
             set { m_ClientSecret = value; }
         }
 
+        public override EmoticonMode EmoticonParsingMode
+        {
+            get { return m_EmoticonMode; }
+            set { m_EmoticonMode = value; }
+        }
+
+        public override int MessageFlushInterval
+        {
+            get { return m_MessageFlushInterval; }
+            set
+            {
+                value = Math.Min(MAX_INTERVAL_MS, Math.Max(value, MIN_INTERVAL_MS));
+
+                m_MessageFlushInterval = value;
+                base.MessageFlushInterval = value;
+            }
+        }
+
+        public override int UserChangeEventInterval
+        {
+            get { return m_UserChangeEventInterval; }
+            set
+            {
+                value = Math.Min(MAX_INTERVAL_MS, Math.Max(value, MIN_INTERVAL_MS));
+
+                m_UserChangeEventInterval = value;
+                base.UserChangeEventInterval = value;
+            }
+        }
+        
         #endregion
 
         public WinFormsChatController()
         {
-            m_Core = new Twitch.Core(new Twitch.StandardCoreAPI());
+            m_Core = Core.Instance;
+
+            if (m_Core == null)
+            {
+                m_Core = new Core(new StandardCoreAPI());
+            }
+
             m_Chat = new Twitch.Chat.Chat(new Twitch.Chat.StandardChatAPI());
         }
 

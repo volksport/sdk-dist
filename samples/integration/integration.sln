@@ -17,6 +17,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "twitchchat", "..\..\twitchc
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "twitchcore", "..\..\twitchcore\twitchcore.vcxproj", "{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6A59BB79-4F32-4C79-A161-12D76132FC98} = {6A59BB79-4F32-4C79-A161-12D76132FC98}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "jsoncpp", "..\..\jsoncpp\jsoncpp.vcxproj", "{6A59BB79-4F32-4C79-A161-12D76132FC98}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,6 +45,7 @@ Global
 		{DF37069C-D5BB-466D-82CC-03F141370445}.Debug|Win32.ActiveCfg = Debug|Win32
 		{DF37069C-D5BB-466D-82CC-03F141370445}.Debug|Win32.Build.0 = Debug|Win32
 		{DF37069C-D5BB-466D-82CC-03F141370445}.Debug|x64.ActiveCfg = Debug|Win32
+		{DF37069C-D5BB-466D-82CC-03F141370445}.Debug|x64.Build.0 = Debug|Win32
 		{DF37069C-D5BB-466D-82CC-03F141370445}.DebugMD|Win32.ActiveCfg = Debug|Win32
 		{DF37069C-D5BB-466D-82CC-03F141370445}.DebugMD|Win32.Build.0 = Debug|Win32
 		{DF37069C-D5BB-466D-82CC-03F141370445}.DebugMD|x64.ActiveCfg = Debug|Win32
@@ -124,6 +130,30 @@ Global
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|Win32.Build.0 = ReleaseMD|Win32
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|x64.ActiveCfg = ReleaseMD|x64
 		{FF32A37D-6F33-4A64-B433-2D93A79B0CAC}.ReleaseMD|x64.Build.0 = ReleaseMD|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.debug_bindings|Win32.ActiveCfg = Debug|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.debug_bindings|Win32.Build.0 = Debug|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.debug_bindings|x64.ActiveCfg = Debug|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.debug_bindings|x64.Build.0 = Debug|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.Debug|Win32.Build.0 = Debug|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.Debug|x64.ActiveCfg = Debug|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.Debug|x64.Build.0 = Debug|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.DebugMD|Win32.ActiveCfg = DebugMD|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.DebugMD|Win32.Build.0 = DebugMD|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.DebugMD|x64.ActiveCfg = DebugMD|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.DebugMD|x64.Build.0 = DebugMD|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.release_bindings|Win32.ActiveCfg = ReleaseMD|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.release_bindings|Win32.Build.0 = ReleaseMD|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.release_bindings|x64.ActiveCfg = ReleaseMD|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.release_bindings|x64.Build.0 = ReleaseMD|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.Release|Win32.ActiveCfg = Release|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.Release|Win32.Build.0 = Release|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.Release|x64.ActiveCfg = Release|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.Release|x64.Build.0 = Release|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.ReleaseMD|Win32.ActiveCfg = ReleaseMD|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.ReleaseMD|Win32.Build.0 = ReleaseMD|Win32
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.ReleaseMD|x64.ActiveCfg = ReleaseMD|x64
+		{6A59BB79-4F32-4C79-A161-12D76132FC98}.ReleaseMD|x64.Build.0 = ReleaseMD|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

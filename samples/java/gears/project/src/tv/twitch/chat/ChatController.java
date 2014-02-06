@@ -11,19 +11,31 @@ import tv.twitch.*;
  * 
  * The typical order of operations a client of CC will take is:
  * 
- * - Subscribe for events via delegates on ChatController
- * - Call CC.Connect() / call CC.ConnectAnonymous()
- * - Wait for the connection callback 
- * - Call CC.SendChatMessage() to send messages (if not connected anonymously)
+ * - Set the listener you want to receive events on
+  *    CC.setListener(chatListener)
+ * - Set relevant properties on the CC
+ *     CC.setClientId(clientId)
+ *     CC.setClientSecret(clientSecret)
+ *     CC.setUserName(username)
+ *     CC.setAuthToken(authToken)
+ *     CC.setEmoticonParsingModeMode(emoticonParsingMode)
+ * - Call CC.initialize() and wait for theasync  initialization callback to be called
+ * - Call CC.connect() / call CC.connectAnonymous() for each channel you're interested in
+ * - Wait for the connection callbacks
+ * - Call CC.sendChatMessage() to send messages (if not connected anonymously)
  * - Receive message callbacks
- * - Call CC.Disconnect() when done
+ * - Call CC.disconnect() on channels when done with them
+ * - Call CC.shutdown() and wait for the async shutdown callback to be called
  * 
  * Events will fired during the call to CC.Update().  When chat messages are received RawMessagesReceived will be fired.
  * 
  * NOTE: The implementation of texture emoticon data is not yet complete and currently not available.
  */
-public class ChatController implements IChatCallbacks
+public class ChatController
 {
+    protected static final int MIN_INTERVAL_MS = 200;
+    protected static final int MAX_INTERVAL_MS = 10000;
+
     //#region Types
 
 	/**
@@ -31,11 +43,22 @@ public class ChatController implements IChatCallbacks
 	 */
     public enum ChatState
     {
-        Uninitialized,  //!< Chat is not yet initialized.
+        Uninitialized,  //!< The component is not yet initialized.
+        Initializing,   //!< The component is initializing.
         Initialized,    //!< The component is initialized.
-        Connecting,     //!< Currently attempting to connect to the channel.
-        Connected,      //!< Connected to the channel.
-        Disconnected    //!< Initialized but not connected.
+        ShuttingDown, 	//!< The component is shutting down.
+    }
+
+	/**
+	 * The possible states a chat channel can be in.
+	 */
+    protected enum ChannelState
+    {
+    	Created,
+        Connecting,
+        Connected,
+        Disconnecting,
+        Disconnected,
     }
 
     /**
@@ -53,40 +76,15 @@ public class ChatController implements IChatCallbacks
      */
     public interface Listener
     {
-    	/**
-    	 * The callback signature for the event fired when a tokenized set of messages has been received.
-    	 * @param messages
-    	 */
-        void onTokenizedMessagesReceived(ChatTokenizedMessage[] messages);
-    	
-    	/**
-    	 * The callback signature for the event fired when a set of text-only messages has been received.
-    	 * @param messages
-    	 */
-        void onRawMessagesReceived(ChatMessage[] messages);
+        /**
+         * The callback for the event fired when initialization is complete.
+         */
+        void onInitializationComplete(ErrorCode result);
         
         /**
-         * The callback signature for the event fired when users join, leave or changes their status in the channel.
-         * @param joinList The list of users who have joined the room.
-         * @param leaveList The list of useres who have left the room.
-         * @param userInfoList The list of users who have changed their status.
+         * The callback for the event fired when shutdown is complete.
          */
-        void onUsersChanged(ChatUserInfo[] joinList, ChatUserInfo[] leaveList, ChatUserInfo[] userInfoList);
-        
-        /**
-         * The callback signature for the event fired when the local user has been connected to the channel.
-         */
-        void onConnected();
-        
-        /**
-         * The callback signature for the event fired when the local user has been disconnected from the channel.
-         */
-        void onDisconnected();
-        
-        /**
-         * The callback signature for the event fired when the messages in the room should be cleared.  The UI should be cleared of any previous messages.
-         */
-        void onMessagesCleared();
+        void onShutdownComplete(ErrorCode result);
         
         /**
          * The callback signature for the event fired when the emoticon data has been made available.
@@ -97,6 +95,57 @@ public class ChatController implements IChatCallbacks
          * The callback signature for the event fired when the emoticon data is no longer valid.
          */
         void onEmoticonDataExpired();
+        
+	    /**
+	     * The callback signature for the event which is fired when the ChatController changes state.
+	     * @param state
+	     */
+	    void onChatStateChanged(ChatState state);
+	    
+	    /**
+    	 * The callback signature for the event fired when a tokenized set of messages has been received.
+    	 * @param messages
+    	 */
+        void onTokenizedMessagesReceived(String channelName, ChatTokenizedMessage[] messages);
+    	
+    	/**
+    	 * The callback signature for the event fired when a set of text-only messages has been received.
+    	 * @param messages
+    	 */
+        void onRawMessagesReceived(String channelName, ChatRawMessage[] messages);
+        
+        /**
+         * The callback signature for the event fired when users join, leave or changes their status in the channel.
+         * @param joinList The list of users who have joined the room.
+         * @param leaveList The list of useres who have left the room.
+         * @param userInfoList The list of users who have changed their status.
+         */
+        void onUsersChanged(String channelName, ChatUserInfo[] joinList, ChatUserInfo[] leaveList, ChatUserInfo[] userInfoList);
+        
+        /**
+         * The callback signature for the event fired when the local user has been connected to the channel.
+         */
+        void onConnected(String channelName);
+        
+        /**
+         * The callback signature for the event fired when the local user has been disconnected from the channel.
+         */
+        void onDisconnected(String channelName);
+        
+        /**
+         * The callback signature for the event fired when the messages in the room should be cleared.  The UI should be cleared of any previous messages.
+         */
+        void onMessagesCleared(String channelName);
+        
+        /**
+         * The callback signature for the event fired when the badge data has been made available.
+         */
+        void onBadgeDataAvailable(String channelName);
+        
+        /**
+         * The callback signature for the event fired when the badge data is no longer valid.
+         */
+        void onBadgeDataExpired(String channelName);
     }
 
     //#endregion
@@ -106,179 +155,557 @@ public class ChatController implements IChatCallbacks
     protected Listener m_Listener = null;
 
     protected String m_UserName = "";
-    protected String m_ChannelName = "";
-    
     protected String m_ClientId = "";
     protected String m_ClientSecret = "";
     protected Core m_Core = null;
     protected Chat m_Chat = null;
 
-    protected boolean m_ChatInitialized = false;
-    protected boolean m_Anonymous = false;
     protected ChatState m_ChatState = ChatState.Uninitialized;
     protected AuthToken m_AuthToken = new AuthToken();
 
-    protected List<ChatUserInfo> m_ChannelUsers = new ArrayList<ChatUserInfo>();
-    protected LinkedList<ChatMessage> m_RawMessages = new LinkedList<ChatMessage>();
-    protected LinkedList<ChatTokenizedMessage> m_TokenizedMessages = new LinkedList<ChatTokenizedMessage>();
-    protected int m_MessageHistorySize = 128;
+	protected HashMap<String, ChatChannelListener> m_Channels = new HashMap<String, ChatChannelListener>();
 
-    protected EmoticonMode m_EmoticonMode = EmoticonMode.None;
+    protected int m_MessageHistorySize = 128;
+	protected EmoticonMode m_EmoticonMode = EmoticonMode.None;
     protected EmoticonMode m_ActiveEmoticonMode = EmoticonMode.None; 
     protected ChatEmoticonData m_EmoticonData = null;
     
+    protected int m_MessageFlushInterval = 500;
+    protected int m_UserChangeEventInterval = 2000;
+    
     //#endregion
 
-
-    //#region IChatCallbacks
-
-    public void chatStatusCallback(ErrorCode result)
+    protected IChatAPIListener m_ChatAPIListener = new IChatAPIListener()
     {
-        if (ErrorCode.succeeded(result))
+        @Override
+        public void chatInitializationCallback(ErrorCode result)
         {
-            return;
+        	if (ErrorCode.succeeded(result))
+        	{
+        		m_Chat.setMessageFlushInterval(m_MessageFlushInterval);
+        		m_Chat.setUserChangeEventInterval(m_UserChangeEventInterval);
+        		
+        		downloadEmoticonData();
+        		
+        		setChatState(ChatState.Initialized);
+        	}
+        	else
+        	{
+        		setChatState(ChatState.Uninitialized);
+        	}
+
+        	try
+        	{
+		        if (m_Listener != null)
+		        {
+		        	m_Listener.onInitializationComplete(result);
+		        }
+        	}
+        	catch (Exception x)
+        	{
+        		reportError(x.toString());
+        	}
         }
+    	
+        @Override
+        public void chatShutdownCallback(ErrorCode result)
+        {
+        	if (ErrorCode.succeeded(result))
+        	{
+                ErrorCode ret = m_Core.shutdown();
+                if (ErrorCode.failed(ret))
+                {
+                    String err = ErrorCode.getString(ret);
+                    reportError(String.format("Error shutting down the Twitch sdk: %s", err));
+                }
 
-        m_ChatState = ChatState.Disconnected;
-    }
-
-    public void chatChannelMembershipCallback(ChatEvent evt, ChatChannelInfo channelInfo)
+                setChatState(ChatState.Uninitialized);
+        	}
+        	else
+        	{
+        		// if shutdown fails the state will probably be messed up but this should never happen
+        		setChatState(ChatState.Initialized);
+        		
+        		reportError(String.format("Error shutting down Twith chat: %s", result));
+        	}
+        	
+        	try
+        	{
+		        if (m_Listener != null)
+		        {
+		        	m_Listener.onShutdownComplete(result);
+		        }
+        	}
+        	catch (Exception x)
+        	{
+        		reportError(x.toString());
+        	}        	
+        }
+    	
+        @Override
+        public void chatEmoticonDataDownloadCallback(ErrorCode result)
+        {
+            if (ErrorCode.succeeded(result))
+            {
+                setupEmoticonData();
+            }
+        }
+    };
+    
+    protected class ChatChannelListener implements IChatChannelListener
     {
-        switch (evt)
+        protected String m_ChannelName = null;
+    	protected boolean m_Anonymous = false;
+    	protected ChannelState m_ChannelState = ChannelState.Created;
+    	
+        protected List<ChatUserInfo> m_ChannelUsers = new ArrayList<ChatUserInfo>();
+        protected LinkedList<ChatRawMessage> m_RawMessages = new LinkedList<ChatRawMessage>();
+        protected LinkedList<ChatTokenizedMessage> m_TokenizedMessages = new LinkedList<ChatTokenizedMessage>();
+        
+        protected ChatBadgeData m_BadgeData = null;
+    	
+    	public ChatChannelListener(String channelName)
+    	{
+    		m_ChannelName = channelName;
+    	}
+    	
+    	//#region Properties
+    	
+    	public ChannelState getChannelState()
+    	{
+    		return m_ChannelState;
+    	}
+    	
+        public boolean getIsAnonymous()
         {
-            case TTV_CHAT_JOINED_CHANNEL:
-            {
-                m_ChatState = ChatState.Connected;
-                fireConnected();
-                break;
-            }
-            case TTV_CHAT_LEFT_CHANNEL:
-            {
-                m_ChatState = ChatState.Disconnected;
-                break;
-            }
-            default:
-            {
-                break;
-            }
+            return m_Anonymous;
         }
-    }
-
-    public void chatChannelUserChangeCallback(ChatUserList joinList, ChatUserList leaveList, ChatUserList userInfoList)
-    {
-        for (int i=0; i<leaveList.userList.length; ++i)
+    	
+        public String getChannelName()
         {
-            int index = m_ChannelUsers.indexOf(leaveList.userList[i]);
-            if (index >= 0)
-            {
-                m_ChannelUsers.remove(index);
-            }
-        }
-
-        for (int i=0; i<userInfoList.userList.length; ++i)
-        {
-            // this will find the existing user with the same name
-            int index = m_ChannelUsers.indexOf(userInfoList.userList[i]);
-            if (index >= 0)
-            {
-                m_ChannelUsers.remove(index);
-            }
-
-            m_ChannelUsers.add(userInfoList.userList[i]);
-        }
-
-        for (int i=0; i<joinList.userList.length; ++i)
-        {
-            m_ChannelUsers.add(joinList.userList[i]);
-        }
-
-        try
-        {
-            if (m_Listener != null)
-            {
-            	m_Listener.onUsersChanged(joinList.userList, leaveList.userList, userInfoList.userList);
-            }
-        }
-        catch (Exception x)
-        {
-        	reportError(x.toString());
-        }
-    }
-
-    public void chatQueryChannelUsersCallback(ChatUserList userList)
-    {
-        // listening for incremental changes so no need for full query
-    }
-
-    public void chatChannelMessageCallback(ChatMessageList messageList)
-    {
-        for (int i = 0; i < messageList.messageList.length; ++i)
-        {
-            m_RawMessages.addLast(messageList.messageList[i]);
-        }
-
-        try
-        {
-            if (m_Listener != null)
-            {
-            	m_Listener.onRawMessagesReceived(messageList.messageList);
-            }
-        }
-        catch (Exception x)
-        {
-        	reportError(x.toString());
-        }
-
-        // cap the number of messages cached
-        while (m_RawMessages.size() > m_MessageHistorySize)
-        {
-            m_RawMessages.removeFirst();
-        }
-    }
-
-    public void chatChannelTokenizedMessageCallback(ChatTokenizedMessage[] messageList)
-    {
-        for (int i = 0; i < messageList.length; ++i)
-        {
-            m_TokenizedMessages.addLast(messageList[i]);
+            return m_ChannelName;
         }
         
-        try
+        public Iterator<ChatRawMessage> getRawMessages()
         {
-            if (m_Listener != null)
+            return m_RawMessages.iterator();
+        }
+
+        public Iterator<ChatTokenizedMessage> getTokenizedMessages()
+        {
+            return m_TokenizedMessages.iterator();
+        }
+
+        public ChatBadgeData getBadgeData()
+        {
+        	return m_BadgeData;
+        }
+        
+        //#endregion
+        
+        public boolean connect(boolean anonymous)
+    	{
+        	m_Anonymous = anonymous;
+        	
+        	ErrorCode ret = ErrorCode.TTV_EC_SUCCESS;
+        	
+            // connect to the channel
+            if (anonymous)
             {
-            	m_Listener.onTokenizedMessagesReceived(messageList);
+                ret = m_Chat.connectAnonymous(m_ChannelName, this);
+            }
+            else
+            {
+                ret = m_Chat.connect(m_ChannelName, m_UserName, m_AuthToken.data, this);
+            }
+
+            if (ErrorCode.failed(ret))
+            {
+                String err = ErrorCode.getString(ret);
+                reportError(String.format("Error connecting: %s", err));
+
+                fireDisconnected(m_ChannelName);
+
+                return false;
+            }
+            else
+            {
+            	setChannelState(ChannelState.Connecting);
+                downloadBadgeData();
+
+                return true;
+            }
+    	}
+        
+        public boolean disconnect()
+        {
+        	switch (m_ChannelState)
+        	{
+				case Connected:
+				case Connecting:
+				{
+		    		// kick off an async disconnect
+	                ErrorCode ret = m_Chat.disconnect(m_ChannelName);
+	                if (ErrorCode.failed(ret))
+	                {
+	                    String err = ErrorCode.getString(ret);
+	                    reportError(String.format("Error disconnecting: %s", err));
+	                    
+	                    return false;
+	                }
+	                
+	                setChannelState(ChannelState.Disconnecting);
+	                return true;
+				}
+				case Created:
+				case Disconnected:
+				case Disconnecting:
+				default:
+				{
+					return false;
+				}
+        	}
+        }
+        
+        protected void setChannelState(ChannelState state)
+        {
+            if (state == m_ChannelState)
+            {
+                return;
+            }
+
+            m_ChannelState = state;
+
+            try
+            {
+//                if (m_Listener != null)
+//                {
+//                	m_Listener.onChannelStateChanged(m_ChannelName, state);
+//                }
+            }
+            catch (Exception x)
+            {
+                reportError(x.toString());
             }
         }
-        catch (Exception x)
+        
+        public void clearMessages()
         {
-        	reportError(x.toString());
+            m_RawMessages.clear();
+
+            try
+            {
+                if (m_Listener != null)
+                {
+                	m_Listener.onMessagesCleared(m_ChannelName);
+                }
+            }
+            catch (Exception x)
+            {
+            	reportError(x.toString());
+            }
+        }
+        
+        public boolean sendChatMessage(String message)
+        {
+            if (m_ChannelState != ChannelState.Connected)
+            {
+                return false;
+            }
+
+        	ErrorCode ret = m_Chat.sendMessage(m_ChannelName, message);
+            if (ErrorCode.failed(ret))
+            {
+                String err = ErrorCode.getString(ret);
+                reportError(String.format("Error sending chat message: %s", err));
+                
+                return false;
+            }
+            
+            return true;
+        }
+        
+        //#region Badge Handling
+
+        protected void downloadBadgeData()
+        {
+        	// don't download badges
+        	if (m_ActiveEmoticonMode == EmoticonMode.None)
+        	{
+        		return;
+        	}
+        	
+            if (m_BadgeData == null)
+            {
+                ErrorCode ret = m_Chat.downloadBadgeData(m_ChannelName);
+                if (ErrorCode.failed(ret))
+                {
+                    String err = ErrorCode.getString(ret);
+                    reportError(String.format("Error trying to download badge data: %s", err));
+                }
+            }
         }
 
-        // cap the number of messages cached
-        while (m_TokenizedMessages.size() > m_MessageHistorySize)
+        protected void setupBadgeData()
         {
-        	m_TokenizedMessages.removeFirst();
+        	if (m_BadgeData != null)
+        	{
+        		return;
+        	}
+        	
+        	m_BadgeData = new ChatBadgeData();
+        	ErrorCode ec = m_Chat.getBadgeData(m_ChannelName, m_BadgeData);
+        	
+            if (ErrorCode.succeeded(ec))
+            {
+            	try
+            	{
+    		        if (m_Listener != null)
+    		        {
+    		        	m_Listener.onBadgeDataAvailable(m_ChannelName);
+    		        }
+            	}
+            	catch (Exception x)
+            	{
+            		reportError(x.toString());
+            	}
+            }
+            else
+            {
+            	reportError("Error preparing badge data: " + ErrorCode.getString(ec));
+            }
         }
-    }
-    
-    public void chatClearCallback(String channelName)
-    {
-        clearMessages();
-    }
 
-    public void emoticonDataDownloadCallback(ErrorCode error)
-    {
-        // grab the texture and badge data
-        if (ErrorCode.succeeded(error))
+        protected void cleanupBadgeData()
         {
-            setupEmoticonData();
+        	if (m_BadgeData == null)
+        	{
+        		return;
+        	}
+
+        	ErrorCode ec = m_Chat.clearBadgeData(m_ChannelName);
+        	
+        	if (ErrorCode.succeeded(ec))
+        	{
+            	m_BadgeData = null;
+            	
+	        	try
+	        	{
+	    	        if (m_Listener != null)
+	    	        {
+	    	        	m_Listener.onBadgeDataExpired(m_ChannelName);
+	    	        }
+	        	}
+	        	catch (Exception x)
+	        	{
+	        		reportError(x.toString());
+	        	}
+        	}
+        	else
+        	{
+        		reportError("Error releasing badge data: " + ErrorCode.getString(ec));
+        	}
         }
-    }
 
-    //#endregion
+        //#endregion        
 
+        //#region Event Helpers
 
+        protected void fireConnected(String channelName)
+        {
+            try
+            {
+                if (m_Listener != null)
+                {
+                	m_Listener.onConnected(channelName);
+                }
+            }
+            catch (Exception x)
+            {
+            	reportError(x.toString());
+            }
+        }
+
+        protected void fireDisconnected(String channelName)
+        {
+            try
+            {
+                if (m_Listener != null)
+                {
+                	m_Listener.onDisconnected(channelName);
+                }
+            }
+            catch (Exception x)
+            {
+            	reportError(x.toString());
+            }
+        }
+
+        //#endregion
+
+        private void disconnectionComplete()
+        {
+        	if (m_ChannelState != ChannelState.Disconnected)
+        	{
+	        	setChannelState(ChannelState.Disconnected);
+	        	fireDisconnected(m_ChannelName);
+        		cleanupBadgeData();
+        	}        	
+        }
+        
+        //#region IChatChannelListener
+        
+        @Override
+        public void chatStatusCallback(String channelName, ErrorCode result)
+        {
+            if (ErrorCode.succeeded(result))
+            {
+                return;
+            }
+
+        	// destroy the channel object
+        	m_Channels.remove(channelName);
+
+        	disconnectionComplete();
+        }
+
+        @Override
+        public void chatChannelMembershipCallback(String channelName, ChatEvent evt, ChatChannelInfo channelInfo)
+        {
+            switch (evt)
+            {
+                case TTV_CHAT_JOINED_CHANNEL:
+                {
+                	setChannelState(ChannelState.Connected);
+                    fireConnected(channelName);
+                    break;
+                }
+                case TTV_CHAT_LEFT_CHANNEL:
+                {
+                	disconnectionComplete();
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+        }
+
+        @Override
+        public void chatChannelUserChangeCallback(String channelName, ChatUserInfo[] joinList, ChatUserInfo[] leaveList, ChatUserInfo[] userInfoList)
+        {
+            for (int i=0; i<leaveList.length; ++i)
+            {
+                int index = m_ChannelUsers.indexOf(leaveList[i]);
+                if (index >= 0)
+                {
+                    m_ChannelUsers.remove(index);
+                }
+            }
+
+            for (int i=0; i<userInfoList.length; ++i)
+            {
+                // this will find the existing user with the same name
+                int index = m_ChannelUsers.indexOf(userInfoList[i]);
+                if (index >= 0)
+                {
+                    m_ChannelUsers.remove(index);
+                }
+
+                m_ChannelUsers.add(userInfoList[i]);
+            }
+
+            for (int i=0; i<joinList.length; ++i)
+            {
+                m_ChannelUsers.add(joinList[i]);
+            }
+
+            try
+            {
+                if (m_Listener != null)
+                {
+                	m_Listener.onUsersChanged(m_ChannelName, joinList, leaveList, userInfoList);
+                }
+            }
+            catch (Exception x)
+            {
+            	reportError(x.toString());
+            }
+        }
+
+        @Override
+        public void chatChannelRawMessageCallback(String channelName, ChatRawMessage[] messageList)
+        {
+            for (int i = 0; i < messageList.length; ++i)
+            {
+                m_RawMessages.addLast(messageList[i]);
+            }
+
+            try
+            {
+                if (m_Listener != null)
+                {
+                	m_Listener.onRawMessagesReceived(m_ChannelName, messageList);
+                }
+            }
+            catch (Exception x)
+            {
+            	reportError(x.toString());
+            }
+
+            // cap the number of messages cached
+            while (m_RawMessages.size() > m_MessageHistorySize)
+            {
+                m_RawMessages.removeFirst();
+            }
+        }
+
+        @Override
+        public void chatChannelTokenizedMessageCallback(String channelName, ChatTokenizedMessage[] messageList)
+        {
+            for (int i = 0; i < messageList.length; ++i)
+            {
+                m_TokenizedMessages.addLast(messageList[i]);
+            }
+            
+            try
+            {
+                if (m_Listener != null)
+                {
+                	m_Listener.onTokenizedMessagesReceived(m_ChannelName, messageList);
+                }
+            }
+            catch (Exception x)
+            {
+            	reportError(x.toString());
+            }
+
+            // cap the number of messages cached
+            while (m_TokenizedMessages.size() > m_MessageHistorySize)
+            {
+            	m_TokenizedMessages.removeFirst();
+            }
+        }
+        
+        @Override
+        public void chatClearCallback(String channelName)
+        {
+            clearMessages();
+        }
+    	
+        @Override
+        public void chatBadgeDataDownloadCallback(String channelName, ErrorCode error)
+        {
+            if (ErrorCode.succeeded(error))
+            {
+                setupBadgeData();
+            }
+        }
+        
+        //#endregion 
+	};
+	
     //#region Properties
 
     public Listener getListener()
@@ -291,30 +718,27 @@ public class ChatController implements IChatCallbacks
     }
     
     /**
+     * Returns the name of all active channels.
+     * @return
+     */
+    public String[] getActiveChannelNames()
+    {
+        ArrayList<String> result = Lists.newArrayList();
+        for (ChatChannelListener channel : m_Channels.values())
+        {
+            result.add(channel.getChannelName());
+        }
+        
+        return result.toArray(new String[result.size()]);
+    }
+        
+    /**
      * Whether or not the controller has been initialized.
      * @return
      */
     public boolean getIsInitialized()
     {
-        return m_ChatInitialized;
-    }
-    
-	/**
-	 * Whether or not currently connected to the channel.
-	 * @return
-	 */
-    public boolean getIsConnected()
-    {
-        return m_ChatState == ChatState.Connected;
-    }
-
-    /**
-     * Whether or not connected anonymously (listen only).
-     * @return
-     */
-    public boolean getIsAnonymous()
-    {
-        return m_Anonymous;
+        return m_ChatState == ChatState.Initialized;
     }
 
     /**
@@ -386,45 +810,12 @@ public class ChatController implements IChatCallbacks
     }
 
     /**
-     * The maximum number of messages to be kept in the chat history.
-     * @return
-     */
-    public int getMessageHistorySize()
-    {
-        return m_MessageHistorySize;
-    }
-    /**
-     * The maximum number of messages to be kept in the chat history.
-     * @param value
-     */
-    public void setMessageHistorySize(int value)
-    {
-        m_MessageHistorySize = value;
-    }
-
-    /**
      * The current state of the ChatController.
      * @return
      */
     public ChatState getCurrentState()
     {
         return m_ChatState;
-    }
-
-    /**
-     * An iterator for the raw chat messages from oldest to newest.
-     */
-    public Iterator<ChatMessage> getRawMessages()
-    {
-        return m_RawMessages.iterator();
-    }
-
-    /**
-     * An iterator for the tokenized chat messages from oldest to newest.
-     */
-    public Iterator<ChatTokenizedMessage> getTokenizedMessages()
-    {
-        return m_TokenizedMessages.iterator();
     }
 
     /**
@@ -451,6 +842,158 @@ public class ChatController implements IChatCallbacks
     {
     	return m_EmoticonData;
     }
+
+    /**
+     * The maximum number of messages to be kept in the chat history.
+     * @return
+     */
+    public int getMessageHistorySize()
+    {
+        return getMessageHistorySize();
+    }
+    /**
+     * The maximum number of messages to be kept in the chat history.
+     * @param value
+     */
+    public void setMessageHistorySize(int value)
+    {
+        m_MessageHistorySize = value;
+    }
+    
+    /**
+     * The number of milliseconds between message events.
+     * @return
+     */
+    public int getMessageFlushInterval()
+    {
+    	return m_MessageFlushInterval;
+    }
+    /**
+     * The number of milliseconds between message events.
+     * @return
+     */
+    public void setMessageFlushInterval(int milliseconds)
+    {
+    	m_MessageFlushInterval = Math.min(MAX_INTERVAL_MS, Math.max(milliseconds, MIN_INTERVAL_MS));
+    	
+    	if (m_ChatState == ChatState.Initialized)
+    	{
+    		m_Chat.setMessageFlushInterval(m_MessageFlushInterval);
+    	}
+    }
+    
+    /**
+     * The number of milliseconds between events for user joins, leaves and changes in channels.
+     * @return
+     */
+    public int getUserChangeEventInterval()
+    {
+    	return m_UserChangeEventInterval;
+    }
+    /**
+     * The number of milliseconds between events indicating changes in users in channels.
+     * @return
+     */
+    public void setUserChangeEventInterval(int milliseconds)
+    {
+    	m_UserChangeEventInterval = Math.min(MAX_INTERVAL_MS, Math.max(milliseconds, MIN_INTERVAL_MS));
+
+    	if (m_ChatState == ChatState.Initialized)
+    	{
+    		m_Chat.setUserChangeEventInterval(m_UserChangeEventInterval);
+    	}
+    }
+    
+	/**
+	 * Whether or not currently connected to the channel.
+	 * @return
+	 */
+    public boolean getIsConnected(String channelName)
+    {
+    	if (!m_Channels.containsKey(channelName))
+    	{
+    		return false;
+    	}
+    	
+    	ChatChannelListener channel = m_Channels.get(channelName);
+        return channel.getChannelState() == ChannelState.Connected;
+    }
+
+    /**
+     * The state of the named channel.
+     * @return
+     */
+    public ChannelState getChannelState(String channelName)
+    {
+        if (!m_Channels.containsKey(channelName))
+        {
+            return ChannelState.Disconnected;
+        }
+        
+        ChatChannelListener channel = m_Channels.get(channelName);
+        return channel.getChannelState();
+    }
+
+    /**
+     * Whether or not connected anonymously (listen only).
+     * @return
+     */
+    public boolean getIsAnonymous(String channelName)
+    {
+    	if (!m_Channels.containsKey(channelName))
+    	{
+    		reportError("Unknown channel: " + channelName);
+    		return false;
+    	}
+    	
+    	ChatChannelListener channel = m_Channels.get(channelName);
+    	return channel.getIsAnonymous();
+    }
+    
+    /**
+     * An iterator for the raw chat messages from oldest to newest.
+     */
+    public Iterator<ChatRawMessage> getRawMessages(String channelName)
+    {
+    	if (!m_Channels.containsKey(channelName))
+    	{
+    		reportError("Unknown channel: " + channelName);
+    		return null;
+    	}
+    	
+    	ChatChannelListener channel = m_Channels.get(channelName);
+    	return channel.getRawMessages();
+    }
+
+    /**
+     * An iterator for the tokenized chat messages from oldest to newest.
+     */
+    public Iterator<ChatTokenizedMessage> getTokenizedMessages(String channelName)
+    {
+    	if (!m_Channels.containsKey(channelName))
+    	{
+    		reportError("Unknown channel: " + channelName);
+    		return null;
+    	}
+    	
+    	ChatChannelListener channel = m_Channels.get(channelName);
+    	return channel.getTokenizedMessages();
+    }
+
+    /**
+     * Retrieves the badge data that can be used to render icons.
+     */
+    public ChatBadgeData getBadgeData(String channelName)
+    {
+    	if (!m_Channels.containsKey(channelName))
+    	{
+    		reportError("Unknown channel: " + channelName);
+    		return null;
+    	}
+    	
+    	ChatChannelListener channel = m_Channels.get(channelName);
+    	return channel.getBadgeData();
+    }
     
     //#endregion
 
@@ -458,7 +1001,7 @@ public class ChatController implements IChatCallbacks
     {
     	m_Core = Core.getInstance();
     	
-    	if (Core.getInstance() == null)
+    	if (m_Core == null)
     	{
     		m_Core = new Core( new StandardCoreAPI() );
     	}
@@ -466,142 +1009,192 @@ public class ChatController implements IChatCallbacks
     	m_Chat = new Chat( new StandardChatAPI() );
     }
 
-    /**
-     * Connects to the given channel.  The actual result of the connection attempt will be returned in the Connected / Disconnected event.
-     * @param channel The name of the channel.
-     * @return Whether or not the request was successful.
-     */
-    public boolean connect(String channel)
+    public boolean initialize()
     {
-        disconnect();
-
-        m_Anonymous = false;
-        m_ChannelName = channel;
-
-        return initialize(channel);
-    }
-
-    /**
-     * Connects to the given channel anonymously.  The actual result of the connection attempt will be returned in the Connected / Disconnected event.
-     * @param channel The name of the channel.
-     * @return Whether or not the request was successful.
-     */
-    public boolean connectAnonymous(String channel)
-    {
-        disconnect();
-
-        m_Anonymous = true;
-        m_ChannelName = channel;
-    
-        return initialize(channel);
-    }
-
-    /**
-     * Disconnects from the channel.  The result of the attempt will be returned in a Disconnected event.
-     * @return Whether or not the disconnect attempt was valid.
-     */
-    public boolean disconnect()
-    {
-        if (m_ChatState == ChatState.Connected || 
-            m_ChatState == ChatState.Connecting)
-        {
-            ErrorCode ret = m_Chat.disconnect();
-            if (ErrorCode.failed(ret))
-            {
-                String err = ErrorCode.getString(ret);
-                reportError(String.format("Error disconnecting: %s", err));
-                
-                return false;
-            }
-
-            fireDisconnected();
-        }
-        else if (m_ChatState == ChatState.Disconnected)
-        {
-            fireDisconnected();
-        }
-
-        return shutdown();
-    }
-
-    protected boolean initialize(String channel)
-    {
-        if (m_ChatInitialized)
+        if (m_ChatState != ChatState.Uninitialized)
         {
             return false;
         }
 
-        ErrorCode ret = m_Core.initialize(m_ClientId, null, null);
+        setChatState(ChatState.Initializing);
+        
+        ErrorCode ret = m_Core.initialize(m_ClientId, null);
         if (ErrorCode.failed(ret))
         {
-            String err = ErrorCode.getString(ret);
-            reportError(String.format("Error initializing the sdk: %s", err));
-
-            fireDisconnected();
+        	setChatState(ChatState.Uninitialized);
+        	
+        	String err = ErrorCode.getString(ret);
+            reportError(String.format("Error initializing Twitch sdk: %s", err));
             
             return false;
         }
         
+        // initialize chat
         m_ActiveEmoticonMode = m_EmoticonMode;
-        ret = m_Chat.initialize(channel, m_ActiveEmoticonMode != EmoticonMode.None);
+
+        HashSet<ChatTokenizationOption> tokenizationOptions = new HashSet<ChatTokenizationOption>();
+        switch (m_EmoticonMode)
+        {
+	        case None:
+	            tokenizationOptions.add(ChatTokenizationOption.TTV_CHAT_TOKENIZATION_OPTION_NONE);
+	            break;
+            case Url:
+                tokenizationOptions.add(ChatTokenizationOption.TTV_CHAT_TOKENIZATION_OPTION_EMOTICON_URLS);
+                break;
+            case TextureAtlas:
+                tokenizationOptions.add(ChatTokenizationOption.TTV_CHAT_TOKENIZATION_OPTION_EMOTICON_TEXTURES);
+                break;
+        }
+        
+        // kick off the async init
+        ret = m_Chat.initialize(tokenizationOptions, m_ChatAPIListener);
         if (ErrorCode.failed(ret))
         {
+        	m_Core.shutdown();
+        	setChatState(ChatState.Uninitialized);
+        	
             String err = ErrorCode.getString(ret);
-            reportError(String.format("Error initializing chat: %s", err));
-
-            fireDisconnected();
+            reportError(String.format("Error initializing Twitch chat: %s", err));
             
             return false;
         }
         else
         {
-            m_ChatInitialized = true;
-            m_Chat.setChatCallbacks(this);
-            m_ChatState = ChatState.Initialized;
-            
+            setChatState(ChatState.Initialized);
             return true;
         }
     }
-
-    protected boolean shutdown()
+    
+    /**
+     * Connects to the given channel.  The actual result of the connection attempt will be returned in the Connected / Disconnected event.
+     * @param channelName The name of the channel.
+     * @return Whether or not the request was successful.
+     */
+    public boolean connect(String channelName)
     {
-        if (m_ChatInitialized)
+    	return connect(channelName, false);
+    }
+
+    /**
+     * Connects to the given channel anonymously.  The actual result of the connection attempt will be returned in the Connected / Disconnected event.
+     * @param channelName The name of the channel.
+     * @return Whether or not the request was successful.
+     */
+    public boolean connectAnonymous(String channelName)
+    {
+    	return connect(channelName, true);
+    }
+
+    protected boolean connect(String channelName, boolean anonymous)
+    {
+    	if (m_ChatState != ChatState.Initialized)
+    	{
+    		return false;
+    	}
+    	
+    	if (m_Channels.containsKey(channelName))
+    	{
+    		reportError("Already in channel: " + channelName);
+    		return false;
+    	}
+    	
+    	if (channelName == null || channelName.equals(""))
+    	{
+    		return false;
+    	}
+    	
+    	ChatChannelListener channel = new ChatChannelListener(channelName);
+    	m_Channels.put(channelName, channel);
+    	
+    	boolean result = channel.connect(anonymous);
+
+    	if (!result)
+    	{
+    		m_Channels.remove(channelName);
+    	}
+    	
+        return result;
+    }
+    
+    /**
+     * Disconnects from the channel.  The result of the attempt will be returned in a Disconnected event.
+     * @return Whether or not the disconnect attempt was valid.
+     */
+    public boolean disconnect(String channelName)
+    {
+    	if (m_ChatState != ChatState.Initialized)
+    	{
+    		return false;
+    	}
+
+    	if (!m_Channels.containsKey(channelName))
+    	{
+    		reportError("Not in channel: " + channelName);
+    		return false;
+    	}
+
+    	ChatChannelListener channel = m_Channels.get(channelName);
+    	return channel.disconnect();
+    }
+
+
+    public boolean shutdown()
+    {
+        if (m_ChatState != ChatState.Initialized)
         {
-            ErrorCode ret = m_Chat.shutdown();
-            if (ErrorCode.failed(ret))
-            {
-                String err = ErrorCode.getString(ret);
-                reportError(String.format("Error shutting down chat: %s", err));
-                
-                return false;
-            }
-            
-            ret = m_Core.shutdown();
-            if (ErrorCode.failed(ret))
-            {
-                String err = ErrorCode.getString(ret);
-                reportError(String.format("Error shutting down the sdk: %s", err));
-                
-                return false;
-            }
+        	return false;
         }
-
-        m_ChatState = ChatState.Uninitialized;
-        m_ChatInitialized = false;
-
+        
+        // shutdown asynchronously
+        ErrorCode ret = m_Chat.shutdown();
+        if (ErrorCode.failed(ret))
+        {
+            String err = ErrorCode.getString(ret);
+            reportError(String.format("Error shutting down chat: %s", err));
+            
+            return false;
+        }
+        
         cleanupEmoticonData();
-
-        m_Chat.setChatCallbacks(null);
+        
+        setChatState(ChatState.ShuttingDown);
         
         return true;
     }
 
     /**
+     * Ensures the controller is fully shutdown before returning.  This may fire callbacks to listeners during the shutdown.
+     */
+    public void forceSyncShutdown()
+    {
+		if (this.getCurrentState() != ChatState.Uninitialized)
+		{
+			this.shutdown();
+			
+			// wait for the shutdown to finish
+			if (this.getCurrentState() == ChatState.ShuttingDown)
+			{
+				while (this.getCurrentState() != ChatState.Uninitialized)
+				{
+		            try
+		            {
+		                Thread.sleep(200);
+		                this.update();
+		            }
+		            catch (InterruptedException ignored)
+		            {
+		            }
+				}
+			}
+		}
+    }
+    
+    /**
      * Periodically updates the internal state of the controller.
      */
     public void update()
     {
-        if (!m_ChatInitialized)
+        if (m_ChatState == ChatState.Uninitialized)
         {
             return;
         }
@@ -612,150 +1205,86 @@ public class ChatController implements IChatCallbacks
             String err = ErrorCode.getString(ret);
             reportError(String.format("Error flushing chat events: %s", err));
         }
-
-        switch (m_ChatState)
-        {
-	        case Uninitialized:
-	        {
-		        break;
-	        }
-	        case Initialized:
-	        {
-                // connect to the channel
-                if (m_Anonymous)
-                {
-                    ret = m_Chat.connectAnonymous();
-                }
-                else
-                {
-                    ret = m_Chat.connect(m_UserName, m_AuthToken.data);
-                }
-
-                if (ErrorCode.failed(ret))
-                {
-                    String err = ErrorCode.getString(ret);
-                    reportError(String.format("Error connecting: %s", err));
-
-                    shutdown();
-
-                    fireDisconnected();
-                }
-                else
-                {
-                    m_ChatState = ChatState.Connecting;
-                    downloadEmoticonData();
-                }
-
-		        break;
-	        }
-            case Connecting:
-            {
-                break;
-            }
-            case Connected:
-            {
-                break;
-            }
-            case Disconnected:
-            {
-                disconnect();
-                break;
-            }
-        }
     }
 
     /**
      * Sends a chat message to the channel.
+     * @param channelName The channel to send the message on.
      * @param message The message to send.
      * @return Whether or not the attempt was valid.
      */
-    public boolean sendChatMessage(String message)
+    public boolean sendChatMessage(String channelName, String message)
     {
-        if (m_ChatState != ChatState.Connected)
+        if (m_ChatState != ChatState.Initialized)
         {
             return false;
         }
 
-        ErrorCode ret = m_Chat.sendMessage(message);
-        if (ErrorCode.failed(ret))
-        {
-            String err = ErrorCode.getString(ret);
-            reportError(String.format("Error sending chat message: %s", err));
-            
-            return false;
-        }
-        
-        return true;
+    	if (!m_Channels.containsKey(channelName))
+    	{
+    		reportError("Not in channel: " + channelName);
+    		return false;
+    	}
+
+    	ChatChannelListener channel = m_Channels.get(channelName);
+    	return channel.sendChatMessage(message);
     }
 
     /**
      * Clears the chat message history.
      */
-    public void clearMessages()
+    public void clearMessages(String channelName)
     {
-        m_RawMessages.clear();
+    	if (m_ChatState != ChatState.Initialized)
+    	{
+    		return;
+    	}
+
+    	if (!m_Channels.containsKey(channelName))
+    	{
+    		reportError("Not in channel: " + channelName);
+    		return;
+    	}
+
+    	ChatChannelListener channel = m_Channels.get(channelName);
+    	channel.clearMessages();
+    }
+    
+    protected void setChatState(ChatState state)
+    {
+        if (state == m_ChatState)
+        {
+            return;
+        }
+
+        m_ChatState = state;
 
         try
         {
             if (m_Listener != null)
             {
-            	m_Listener.onMessagesCleared();
+            	m_Listener.onChatStateChanged(state);
             }
         }
         catch (Exception x)
         {
-        	reportError(x.toString());
+            reportError(x.toString());
         }
     }
-
-    //#region Event Helpers
-
-    protected void fireConnected()
-    {
-        try
-        {
-            if (m_Listener != null)
-            {
-            	m_Listener.onConnected();
-            }
-        }
-        catch (Exception x)
-        {
-        	reportError(x.toString());
-        }
-    }
-
-    protected void fireDisconnected()
-    {
-        try
-        {
-            if (m_Listener != null)
-            {
-            	m_Listener.onDisconnected();
-            }
-        }
-        catch (Exception x)
-        {
-        	reportError(x.toString());
-        }
-    }
-
-    //#endregion
-
+    
     //#region Emoticon Handling
 
     protected void downloadEmoticonData()
     {
     	// don't download emoticons
-    	if (m_EmoticonMode == EmoticonMode.None)
+    	if (m_ActiveEmoticonMode == EmoticonMode.None)
     	{
     		return;
     	}
     	
-        if (m_EmoticonData == null &&
-            m_ChatInitialized)
+        if (m_EmoticonData == null)
         {
-            ErrorCode ret = m_Chat.downloadEmoticonData(m_EmoticonMode == EmoticonMode.TextureAtlas);
+            ErrorCode ret = m_Chat.downloadEmoticonData();
             if (ErrorCode.failed(ret))
             {
                 String err = ErrorCode.getString(ret);
@@ -801,23 +1330,31 @@ public class ChatController implements IChatCallbacks
     		return;
     	}
 
-    	m_EmoticonData = null;
-        
-    	try
-    	{
-	        if (m_Listener != null)
-	        {
-	        	m_Listener.onEmoticonDataExpired();
-	        }
-    	}
-    	catch (Exception x)
-    	{
-    		reportError(x.toString());
-    	}
+    	ErrorCode ec = m_Chat.clearEmoticonData();
+    	
+        if (ErrorCode.succeeded(ec))
+        {
+        	m_EmoticonData = null;
+
+        	try
+        	{
+    	        if (m_Listener != null)
+    	        {
+    	        	m_Listener.onEmoticonDataExpired();
+    	        }
+        	}
+        	catch (Exception x)
+        	{
+        		reportError(x.toString());
+        	}        	
+        }
+        else
+        {
+        	reportError("Error clearing emoticon data: " + ErrorCode.getString(ec));
+        }
     }
 
     //#endregion
-    
     
     protected boolean checkError(ErrorCode err)
     {

@@ -85,7 +85,6 @@ int main()
 
 	typedef TTV_ErrorCode (*TTV_InitFunctionPointer)(const TTV_MemCallbacks* memCallbacks, 
 	                                                 const char* clientID,	                                                 
-	                                                 TTV_VideoEncoder vidEncoder,
 	                                                 const wchar_t* dllPath);
 	typedef TTV_ErrorCode (*TTV_ShutdownFunctionPointer)(void);
 
@@ -107,12 +106,9 @@ int main()
 	memCallbacks.allocCallback = AllocCallback;
 	memCallbacks.freeCallback = FreeCallback;
 
-	// The intel encoder is used on Windows
-	TTV_VideoEncoder vidEncoder = TTV_VID_ENC_INTEL;
-
 	// Initialize the SDK
 #error Don't forget to fill in the strings below
-	TTV_ErrorCode ret = ourTTV_Init(&memCallbacks, "client ID here", vidEncoder, L".\\");
+	TTV_ErrorCode ret = ourTTV_Init(&memCallbacks, "client ID here", L".\\");
 	if ( TTV_FAILED(ret) )
 	{
 		assert(false);

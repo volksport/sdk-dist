@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using System.Text;
 using Twitch.Chat;
 using ErrorCode = Twitch.ErrorCode;
 
@@ -47,8 +48,9 @@ public class ChatGUI : MonoBehaviour
 		m_ChatController.MessagesCleared += this.HandleClearMessages;
 		m_ChatController.Connected += this.HandleConnected;
 		m_ChatController.Disconnected += this.HandleDisconnected;
-		m_ChatController.RawMessagesReceived += this.HandleRawMessagesReceived;
-		m_ChatController.UsersChanged += this.HandleUsersChanged;
+        m_ChatController.RawMessagesReceived += this.HandleRawMessagesReceived;
+        m_ChatController.TokenizedMessagesReceived += this.HandleTokenizedMessagesReceived;
+        m_ChatController.UsersChanged += this.HandleUsersChanged;
 	}
 	
 	void OnGUI()
@@ -58,7 +60,9 @@ public class ChatGUI : MonoBehaviour
 		int height = 30;
 		int top = 70;
 		int i = 0;
-		
+
+        bool initialize = false;
+        bool shutdown = false;
 		bool connect = false;
 		bool connectAnonymous = false;
 		bool disconnect = false;
@@ -66,20 +70,26 @@ public class ChatGUI : MonoBehaviour
 		
 		if (m_ChatController.IsInitialized)
 		{
-			if (m_ChatController.IsConnected)
-			{
-				if (!m_ChatController.IsAnonymous)
-				{
-					sendMessage = GUI.Button(new Rect(left,top+height*i++,width,height), "Send Message");
-				}
-				disconnect = GUI.Button(new Rect(left,top+height*i++,width,height), "Disconnect");
-			}
-		}
+            if (m_ChatController.IsConnected(m_Channel))
+            {
+                if (!m_ChatController.IsAnonymous(m_Channel))
+                {
+                    sendMessage = GUI.Button(new Rect(left, top + height * i++, width, height), "Send Message");
+                }
+                disconnect = GUI.Button(new Rect(left, top + height * i++, width, height), "Disconnect");
+            }
+            else
+            {
+                connect = GUI.Button(new Rect(left, top + height * i++, width, height), "Connect");
+                connectAnonymous = GUI.Button(new Rect(left, top + height * i++, width, height), "Connect Anonymously");
+            }
+
+            shutdown = GUI.Button(new Rect(left, top + height * i++, width, height), "Shutdown");
+        }
 		else
 		{
-			connect = GUI.Button(new Rect(left,top+height*i++,width,height), "Connect");
-			connectAnonymous = GUI.Button(new Rect(left,top+height*i++,width,height), "Connect Anonymously");
-		}
+            initialize = GUI.Button(new Rect(left, top + height * i++, width, height), "Initialize");
+        }
 		
         if (connect)
 		{
@@ -88,9 +98,6 @@ public class ChatGUI : MonoBehaviour
 				m_Channel = m_UserName;
 			}
 			
-            m_ChatController.AuthToken = m_BroadcastController.AuthToken;
-            m_ChatController.UserName = m_UserName;
-
 			m_ChatController.Connect(m_Channel);
 		}
         else if (connectAnonymous)
@@ -106,13 +113,30 @@ public class ChatGUI : MonoBehaviour
 		}
 		else if (disconnect)
 		{
-            m_ChatController.Disconnect();
+            m_ChatController.Disconnect(m_Channel);
 		}
-		else if (sendMessage)
-		{
-            m_ChatController.SendChatMessage(m_Message);
-			m_Message = string.Empty;
-		}
+        else if (sendMessage)
+        {
+            m_ChatController.SendChatMessage(m_Channel, m_Message);
+            m_Message = string.Empty;
+        }
+        else if (initialize)
+        {
+            if (m_BroadcastController.AuthToken == null || string.IsNullOrEmpty(m_BroadcastController.AuthToken.Data))
+            {
+                DebugOverlay.Instance.AddViewportText("Auth token not available");
+                return;
+            }
+
+            m_ChatController.AuthToken = m_BroadcastController.AuthToken;
+            m_ChatController.UserName = m_UserName;
+
+            m_ChatController.Initialize();
+        }
+        else if (shutdown)
+        {
+            m_ChatController.Shutdown();
+        }
     }
 	
 	void Update()
@@ -127,58 +151,117 @@ public class ChatGUI : MonoBehaviour
 	{
 		if (m_ChatController != null)
 		{
-			m_ChatController.Disconnect();
+            m_ChatController.Disconnect(m_Channel);
 		}
 
 		m_ChatController.MessagesCleared -= this.HandleClearMessages;
 		m_ChatController.Connected -= this.HandleConnected;
 		m_ChatController.Disconnected -= this.HandleDisconnected;
 		m_ChatController.RawMessagesReceived -= this.HandleRawMessagesReceived;
-		m_ChatController.UsersChanged -= this.HandleUsersChanged;
+        m_ChatController.TokenizedMessagesReceived -= this.HandleTokenizedMessagesReceived;
+        m_ChatController.UsersChanged -= this.HandleUsersChanged;
 	}
 	
     #region Callbacks
 
-    protected void HandleRawMessagesReceived(ChatMessage[] messages)
+    protected void HandleRawMessagesReceived(string channelName, ChatRawMessage[] messages)
     {
-        for (int i = 0; i < messages.Length; ++i)
+        if (DebugOverlay.InstanceExists)
         {
-            string line = "[" + messages[i].UserName + "] " + messages[i].Message;
-            DebugOverlay.Instance.AddViewportText(line);
+            for (int i = 0; i < messages.Length; ++i)
+            {
+                string line = "[" + messages[i].UserName + "] " + messages[i].Message;
+                DebugOverlay.Instance.AddViewportText(line);
+            }
         }
     }
 
-    protected void HandleUsersChanged(ChatUserInfo[] joins, ChatUserInfo[] leaves, ChatUserInfo[] infoChanges)
+    protected void HandleTokenizedMessagesReceived(string channelName, ChatTokenizedMessage[] messages)
     {
-        for (int i = 0; i < leaves.Length; ++i)
+        if (DebugOverlay.InstanceExists)
         {
-			DebugOverlay.Instance.AddViewportText(leaves[i].DisplayName + " left");
-        }
+            StringBuilder sb = new StringBuilder();
 
-        for (int i = 0; i < infoChanges.Length; ++i)
-        {
-			// TODO: if we were displaying user attributes we would update them here
-        }
+            for (int i = 0; i < messages.Length; ++i)
+            {
+                ChatTokenizedMessage msg = messages[i];
+                sb.Append("    <").Append(channelName).Append("> ").Append(msg.DisplayName).Append(": ");
 
-        for (int i = 0; i < joins.Length; ++i)
-        {
-            DebugOverlay.Instance.AddViewportText(leaves[i].DisplayName + " joined");
+                for (int t = 0; t < msg.Tokens.Length; ++t)
+                {
+                    ChatMessageToken token = msg.Tokens[t];
+                    switch (token.Type)
+                    {
+                        case TTV_ChatMessageTokenType.TTV_CHAT_MSGTOKEN_TEXT:
+                        {
+                            ChatTextMessageToken mt = (ChatTextMessageToken)token;
+                            sb.Append(mt.Message);
+                            break;
+                        }
+                        case TTV_ChatMessageTokenType.TTV_CHAT_MSGTOKEN_TEXTURE_IMAGE:
+                        {
+                            ChatTextureImageMessageToken mt = (ChatTextureImageMessageToken)token;
+                            sb.Append(String.Format("[{0},{1},{2},{3},{4}]", mt.SheetIndex, mt.X1, mt.Y1, mt.X2, mt.Y2));
+                            break;
+                        }
+                        case TTV_ChatMessageTokenType.TTV_CHAT_MSGTOKEN_URL_IMAGE:
+                        {
+                            ChatUrlImageMessageToken mt = (ChatUrlImageMessageToken)token;
+                            sb.Append("[").Append(mt.Url).Append("]");
+                            break;
+                        }
+                    }
+                }
+
+                DebugOverlay.Instance.AddViewportText(sb.ToString());
+                sb.Remove(0, sb.Length);
+            }
         }
     }
 
-    protected void HandleConnected()
+    protected void HandleUsersChanged(string channelName, ChatUserInfo[] joins, ChatUserInfo[] leaves, ChatUserInfo[] infoChanges)
     {
-		DebugOverlay.Instance.AddViewportText("Connected");
+        if (DebugOverlay.InstanceExists)
+        {
+            for (int i = 0; i < leaves.Length; ++i)
+            {
+                DebugOverlay.Instance.AddViewportText(leaves[i].DisplayName + " left");
+            }
+
+            for (int i = 0; i < infoChanges.Length; ++i)
+            {
+                // TODO: if we were displaying user attributes we would update them here
+            }
+
+            for (int i = 0; i < joins.Length; ++i)
+            {
+                DebugOverlay.Instance.AddViewportText(joins[i].DisplayName + " joined");
+            }
+        }
     }
 
-    protected void HandleDisconnected()
+    protected void HandleConnected(string channelName)
     {
-        DebugOverlay.Instance.AddViewportText("Disconnected");
+        if (DebugOverlay.InstanceExists)
+        {
+            DebugOverlay.Instance.AddViewportText("Connected");
+        }
     }
 
-    protected void HandleClearMessages()
+    protected void HandleDisconnected(string channelName)
     {
-        DebugOverlay.Instance.AddViewportText("Messages cleared");
+        if (DebugOverlay.InstanceExists)
+        {
+            DebugOverlay.Instance.AddViewportText("Disconnected");
+        }
+    }
+
+    protected void HandleClearMessages(string channelName)
+    {
+        if (DebugOverlay.InstanceExists)
+        {
+            DebugOverlay.Instance.AddViewportText("Messages cleared");
+        }
     }
 
     #endregion
