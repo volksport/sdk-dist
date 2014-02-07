@@ -38,7 +38,7 @@ namespace Twitch.Broadcast
     /// available in the ReadyForBroadcasting state.  This returns an instance of IngestTester which is a single-use instance.  This class will perform a test which will measure 
     /// the connection speed to each of the Twitch ingest servers.  See the documentation of the class for details.  While the test is underway the BC is unavailable for any operations.
     /// </summary>
-    public abstract partial class BroadcastController : IStreamCallbacks
+    public abstract partial class BroadcastController
     {
         #region Types
 
@@ -166,88 +166,121 @@ namespace Twitch.Broadcast
 
         protected System.DateTime m_LastStreamInfoUpdateTime = System.DateTime.MinValue;
         protected IngestTester m_IngestTester = null;
+        protected StreamCallbackListener m_StreamListener = null;
 
         #endregion
 
-
-        #region IStreamCallbacks
-
-        void IStreamCallbacks.RequestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+        protected abstract class ControllerAccess
         {
-            if (Error.Succeeded(result))
-            {
-                // Now that the user is authorized the information can be requested about which server to stream to
-                m_AuthToken = authToken;
-                SetBroadcastState(BroadcastState.Authenticated);
-            }
-            else
-            {
-                m_AuthToken.Data = "";
-                SetBroadcastState(BroadcastState.Initialized);
+            protected BroadcastController m_BroadcastController;
 
-                string err = Error.GetString(result);
-                ReportError(string.Format("RequestAuthTokenDoneCallback got failure: {0}", err));
-            }
-        
-            try
+            protected ControllerAccess(BroadcastController controller)
             {
-                if (AuthTokenRequestComplete != null)
-                {
-                    this.AuthTokenRequestComplete(result, authToken);
-                }
+                m_BroadcastController = controller;
             }
-            catch (Exception x)
-            {
-                ReportError(x.ToString());
-            }
-        }
 
-        void IStreamCallbacks.LoginCallback(ErrorCode result, ChannelInfo channelInfo)
-        {
-            if (Error.Succeeded(result))
+            protected AuthToken AuthToken
             {
-                m_ChannelInfo = channelInfo;
-                SetBroadcastState(BroadcastState.LoggedIn);
-                m_LoggedIn = true;
+                get { return m_BroadcastController.m_AuthToken; }
+                set { m_BroadcastController.m_AuthToken = value; }
             }
-            else
-            {
-                SetBroadcastState(BroadcastState.Initialized);
-                m_LoggedIn = false;
 
-                string err = Error.GetString(result);
-                ReportError(string.Format("LoginCallback got failure: {0}", err));
+            protected bool LoggedIn
+            {
+                get { return m_BroadcastController.m_LoggedIn; }
+                set { m_BroadcastController.m_LoggedIn = value; }
             }
-        
-            try
+
+            protected ChannelInfo ChannelInfo
             {
-                if (LoginAttemptComplete != null)
-                {
-                    this.LoginAttemptComplete(result);
-                }
+                get { return m_BroadcastController.m_ChannelInfo; }
+                set { m_BroadcastController.m_ChannelInfo = value; }
             }
-            catch (Exception x)
+
+            protected StreamInfo StreamInfo
             {
-                ReportError(x.ToString());
+                get { return m_BroadcastController.m_StreamInfo; }
+                set { m_BroadcastController.m_StreamInfo = value; }
             }
-        }
 
-        void IStreamCallbacks.GetIngestServersCallback(ErrorCode result, IngestList ingestList)
-        {
-            if (Error.Succeeded(result))
+            protected UserInfo UserInfo
             {
-                m_IngestList = ingestList;
+                get { return m_BroadcastController.m_UserInfo; }
+                set { m_BroadcastController.m_UserInfo = value; }
+            }
 
-                // assume we're going to use the default ingest server unless overidden by the client
-                m_IngestServer = m_IngestList.DefaultServer;
+            protected ArchivingState ArchivingState
+            {
+                get { return m_BroadcastController.m_ArchivingState; }
+                set { m_BroadcastController.m_ArchivingState = value; }
+            }
 
-                SetBroadcastState(BroadcastState.ReceivedIngestServers);
+            protected IngestList IngestList
+            {
+                get { return m_BroadcastController.m_IngestList; }
+                set { m_BroadcastController.m_IngestList = value; }
+            }
 
+            protected IngestServer IngestServer
+            {
+                get { return m_BroadcastController.m_IngestServer; }
+                set { m_BroadcastController.m_IngestServer = value; }
+            }
+
+            protected VideoParams VideoParams
+            {
+                get { return m_BroadcastController.m_VideoParams; }
+                set { m_BroadcastController.m_VideoParams = value; }
+            }
+
+            protected AudioParams AudioParams
+            {
+                get { return m_BroadcastController.m_AudioParams; }
+                set { m_BroadcastController.m_AudioParams = value; }
+            }
+
+            protected Stream Api
+            {
+                get { return m_BroadcastController.m_Stream; }
+            }
+
+            protected void SetBroadcastState(BroadcastState state)
+            {
+                m_BroadcastController.SetBroadcastState(state);
+            }
+
+            protected void CleanupBuffers()
+            {
+                m_BroadcastController.CleanupBuffers();
+            }
+
+            protected void HandleBufferUnlock(UIntPtr buffer)
+            {
+                m_BroadcastController.HandleBufferUnlock(buffer);
+            }
+
+            protected void CheckError(ErrorCode err)
+            {
+                m_BroadcastController.CheckError(err);
+            }
+
+            protected void ReportError(string err)
+            {
+                m_BroadcastController.ReportError(err);
+            }
+
+            protected void ReportWarning(string err)
+            {
+                m_BroadcastController.ReportWarning(err);
+            }
+
+            protected void FireAuthTokenRequestComplete(ErrorCode result, AuthToken authToken)
+            {
                 try
                 {
-                    if (IngestListReceived != null)
+                    if (m_BroadcastController.AuthTokenRequestComplete != null)
                     {
-                        IngestListReceived(ingestList);
+                        m_BroadcastController.AuthTokenRequestComplete(result, authToken);
                     }
                 }
                 catch (Exception x)
@@ -255,206 +288,316 @@ namespace Twitch.Broadcast
                     ReportError(x.ToString());
                 }
             }
-            else
-            {
-                string err = Error.GetString(result);
-                ReportError(string.Format("IngestListCallback got failure: {0}", err));
 
-                // try again
-                SetBroadcastState(BroadcastState.LoggedIn);
-            }
-        }
-
-        void IStreamCallbacks.GetUserInfoCallback(ErrorCode result, UserInfo userInfo)
-        {
-            m_UserInfo = userInfo;
-
-            if (Error.Failed(result))
-            {
-                string err = Error.GetString(result);
-                ReportError(string.Format("UserInfoDoneCallback got failure: {0}", err));
-            }
-        }
-
-        void IStreamCallbacks.GetStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
-        {
-            if (Error.Succeeded(result))
-            {
-                m_StreamInfo = streamInfo;
-
-                try
-                {
-                    if (StreamInfoUpdated != null)
-                    {
-                        StreamInfoUpdated(streamInfo);
-                    }
-                }
-                catch (Exception x)
-                {
-                    ReportError(x.ToString());
-                } 
-            }
-            else
-            {
-                //string err = Error.GetString(result);
-                //ReportWarning(string.Format("StreamInfoDoneCallback got failure: {0}", err));
-            }
-        }
-
-        void IStreamCallbacks.GetArchivingStateCallback(ErrorCode result, ArchivingState state)
-        {
-            m_ArchivingState = state;
-
-            if (Error.Failed(result))
-            {
-                //string err = Error.GetString(result);
-                //ReportWarning(string.Format("ArchivingStateDoneCallback got failure: {0}", err));
-            }
-        }
-
-        void IStreamCallbacks.RunCommercialCallback(ErrorCode result)
-        {
-            if (Error.Failed(result))
-            {
-                string err = Error.GetString(result);
-                ReportWarning(string.Format("RunCommercialCallback got failure: {0}", err));
-            }
-        }
-
-        void IStreamCallbacks.SetStreamInfoCallback(ErrorCode result)
-        {
-            if (Error.Failed(result))
-            {
-                string err = Error.GetString(result);
-                ReportWarning(string.Format("SetStreamInfoCallback got failure: {0}", err));
-            }
-        }
-
-        void IStreamCallbacks.GetGameNameListCallback(ErrorCode result, GameInfoList list)
-        {
-            if (Error.Failed(result))
-            {
-                string err = Error.GetString(result);
-                ReportError(string.Format("GameNameListCallback got failure: {0}", err));
-            } 
-        
-            try
-            {
-                if (GameNameListReceived != null)
-                {
-                    this.GameNameListReceived(result, list == null ? new GameInfo[0] : list.List);
-                }
-            }
-            catch (Exception x)
-            {
-                ReportError(x.ToString());
-            }
-        }
-
-        void IStreamCallbacks.StartCallback(ErrorCode ret)
-        {
-            if (Error.Succeeded(ret))
+            protected void FireLoginAttemptComplete(ErrorCode result)
             {
                 try
                 {
-                    if (BroadcastStarted != null)
+                    if (m_BroadcastController.LoginAttemptComplete != null)
                     {
-                        this.BroadcastStarted();
-                    }
-                }
-                catch (Exception x)
-                {
-                    ReportError(x.ToString());
-                } 
-                
-                SetBroadcastState(BroadcastState.Broadcasting);
-            }
-            else
-            {
-                m_VideoParams = null;
-                m_AudioParams = null;
-
-                SetBroadcastState(BroadcastState.ReadyToBroadcast);
-                
-                string err = Error.GetString(ret);
-                ReportError(string.Format("StartCallback got failure: {0}", err));            
-            }
-        }
-
-        void IStreamCallbacks.StopCallback(ErrorCode ret)
-        {
-            if (Error.Succeeded(ret))
-            {
-                m_VideoParams = null;
-                m_AudioParams = null;
-
-                CleanupBuffers();
-
-                try
-                {
-                    if (BroadcastStopped != null)
-                    {
-                        this.BroadcastStopped();
+                        m_BroadcastController.LoginAttemptComplete(result);
                     }
                 }
                 catch (Exception x)
                 {
                     ReportError(x.ToString());
                 }
+            }
 
-                if (m_LoggedIn)
+            protected void FireIngestListReceived(IngestList ingestList)
+            {
+                try
                 {
-                    SetBroadcastState(BroadcastState.ReadyToBroadcast);
+                    if (m_BroadcastController.IngestListReceived != null)
+                    {
+                        m_BroadcastController.IngestListReceived(ingestList);
+                    }
+                }
+                catch (Exception x)
+                {
+                    ReportError(x.ToString());
+                }
+            }
+
+            protected void FireStreamInfoUpdated(StreamInfo streamInfo)
+            {
+                try
+                {
+                    if (m_BroadcastController.StreamInfoUpdated != null)
+                    {
+                        m_BroadcastController.StreamInfoUpdated(streamInfo);
+                    }
+                }
+                catch (Exception x)
+                {
+                    ReportError(x.ToString());
+                }
+            }
+
+            protected void FireGameNameListReceived(ErrorCode result, GameInfoList list)
+            {
+                try
+                {
+                    if (m_BroadcastController.GameNameListReceived != null)
+                    {
+                        m_BroadcastController.GameNameListReceived(result, list == null ? new GameInfo[0] : list.List);
+                    }
+                }
+                catch (Exception x)
+                {
+                    ReportError(x.ToString());
+                }
+            }
+
+            protected void FireBroadcastStarted()
+            {
+                try
+                {
+                    if (m_BroadcastController.BroadcastStarted != null)
+                    {
+                        m_BroadcastController.BroadcastStarted();
+                    }
+                }
+                catch (Exception x)
+                {
+                    ReportError(x.ToString());
+                }
+            }
+
+            protected void FireBroadcastStopped()
+            {
+                try
+                {
+                    if (m_BroadcastController.BroadcastStopped != null)
+                    {
+                        m_BroadcastController.BroadcastStopped();
+                    }
+                }
+                catch (Exception x)
+                {
+                    ReportError(x.ToString());
+                }
+            }
+        }
+
+        protected class StreamCallbackListener : ControllerAccess, IStreamCallbacks
+        {
+            public StreamCallbackListener(BroadcastController controller)
+                : base(controller)
+            {
+            }
+
+            void IStreamCallbacks.RequestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+            {
+                if (Error.Succeeded(result))
+                {
+                    // Now that the user is authorized the information can be requested about which server to stream to
+                    this.AuthToken = authToken;
+                    SetBroadcastState(BroadcastState.Authenticated);
+                }
+                else
+                {
+                    this.AuthToken.Data = "";
+                    SetBroadcastState(BroadcastState.Initialized);
+
+                    string err = Error.GetString(result);
+                    ReportError(string.Format("RequestAuthTokenDoneCallback got failure: {0}", err));
+                }
+
+                FireAuthTokenRequestComplete(result, authToken);
+            }
+
+            void IStreamCallbacks.LoginCallback(ErrorCode result, ChannelInfo channelInfo)
+            {
+                if (Error.Succeeded(result))
+                {
+                    this.ChannelInfo = channelInfo;
+                    SetBroadcastState(BroadcastState.LoggedIn);
+                    this.LoggedIn = true;
                 }
                 else
                 {
                     SetBroadcastState(BroadcastState.Initialized);
+                    this.LoggedIn = false;
+
+                    string err = Error.GetString(result);
+                    ReportError(string.Format("LoginCallback got failure: {0}", err));
+                }
+
+                FireLoginAttemptComplete(result);
+            }
+
+            void IStreamCallbacks.GetIngestServersCallback(ErrorCode result, IngestList ingestList)
+            {
+                if (Error.Succeeded(result))
+                {
+                    this.IngestList = ingestList;
+
+                    // assume we're going to use the default ingest server unless overidden by the client
+                    this.IngestServer = ingestList.DefaultServer;
+
+                    SetBroadcastState(BroadcastState.ReceivedIngestServers);
+
+                    FireIngestListReceived(ingestList);
+                }
+                else
+                {
+                    string err = Error.GetString(result);
+                    ReportError(string.Format("IngestListCallback got failure: {0}", err));
+
+                    // try again
+                    SetBroadcastState(BroadcastState.LoggedIn);
                 }
             }
-            else
+
+            void IStreamCallbacks.GetUserInfoCallback(ErrorCode result, UserInfo userInfo)
             {
-                // there's not really a good state to go into here
-                SetBroadcastState(BroadcastState.ReadyToBroadcast);
-                
-                string err = Error.GetString(ret);
-                ReportError(string.Format("StopCallback got failure: {0}", err));            
+                this.UserInfo = userInfo;
+
+                if (Error.Failed(result))
+                {
+                    string err = Error.GetString(result);
+                    ReportError(string.Format("UserInfoDoneCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.GetStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
+            {
+                if (Error.Succeeded(result))
+                {
+                    this.StreamInfo = streamInfo;
+
+                    FireStreamInfoUpdated(streamInfo);
+                }
+                else
+                {
+                    //string err = Error.GetString(result);
+                    //ReportWarning(string.Format("StreamInfoDoneCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.GetArchivingStateCallback(ErrorCode result, ArchivingState state)
+            {
+                this.ArchivingState = state;
+
+                if (Error.Failed(result))
+                {
+                    //string err = Error.GetString(result);
+                    //ReportWarning(string.Format("ArchivingStateDoneCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.RunCommercialCallback(ErrorCode result)
+            {
+                if (Error.Failed(result))
+                {
+                    string err = Error.GetString(result);
+                    ReportWarning(string.Format("RunCommercialCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.SetStreamInfoCallback(ErrorCode result)
+            {
+                if (Error.Failed(result))
+                {
+                    string err = Error.GetString(result);
+                    ReportWarning(string.Format("SetStreamInfoCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.GetGameNameListCallback(ErrorCode result, GameInfoList list)
+            {
+                if (Error.Failed(result))
+                {
+                    string err = Error.GetString(result);
+                    ReportError(string.Format("GameNameListCallback got failure: {0}", err));
+                }
+
+                FireGameNameListReceived(result, list);
+            }
+
+            void IStreamCallbacks.StartCallback(ErrorCode ret)
+            {
+                if (Error.Succeeded(ret))
+                {
+                    FireBroadcastStarted();
+
+                    SetBroadcastState(BroadcastState.Broadcasting);
+                }
+                else
+                {
+                    this.VideoParams = null;
+                    this.AudioParams = null;
+
+                    SetBroadcastState(BroadcastState.ReadyToBroadcast);
+
+                    string err = Error.GetString(ret);
+                    ReportError(string.Format("StartCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.StopCallback(ErrorCode ret)
+            {
+                if (Error.Succeeded(ret))
+                {
+                    this.VideoParams = null;
+                    this.AudioParams = null;
+
+                    CleanupBuffers();
+
+                    FireBroadcastStopped();
+
+                    if (this.LoggedIn)
+                    {
+                        SetBroadcastState(BroadcastState.ReadyToBroadcast);
+                    }
+                    else
+                    {
+                        SetBroadcastState(BroadcastState.Initialized);
+                    }
+                }
+                else
+                {
+                    // there's not really a good state to go into here
+                    SetBroadcastState(BroadcastState.ReadyToBroadcast);
+
+                    string err = Error.GetString(ret);
+                    ReportError(string.Format("StopCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.BufferUnlockCallback(UIntPtr buffer)
+            {
+                HandleBufferUnlock(buffer);
+            }
+
+            void IStreamCallbacks.SendActionMetaDataCallback(ErrorCode ret)
+            {
+                if (Error.Failed(ret))
+                {
+                    string err = Error.GetString(ret);
+                    ReportError(string.Format("SendActionMetaDataCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.SendStartSpanMetaDataCallback(ErrorCode ret)
+            {
+                if (Error.Failed(ret))
+                {
+                    string err = Error.GetString(ret);
+                    ReportError(string.Format("SendStartSpanMetaDataCallback got failure: {0}", err));
+                }
+            }
+
+            void IStreamCallbacks.SendEndSpanMetaDataCallback(ErrorCode ret)
+            {
+                if (Error.Failed(ret))
+                {
+                    string err = Error.GetString(ret);
+                    ReportError(string.Format("SendEndSpanMetaDataCallback got failure: {0}", err));
+                }
             }
         }
-
-        void IStreamCallbacks.BufferUnlockCallback(UIntPtr buffer)
-        {
-            HandleBufferUnlock(buffer);
-        }
-
-        void IStreamCallbacks.SendActionMetaDataCallback(ErrorCode ret)
-        {
-            if (Error.Failed(ret))
-            {
-                string err = Error.GetString(ret);
-                ReportError(string.Format("SendActionMetaDataCallback got failure: {0}", err));
-            }
-        }
-
-        void IStreamCallbacks.SendStartSpanMetaDataCallback(ErrorCode ret)
-        {
-            if (Error.Failed(ret))
-            {
-                string err = Error.GetString(ret);
-                ReportError(string.Format("SendStartSpanMetaDataCallback got failure: {0}", err));
-            }
-        }
-
-        void IStreamCallbacks.SendEndSpanMetaDataCallback(ErrorCode ret)
-        {
-            if (Error.Failed(ret))
-            {
-                string err = Error.GetString(ret);
-                ReportError(string.Format("SendEndSpanMetaDataCallback got failure: {0}", err));
-            }
-        }
-
-        #endregion
-
 
         #region Properties
 
@@ -658,6 +801,11 @@ namespace Twitch.Broadcast
         
         #endregion
 
+        protected BroadcastController()
+        {
+            m_StreamListener = new StreamCallbackListener(this);
+        }
+
         protected virtual bool AllocateBuffers()
         {
             return true;
@@ -687,9 +835,9 @@ namespace Twitch.Broadcast
                 return false;
             }
 
-            m_Stream.StreamCallbacks = this;
+            m_Stream.StreamCallbacks = m_StreamListener;
 
-            ErrorCode err = m_Core.Initialize(this.ClientId, VideoEncoder.TTV_VID_ENC_DEFAULT, null);
+            ErrorCode err = m_Core.Initialize(this.ClientId, null);
             if (!CheckError(err))
             {
                 m_Stream.StreamCallbacks = null;
@@ -700,6 +848,7 @@ namespace Twitch.Broadcast
             if (!CheckError(err))
             {
                 m_Stream.StreamCallbacks = null;
+                m_Core.Shutdown();
                 return false;
             }
 
@@ -710,8 +859,11 @@ namespace Twitch.Broadcast
 
                 return true;
             }
-
-            return false;
+            else
+            {
+                m_Core.Shutdown();
+                return false;
+            }
         }
 
         /// <summary>
@@ -746,6 +898,36 @@ namespace Twitch.Broadcast
             return true;
         }
 
+        /**
+         * Ensures the controller is fully shutdown before returning.  This may fire callbacks to listeners during the shutdown.
+         */
+        public void ForceSyncShutdown()
+        {
+            if (m_BroadcastState != BroadcastState.Uninitialized)
+            {
+                if (m_IngestTester != null)
+                {
+                    m_IngestTester.Cancel();
+                }
+
+                while (m_IngestTester != null)
+                {
+                    try
+                    {
+                        System.Threading.Thread.Sleep(200);
+                    }
+                    catch (Exception x)
+                    {
+                        ReportError(x.ToString());
+                    }
+
+                    this.Update();
+                }
+
+                this.Shutdown();
+            }
+        }
+
         /// <summary>
         /// Asynchronously request an authentication key based on the provided username and password.  When the request completes 
         /// AuthTokenRequestComplete will be fired.  This does not need to be called every time the user wishes to stream.  A valid 
@@ -772,7 +954,9 @@ namespace Twitch.Broadcast
             authParams.Password = password;
             authParams.ClientSecret = this.ClientSecret;
 
-            ErrorCode err = m_Stream.RequestAuthToken(authParams);
+            AuthFlag flags = AuthFlag.TTV_AuthFlag_Broadcast | AuthFlag.TTV_AuthFlag_Chat;
+
+            ErrorCode err = m_Stream.RequestAuthToken(authParams, flags);
             CheckError(err);
 
             if (Error.Succeeded(err))
@@ -805,7 +989,7 @@ namespace Twitch.Broadcast
                 ReportError("Username must be valid");
                 return false;
             }
-            else if (token == null || token.Data[0] == '\0')
+            else if (token == null || string.IsNullOrEmpty(token.Data))
             {
                 ReportError("Auth token must be valid");
                 return false;

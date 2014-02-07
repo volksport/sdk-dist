@@ -11,7 +11,7 @@ import tv.twitch.ErrorCode;
  * field of the given IngestServers.  Testing may take a while because there are several servers to test and each one may be tested for several
  * seconds.  You may want to display a progress bar each for the current server and overall progress.
  */
-public class IngestTester implements IStreamCallbacks, IStatCallbacks
+public class IngestTester
 {
 	public enum TestState
 	{
@@ -21,6 +21,7 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
 	    TestingServer,
 	    DoneTestingServer,
 	    Finished,
+	    Cancelling,
 	    Cancelled,
 	    Failed
 	}
@@ -35,8 +36,6 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
 		void onIngestTestStateChanged(IngestTester source, TestState state);
 	}
     
-	protected final boolean k_AsyncStartStop = true;
-	
     protected Listener m_Listener = null;
 
     protected Stream m_Stream = null;
@@ -44,7 +43,7 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
 
     protected TestState m_TestState = TestState.Uninitalized;
     protected long m_TestDurationMilliseconds = 8000;
-    protected long m_DelayBetweenServerTestsMilliseconds = 1000;
+    protected long m_DelayBetweenServerTestsMilliseconds = 2000;
     protected long m_TotalSent = 0;
     protected RTMPState m_RTMPState = RTMPState.Invalid;
     protected VideoParams m_IngestTestVideoParams = null;
@@ -62,7 +61,9 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
     protected long m_LastTotalSent = 0;
     protected float m_TotalProgress = 0;
     protected float m_ServerProgress = 0;
-    protected boolean m_WaitingForStartStopCallback = false;
+    protected boolean m_Broadcasting = false;
+    protected boolean m_WaitingForStartCallback = false;
+    protected boolean m_WaitingForStopCallback = false;
 
     public void setListener(Listener listener)
     {
@@ -120,105 +121,137 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
         return m_ServerProgress;
     }
 
-    //#region IStreamCallbacks
-
-    public void requestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+    protected IStreamCallbacks streamCallbacks = new IStreamCallbacks()
     {
-    }
+    	@Override
+	    public void requestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+	    {
+	    }
+	
+    	@Override
+	    public void loginCallback(ErrorCode result, ChannelInfo channelInfo)
+	    {
+	    }
+	
+    	@Override
+	    public void getIngestServersCallback(ErrorCode result, IngestList ingestList)
+	    {
+	    }
+	
+    	@Override
+	    public void getUserInfoCallback(ErrorCode result, UserInfo userInfo)
+	    {
+	    }
+	
+    	@Override
+	    public void getStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
+	    {
+	    }
+	
+    	@Override
+	    public void getArchivingStateCallback(ErrorCode result, ArchivingState state)
+	    {
+	    }
+	
+    	@Override
+	    public void runCommercialCallback(ErrorCode result)
+	    {
+	    }
+	
+    	@Override
+	    public void setStreamInfoCallback(ErrorCode result)
+	    {
+	    }
+	
+    	@Override
+	    public void getGameNameListCallback(ErrorCode result, GameInfoList list)
+	    {
+	    }
+	
+    	@Override
+	    public void bufferUnlockCallback(long address)
+	    {
+	    }
+	    
+    	@Override
+	    public void startCallback(ErrorCode ret)
+	    {
+        	//System.out.println("IngestTester.startCallback - " + m_CurrentServer.serverName + ": " + ret.toString());	        
 
-    public void loginCallback(ErrorCode result, ChannelInfo channelInfo)
+        	m_WaitingForStartCallback = false;
+	
+	        // started
+	        if (ErrorCode.succeeded(ret))
+	        {
+	        	m_Broadcasting = true;
+	            m_StartTimeMilliseconds = System.currentTimeMillis();
+	        	
+	            setTestState(TestState.ConnectingToServer);	
+	        }
+	        // failed to start so skip it
+	        else
+	        {
+	            m_ServerTestSucceeded = false;
+	            setTestState(TestState.DoneTestingServer);
+	        }
+	    }
+	
+    	@Override
+	    public void stopCallback(ErrorCode ret)
+	    {
+        	//System.out.println("IngestTester.stopCallback - " + m_CurrentServer.serverName + ": " + ret.toString());
+
+        	if (ErrorCode.failed(ret))
+        	{
+        		// this should never happen and there's not really any way to recover
+        		System.out.println("IngestTester.stopCallback failed to stop - " + m_CurrentServer.serverName + ": " + ret.toString());
+        	}
+        	
+    		m_WaitingForStopCallback = false;
+        	m_Broadcasting = false;
+        	
+	        setTestState(TestState.DoneTestingServer);
+	        
+	        m_CurrentServer = null;
+	        
+	        if (m_CancelTest)
+	        {
+	        	setTestState(TestState.Cancelling);
+	        }
+	    }
+	    
+    	@Override
+	    public void sendActionMetaDataCallback(ErrorCode ret)
+	    {
+	    }
+	    
+    	@Override
+	    public void sendStartSpanMetaDataCallback(ErrorCode ret)
+	    {
+	    }
+	    
+    	@Override
+	    public void sendEndSpanMetaDataCallback(ErrorCode ret)
+	    {
+	    }
+    };
+
+    protected IStatCallbacks statCallbacks = new IStatCallbacks()
     {
-    }
-
-    public void getIngestServersCallback(ErrorCode result, IngestList ingestList)
-    {
-    }
-
-    public void getUserInfoCallback(ErrorCode result, UserInfo userInfo)
-    {
-    }
-
-    public void getStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
-    {
-    }
-
-    public void getArchivingStateCallback(ErrorCode result, ArchivingState state)
-    {
-    }
-
-    public void runCommercialCallback(ErrorCode result)
-    {
-    }
-
-    public void setStreamInfoCallback(ErrorCode result)
-    {
-    }
-
-    public void getGameNameListCallback(ErrorCode result, GameInfoList list)
-    {
-    }
-
-    public void bufferUnlockCallback(long address)
-    {
-    }
-    
-    public void startCallback(ErrorCode ret)
-    {
-        m_WaitingForStartStopCallback = false;
-
-        // started
-        if (ErrorCode.succeeded(ret))
-        {
-            setTestState(TestState.ConnectingToServer);
-
-            m_StartTimeMilliseconds = System.currentTimeMillis();
-        }
-        // failed to start so skip it
-        else
-        {
-            m_ServerTestSucceeded = false;
-            setTestState(TestState.DoneTestingServer);
-        }
-    }
-
-    public void stopCallback(ErrorCode ret)
-    {
-        m_WaitingForStartStopCallback = false;
-
-        setTestState(TestState.DoneTestingServer);
-    }
-    
-    public void sendActionMetaDataCallback(ErrorCode ret)
-    {
-    }
-    
-    public void sendStartSpanMetaDataCallback(ErrorCode ret)
-    {
-    }
-    
-    public void sendEndSpanMetaDataCallback(ErrorCode ret)
-    {
-    }
-    
-    //#endregion
-
-    //#region IStatCallbacks
-
-    public void statCallback(StatType type, long data)
-    {
-        switch (type)
-        {
-            case TTV_ST_RTMPSTATE:
-                m_RTMPState = RTMPState.lookupValue((int)data);
-                break;
-
-            case TTV_ST_RTMPDATASENT:
-                m_TotalSent = data;
-                break;
-        }
-    }
-
-    //#endregion
+	    public void statCallback(StatType type, long data)
+	    {
+	        switch (type)
+	        {
+	            case TTV_ST_RTMPSTATE:
+	                m_RTMPState = RTMPState.lookupValue((int)data);
+	                break;
+	
+	            case TTV_ST_RTMPDATASENT:
+	                m_TotalSent = data;
+	                break;
+	        }
+	    }
+    };
 
 
     public IngestTester(Stream stream, IngestList ingestList)
@@ -227,22 +260,10 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
         m_IngestList = ingestList;
     }
     
-    protected void finalize() throws Throwable
-    {
-        if (m_CurrentServer != null)
-        {
-            cleanupServerTest(m_CurrentServer);
-        }
-        
-        cleanup();
-    	
-        super.finalize();
-    }
-    
     /**
      * Begins the ingest testing.
      */
-    public void Start()
+    public void start()
     {
         // can only run it once per instance
         if (m_TestState != TestState.Uninitalized)
@@ -253,12 +274,15 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
         m_CurrentServerIndex = 0;
         m_CancelTest = false;
         m_SkipServer = false;
-
+        m_Broadcasting = false;
+        m_WaitingForStartCallback = false;
+        m_WaitingForStopCallback = false;
+        
         m_PreviousStatCallbacks = m_Stream.getStatCallbacks();
-        m_Stream.setStatCallbacks(this);
+        m_Stream.setStatCallbacks(statCallbacks);
 
         m_PreviousStreamCallbacks = m_Stream.getStreamCallbacks();
-        m_Stream.setStreamCallbacks(this);
+        m_Stream.setStreamCallbacks(streamCallbacks);
 
         m_IngestTestVideoParams = new VideoParams();
         m_IngestTestVideoParams.targetFps = tv.twitch.broadcast.Constants.TTV_MAX_FPS;
@@ -313,14 +337,10 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
             return;
         }
 
-        if (m_WaitingForStartStopCallback)
+        // nothing to be done while waiting for a callback
+        if (m_WaitingForStartCallback || m_WaitingForStopCallback)
         {
             return;
-        }
-
-        if (m_CancelTest)
-        {
-            setTestState(TestState.Cancelled);
         }
 
         switch (m_TestState)
@@ -336,15 +356,12 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
                         m_CurrentServer.bitrateKbps = 0;
                     }
 
-                    cleanupServerTest(m_CurrentServer);
-                    m_CurrentServer = null;
+                    stopServerTest(m_CurrentServer);
                 }
-                // wait for the stop to complete before starting the next server
-                else if (!m_WaitingForStartStopCallback &&
-                		 elapsedMilliseconds() >= m_DelayBetweenServerTestsMilliseconds)
+                // start the next test
+                else
                 {
                 	m_StartTimeMilliseconds = 0;
-
                     m_SkipServer = false;
                     m_ServerTestSucceeded = true;
 
@@ -365,12 +382,18 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
                         setTestState(TestState.Finished);
                     }
                 }
+                
             	break;
             }
             case ConnectingToServer:
             case TestingServer:
             {
                 updateServerTest(m_CurrentServer);
+                break;
+            }
+            case Cancelling:
+            {
+            	setTestState(TestState.Cancelled);
                 break;
             }
             default:
@@ -384,21 +407,7 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
         // test finished
         if (m_TestState == TestState.Cancelled || m_TestState == TestState.Finished)
         {
-            if (m_CurrentServer != null)
-            {
-                if (m_TestState == TestState.Cancelled)
-                {
-                    m_CurrentServer.bitrateKbps = 0;
-                }
-
-                cleanupServerTest(m_CurrentServer);
-                m_CurrentServer = null;
-            } 
-                
-            if (m_IngestBuffers != null)
-            {
-                cleanup();
-            }
+        	cleanup();
         }
     }
 
@@ -426,14 +435,19 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
     /**
      * Cancels the ingest testing.  This may leave invalid values in any servers which did not complete testing.
      */
-    public void Cancel()
+    public void cancel()
     {
-        if (this.getIsDone())
+        if (this.getIsDone() || m_CancelTest)
         {
             return;
         }
-
-      	m_CancelTest = true;
+        
+    	m_CancelTest = true;
+    	
+    	if (m_CurrentServer != null)
+    	{
+    		m_CurrentServer.bitrateKbps = 0;
+    	}
     }
 
     protected boolean startServerTest(IngestServer server)
@@ -445,11 +459,13 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
         m_CurrentServer = server;
 
         // start the stream
+        m_WaitingForStartCallback = true;
         setTestState(TestState.ConnectingToServer);
-        m_WaitingForStartStopCallback = true;
-        ErrorCode ret = m_Stream.start(m_IngestTestVideoParams, m_IngestTestAudioParams, server, StartFlags.TTV_Start_BandwidthTest, k_AsyncStartStop);
+        
+        ErrorCode ret = m_Stream.start(m_IngestTestVideoParams, m_IngestTestAudioParams, server, StartFlags.TTV_Start_BandwidthTest, true);
         if (ErrorCode.failed(ret))
         {
+        	m_WaitingForStartCallback = false;
             m_ServerTestSucceeded = false;
             setTestState(TestState.DoneTestingServer);
             return false;
@@ -464,12 +480,35 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
         return true;
     }
 
-    protected void cleanupServerTest(IngestServer server)
+    protected void stopServerTest(IngestServer server)
     {
-        m_WaitingForStartStopCallback = true;
-        m_Stream.stop(k_AsyncStartStop);
+    	//System.out.println("stopServerTest: " + server.serverName);
+    	
+    	if (m_WaitingForStartCallback)
+    	{
+    		// wait for the start callback and do the stop after that comes in
+    		m_SkipServer = true;
+    	}
+    	else if (m_Broadcasting)
+    	{
+    		m_WaitingForStopCallback = true;
+	        
+	        ErrorCode ec = m_Stream.stop(true);
+	        if (ErrorCode.failed(ec))
+	        {
+	        	// this should never happen so fake the callback to indicate it's stopped
+	        	streamCallbacks.stopCallback(ErrorCode.TTV_EC_SUCCESS);
+	        	
+	        	System.out.println("Stop failed: " + ec.toString());
+	        }
 
-        m_Stream.pollStats();
+	        m_Stream.pollStats();
+    	}
+    	else
+    	{
+    		// simulate a stop callback
+    		streamCallbacks.stopCallback(ErrorCode.TTV_EC_SUCCESS);
+    	}
     }
 
     protected long elapsedMilliseconds()
@@ -525,14 +564,13 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
 
     protected boolean updateServerTest(IngestServer server)
     {
-        if (m_SkipServer || elapsedMilliseconds() >= m_TestDurationMilliseconds)
+        if (m_SkipServer || m_CancelTest || elapsedMilliseconds() >= m_TestDurationMilliseconds)
         {
             setTestState(TestState.DoneTestingServer);
             return true;
         }
 
-        // not started yet
-        if (m_WaitingForStartStopCallback)
+        if (m_WaitingForStartCallback || m_WaitingForStopCallback)
         {
             return true;
         }
@@ -580,13 +618,13 @@ public class IngestTester implements IStreamCallbacks, IStatCallbacks
 	        m_IngestBuffers = null;
         }
 
-        if (m_Stream.getStatCallbacks() == this)
+        if (m_Stream.getStatCallbacks() == statCallbacks)
         {
 	        m_Stream.setStatCallbacks(m_PreviousStatCallbacks);
 	        m_PreviousStatCallbacks = null;
         }
         
-        if (m_Stream.getStreamCallbacks() == this)
+        if (m_Stream.getStreamCallbacks() == streamCallbacks)
         {
 	        m_Stream.setStreamCallbacks(m_PreviousStreamCallbacks);
 	        m_PreviousStreamCallbacks = null;
