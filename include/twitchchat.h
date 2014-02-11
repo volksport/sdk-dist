@@ -40,11 +40,11 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_Shutdown(TTV_ChatShutdownCallback callback, vo
  * TTV_ChatConnect - Connects to the chat service.  This is an asynchronous call and notification of 
  *					 connection success or fail will come in the callback.   TTV_Chat_Init should be called first with 
  *                   valid callbacks for receiving connection and disconnection events.  The actual result of the connection attempt will
- *					 come in the statusCallback.
+ *					 come in the statusCallback.  You cannot perform any other operations on the channel until you receive 
+ *					 a statusCallback indicating success.
  *
- * @param[in] username - The UTF-8 encoded account username to use for logging in to chat.  See #kMaxChatUserNameLength for details.  Can be NULL if 
- *                       the library is only going to be used for connecting anonymously.
- * @param[in] authToken - The auth token for the account.  Can be null if the library is only going to be used for connecting anonymously.
+ * @param[in] username - The UTF-8 encoded account username to use for logging in to chat.  See #kMaxChatUserNameLength for details.
+ * @param[in] authToken - The auth token for the account.
  * @param[in] chatCallbacks - The set of callbacks for receiving chat events for the channel.
  * @return - TTV_EC_SUCCESS if the request to connect is valid (does not guarantee connection, wait for a response from statusCallback).
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
@@ -74,7 +74,7 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_Disconnect();
  *						  "/mods":					Get a list of all of the moderators in the current channel.
  *						  "/mod <username>":		Grant moderator status to the given user.
  *						  "/unmod <username>":		Revoke moderator status from the given user.
- *						  "/ban: <username>":		Ban the given user from your channel.
+ *						  "/ban <username>":		Ban the given user from your channel.
  *						  "/unban <username>":		Lift a ban or a time-out that has been given to the given user.
  *						  "/clear":					Clear the current chat history.  This clears the chat room for all viewers.
  *						  "/timeout <username>":	Give a time-out to the given user.
@@ -91,7 +91,6 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_Disconnect();
  * @param[in] message - The UTF-8 encoded message to send to the channel.
  * @return - TTV_EC_SUCCESS if function succeeds.
  *			 TTV_EC_CHAT_NOT_INITIALIZED if system not initialized.
- *			 TTV_EC_CHAT_ANON_DENIED if connected anonymously.
  */
 TTVSDK_API TTV_ErrorCode TTV_Chat_SendMessage(const utf8char* message);
 
