@@ -302,5 +302,8 @@ typedef enum
 #define TTV_RETURN_ON_DIFFERENT(a, b, err) { if ( (a) != (b) ) RETURN_CLIENT_ERROR(err);}
 
 #define TTV_TO_WSA_ERROR(ttv_ec) (int)(ttv_ec-TTV_EC_SOCKET_ERR+WSABASEERR)
+
+#ifdef TTV_PLATFORM_WINDOWS
 #define WSA_TO_TTV_ERROR(wsa_ec) (TTV_ErrorCode) (wsa_ec-WSABASEERR+TTV_EC_SOCKET_ERR)
+#endif
 
