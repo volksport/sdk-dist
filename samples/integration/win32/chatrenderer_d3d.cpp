@@ -778,9 +778,18 @@ bool AcceptingChatInput()
 }
 
 
-void ClearChatMessages()
+void ClearChatMessages(const utf8char* username)
 {
-	gChatLines.clear();
+	if (username == nullptr || username[0] == '\0')
+	{
+		gChatLines.clear();
+	}
+	else
+	{
+		// Normally we would sift through messages to remove those from the given username
+		// This will depend on how you've implemented your UI
+		// This sample has stored raw message data structures from the SDK and cannot easily remove individual messages.
+	}
 }
 
 
@@ -899,7 +908,7 @@ void DeinitChatRenderer()
 	}
 	gBadgeTextures.clear();
 
-	ClearChatMessages();
+	ClearChatMessages(nullptr);
 	ClearChatUsers();
 
 	SAFE_RELEASE(gTextureQuadVertexBuffer);

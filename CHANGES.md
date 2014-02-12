@@ -4,6 +4,7 @@
 - Fixed a deadlock issue in threadsync for Mac/iOS 
 - Defined NDEBUG for release configs in XCode so that asserts are compiled out  
 - Fixed memory leak in socket and chat code  
+- Added username to TTV_ChatClearCallback to indicate which user to clear messages for.  If the username is NULL then clear for all users.  
 
 #### February 3, 2014  
 - Updated the SDK License Agreement to change the name of Twitch's corporate entity from Justin.tv, Inc. to Twitch Interactive, Inc.  

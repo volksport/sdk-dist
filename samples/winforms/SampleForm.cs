@@ -663,9 +663,33 @@ namespace WinformsSample
             }
         }
 
-        protected void HandleClearMessages(string channelName)
+        protected void HandleClearMessages(string channelName, string username)
         {
             mChatMessagesTextbox.Text = "";
+
+            // NOTE: This is not a very optimized way of doing this.  All messages are re-added because
+            // we're using a primitive text box to display messages.
+
+            if (mChatController.EmoticonParsingMode == Twitch.Chat.ChatController.EmoticonMode.None)
+            {
+                LinkedList<Twitch.Chat.ChatRawMessage>.Enumerator e = mChatController.GetRawMessages(channelName);
+
+                while (e.MoveNext())
+                {
+                    Twitch.Chat.ChatRawMessage msg = e.Current;
+                    HandleRawMessagesReceived(channelName, new Twitch.Chat.ChatRawMessage[] { msg });
+                }
+            }
+            else
+            {
+                LinkedList<Twitch.Chat.ChatTokenizedMessage>.Enumerator e = mChatController.GetTokenizedMessages(channelName);
+
+                while (e.MoveNext())
+                {
+                    Twitch.Chat.ChatTokenizedMessage msg = e.Current;
+                    HandleTokenizedMessagesReceived(channelName, new Twitch.Chat.ChatTokenizedMessage[] { msg });
+                }
+            }
         }
 
         protected void HandleEmoticonDataAvailable()

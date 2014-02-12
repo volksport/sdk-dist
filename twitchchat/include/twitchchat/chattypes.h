@@ -362,9 +362,10 @@ typedef void (*TTV_ChatChannelTokenizedMessageCallback) (const TTV_ChatTokenized
 /**
  * Callback signature for notifications that the chatroom should be cleared.
  *
+ * @param username The username in which to clear the messages for.  If this is NULL then messages for all users should be cleared.
  * @param userdata The userdata specified in TTV_ChatCallbacks.
  */
-typedef void (*TTV_ChatClearCallback) (void* userdata);
+typedef void (*TTV_ChatClearCallback) (const utf8char* username, void* userdata);
 
 /**
  * Callback to indicate the result of the request to fetch emoticon or badge data.

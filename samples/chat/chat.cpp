@@ -142,7 +142,7 @@ void ChatMessageCallback (const TTV_ChatRawMessageList* messageList, void* /*use
 	}
 }
 
-void ChatClearCallback(void* /*userdata*/)
+void ChatClearCallback(const utf8char* /*username*/, void* /*userdata*/)
 {
 	assert (hMessages);
 

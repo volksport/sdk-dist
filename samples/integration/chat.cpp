@@ -116,9 +116,9 @@ namespace
 		AddChatMessages(messageList);
 	}
 
-	void ChatClearCallback(void* /*userdata*/)
+	void ChatClearCallback(const utf8char* username, void* /*userdata*/)
 	{
-		ClearChatMessages();
+		ClearChatMessages(username);
 	}
 
 	void EmoticonDataDownloadCallback(TTV_ErrorCode error, void* /*userdata*/)
@@ -257,7 +257,7 @@ void FlushChatEvents()
 		case CHAT_STATE(ShuttingDown):
 		{
 			ClearChatUsers();
-			ClearChatMessages();
+			ClearChatMessages(nullptr);
 			break;
 		}
 	}

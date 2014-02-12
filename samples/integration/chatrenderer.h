@@ -19,7 +19,7 @@ void UpdateChatUser(const TTV_ChatUserInfo* user);
 
 void AddChatMessages(const TTV_ChatTokenizedMessageList* messageList);
 void ClearChatUsers();
-void ClearChatMessages();
+void ClearChatMessages(const utf8char* channel);
 
 void RenderChatText(); // Renders the chat messages to the screen.
 

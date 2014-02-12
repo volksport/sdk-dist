@@ -128,8 +128,9 @@ namespace Twitch.Chat
 
         /// <summary>
         /// The callback signature for the event fired when the messages in the room should be cleared.  The UI should be cleared of any previous messages.
+        /// If username is null or empty then the entire log was cleared, otherwise only messages for the given user were cleared.
         /// </summary>
-        public delegate void ClearMessagesDelegate(string channelName);
+        public delegate void ClearMessagesDelegate(string channelName, string username);
 
         /// <summary>
         /// The callback signature for the event fired when the badge data has been made available.
@@ -271,13 +272,13 @@ namespace Twitch.Chat
                 }
             }
 
-            protected void FireMessagesCleared(string channelName)
+            protected void FireMessagesCleared(string channelName, string username)
             {
                 try
                 {
                     if (m_ChatController.MessagesCleared != null)
                     {
-                        m_ChatController.MessagesCleared(channelName);
+                        m_ChatController.MessagesCleared(channelName, username);
                     }
                 }
                 catch (Exception x)
@@ -584,10 +585,56 @@ namespace Twitch.Chat
 
             public void ClearMessages()
             {
-                m_RawMessages.Clear();
-                m_TokenizedMessages.Clear();
+                ClearMessages(null);
+            }
 
-                FireMessagesCleared(m_ChannelName);
+            public void ClearMessages(string username)
+            {
+                if (string.IsNullOrEmpty(username))
+                {
+                    m_RawMessages.Clear();
+                    m_TokenizedMessages.Clear();
+                }
+                else
+                {
+                    if (m_RawMessages.Count > 0)
+                    {
+                        LinkedListNode<ChatRawMessage> node = m_RawMessages.First;
+                        while (node != null)
+                        {
+                            if (node.Value.UserName == username)
+                            {
+                                LinkedListNode<ChatRawMessage> d = node;
+                                node = node.Next;
+                                m_RawMessages.Remove(d);
+                            }
+                            else
+                            {
+                                node = node.Next;
+                            }
+                        }
+                    }
+
+                    if (m_TokenizedMessages.Count > 0)
+                    {
+                        LinkedListNode<ChatTokenizedMessage> node = m_TokenizedMessages.First;
+                        while (node != null)
+                        {
+                            if (node.Value.DisplayName == username)
+                            {
+                                LinkedListNode<ChatTokenizedMessage> d = node;
+                                node = node.Next;
+                                m_TokenizedMessages.Remove(d);
+                            }
+                            else
+                            {
+                                node = node.Next;
+                            }
+                        }
+                    }
+                }
+
+                FireMessagesCleared(m_ChannelName, username);
             }
 
             public bool SendChatMessage(string message)
@@ -782,9 +829,9 @@ namespace Twitch.Chat
                 }
             }
 
-            void IChatChannelListener.ChatClearCallback(string channelName)
+            void IChatChannelListener.ChatClearCallback(string channelName, string username)
             {
-                ClearMessages();
+                ClearMessages(username);
             }
 
             void IChatChannelListener.ChatBadgeDataDownloadCallback(string channelName, ErrorCode error)
@@ -1214,7 +1261,7 @@ namespace Twitch.Chat
         }
 
         /// <summary>
-        /// Clears the chat message history.
+        /// Clears the chat message history for all users.
         /// </summary>
         public virtual void ClearMessages(string channelName)
         {
@@ -1226,6 +1273,21 @@ namespace Twitch.Chat
 
             ChatChannelListener channel = m_Channels[channelName];
             channel.ClearMessages();
+        }
+
+        /// <summary>
+        /// Clears the chat message history for the given user only.
+        /// </summary>
+        public virtual void ClearMessages(string channelName, string username)
+        {
+            if (!m_Channels.ContainsKey(channelName))
+            {
+                ReportError("Not in channel: " + channelName);
+                return;
+            }
+
+            ChatChannelListener channel = m_Channels[channelName];
+            channel.ClearMessages(username);
         }
 
         internal virtual void SetChatState(ChatState state)

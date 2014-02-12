@@ -256,11 +256,18 @@ public class ChatGUI : MonoBehaviour
         }
     }
 
-    protected void HandleClearMessages(string channelName)
+    protected void HandleClearMessages(string channelName, String username)
     {
         if (DebugOverlay.InstanceExists)
         {
-            DebugOverlay.Instance.AddViewportText("Messages cleared");
+            if (string.IsNullOrEmpty(username))
+            {
+                DebugOverlay.Instance.AddViewportText("Messages cleared");
+            }
+            else
+            {
+                DebugOverlay.Instance.AddViewportText("Messages cleared for user " + username);
+            }
         }
     }
 
