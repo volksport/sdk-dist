@@ -37,11 +37,11 @@ TTVSDK_API TTV_ErrorCode TTV_Init(const TTV_MemCallbacks* memCallbacks,
 /**
 * TTV_GetDefaultParams - Fill in the video parameters with default settings based on supplied resolution and target FPS
 * This function is now deprecated. You should use TTV_GetMaxResolution to work backwards from the bitrate.
-* @param[in,out] vidParams - The video params to be filled in with default settings
-* NOTE: The width, height and targetFps members of the vidParams MUST be set by the caller
+* @param[in,out] videoParams - The video params to be filled in with default settings
+* NOTE: The width, height and targetFps members of the videoParams MUST be set by the caller
 * @return - TTV_EC_SUCCESS if function succeeds; error code otherwise
 */
-TTVSDK_API TTV_ErrorCode TTV_GetDefaultParams(TTV_VideoParams* vidParams);
+TTVSDK_API TTV_ErrorCode TTV_GetDefaultParams(TTV_VideoParams* videoParams);
 
 
 /**

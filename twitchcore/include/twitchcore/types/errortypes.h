@@ -277,6 +277,7 @@
 	DEFINE_TTV_ERROR_CODE(TTV_EC_METADATA_CACHE_FULL)		/*!< The local cache of meta data is full and the latest request was not competed. Wait some time until it flushes. */\
 	DEFINE_TTV_ERROR_CODE(TTV_EC_SOUNDFLOWER_NOT_INSTALLED)	/*!< Mac requires SoundFlower to be installed to capture system audio. */\
 	DEFINE_TTV_ERROR_CODE(TTV_EC_STILL_IN_USE)				/*!< The requested feature is still in use. */\
+	DEFINE_TTV_ERROR_CODE(TTV_EC_NO_ENCODER_PLUGIN)			/*!< Trying to use an encoder plugin but it was never set */\
 
 /**
  * TTV_ErrorCode
@@ -288,6 +289,8 @@ typedef enum
 	TTV_ERROR_CODES
 
 } TTV_ErrorCode;
+#undef DEFINE_TTV_ERROR_CODE
+#undef DEFINE_TTV_ERROR_CODE_VALUE
 
 
 #define ASSERT_ON_ERROR(err) {assert ( TTV_SUCCEEDED(err) ); }

@@ -139,7 +139,7 @@ void TwitchFrameUnlockCallback(const uint8_t* buffer, void* userData)
 			return nil;
 		}
 
-		TTV_ErrorCode ret = TTV_Init(NULL, [(NSString *)_configDict[@"clientId"] UTF8String], TTV_VID_ENC_APPLE, NULL);
+		TTV_ErrorCode ret = TTV_Init(NULL, [(NSString *)_configDict[@"clientId"] UTF8String], NULL);
 		if (TTV_SUCCEEDED(ret))
 		{
 			TTV_SetTraceLevel(TTV_ML_ERROR);
@@ -232,7 +232,7 @@ void TwitchFrameUnlockCallback(const uint8_t* buffer, void* userData)
 	authParams.password = [(NSString *)_configDict[@"password"] UTF8String];
 	authParams.clientSecret = [(NSString *)_configDict[@"clientSecret"] UTF8String];
 	
-	TTV_ErrorCode ret = TTV_RequestAuthToken(&authParams, TwitchAuthCompletedCallback,(__bridge void *)self, &_authToken);
+	TTV_ErrorCode ret = TTV_RequestAuthToken(&authParams, (TTV_RequestAuthToken_Broadcast | TTV_RequestAuthToken_Chat), TwitchAuthCompletedCallback,(__bridge void *)self, &_authToken);
 	if (!TTV_SUCCEEDED(ret))
 	{
 		NSLog(@"TWSTREAMER: Unable to request authentication.");

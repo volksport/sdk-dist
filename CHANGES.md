@@ -1,5 +1,11 @@
 #Twitch Broadcasting SDK - Change history  
 
+#### Feburary 19, 2014
+- Added twitchinterfaces.h for c++ interface classes
+- Added the ability to plugin your own h264 encoder.
+	- See ITTVPluginVideoEncoder
+	- See samples/encoderplugin
+
 #### Feburary 11, 2014  
 - Fixed a deadlock issue in threadsync for Mac/iOS 
 - Defined NDEBUG for release configs in XCode so that asserts are compiled out  

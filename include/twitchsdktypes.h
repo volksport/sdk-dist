@@ -61,6 +61,16 @@ typedef enum
 
 } TTV_PixelFormat;
 
+/**
+ * TTV_YUVFormat - Supported YUV convertion types
+ */
+typedef enum 
+{
+	TTV_YUV_NONE = -1,
+	TTV_YUV_I420,		// 8 bit Y plane followed by 8 bit 2x2 subsampled U and V planes (12 bits/pixel)
+	TTV_YUV_YV12,		// 8 bit Y plane followed by 8 bit 2x2 subsampled V and U planes (12 bits/pixel)
+	TTV_YUV_NV12		// 8-bit Y plane followed by an interleaved U/V plane with 2x2 subsampling (12 bits/pixel)
+} TTV_YUVFormat;
 
 /**
  * TTV_EncodingCpuUsage - Set CPU usage level for video encoding
@@ -83,8 +93,8 @@ typedef enum
 	TTV_VID_ENC_DEFAULT = -1,
 
 	TTV_VID_ENC_INTEL = 0,
-	TTV_VID_ENC_X264 = 1,
-	TTV_VID_ENC_APPLE = 2
+	TTV_VID_ENC_APPLE = 2,
+	TTV_VID_ENC_PLUGIN = 100
 } TTV_VideoEncoder;
 
 #define TTV_MIN_BITRATE 230
@@ -93,6 +103,8 @@ typedef enum
 #define TTV_MAX_FPS		60
 #define TTV_MAX_WIDTH	1920				/* Width and height must be multiples of 16 */
 #define TTV_MAX_HEIGHT	1200
+
+class ITTVPluginVideoEncoder;
 
 /**
  * TTV_VideoParams - Video parameters
@@ -108,6 +120,7 @@ typedef struct
 	TTV_EncodingCpuUsage encodingCpuUsage;	/* CPU usage level for video encoding */
 	bool disableAdaptiveBitrate;			/* By default the SDK attempts to match the targetBitrate (set in maxKbps above) in cases where frames are submitted at a lower rate than target FPS. You can disable this feature */
 	bool verticalFlip;						/* Flip the frames vertically - This incurs a performance penalty on some platforms (e.g. iOS) */
+	ITTVPluginVideoEncoder* encoderPlugin;	/* (optional) Pointer to your own h264 encoder instance. SDK Assumes the pointer is valid at TTV_Start and stays valid until TTV_Stop completes */
 } TTV_VideoParams;
 
 

@@ -208,7 +208,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	TTV_ErrorCode ret = TTV_Init(
 		&memCallbacks, 
 		gClientId.c_str(),		
-		TTV_VID_ENC_INTEL, L"");		
+		L"");		
 	ASSERT_ON_ERROR(ret);
 
 	TTV_RegisterStatsCallback(StatsCallback);
@@ -244,8 +244,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	const uint width = 1280;
 	const uint height = 720;
 
-	TTV_VideoParams videoParams;
-	videoParams.size = sizeof (TTV_VideoParams);
+	TTV_VideoParams videoParams = {videoParams.size = sizeof (TTV_VideoParams)};
 	videoParams.targetFps = TTV_MAX_FPS;
 	videoParams.maxKbps = TTV_MAX_BITRATE;
 	videoParams.outputWidth = width;
@@ -257,8 +256,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	std::vector<uint32_t> whiteBuffer(width*height, 0xFFFFFFFF);
 	std::vector<uint32_t> blackBuffer(width*height, 0x000000FF);
 
-	TTV_AudioParams audioParams;
-	audioParams.size = sizeof(TTV_AudioParams);
+	TTV_AudioParams audioParams = {sizeof(TTV_AudioParams)};
 	audioParams.audioEnabled = false;
 	audioParams.enableMicCapture = false;
 	audioParams.enablePlaybackCapture = false;
