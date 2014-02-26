@@ -21,7 +21,7 @@ By downloading these files you agree to the terms of service below https://docs.
 - In order to stream to your channel, you'll need to supply the SDK with your Twitch user name and password, as well as your application's Client ID and Client Secret. To get your Client ID and Secret:
 	- Go to twitch.tv and log into your account
 	- From the top right, click on your channel name and select Settings
-	- Select Applications
+	- Select Connections
 	- Under Developer Applications, select Register your application
 	- Enter your application name and website and click Register
 	- On the next page you'll see your Client ID and Client Secret
