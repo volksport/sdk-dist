@@ -21,6 +21,7 @@ typedef NS_ENUM(NSInteger, TWStreamingState)
 	TWStreamingStateLoggedIn,
 	TWStreamingStateReadyToStream,
 	TWStreamingStateStreaming,
+	TWStreamingStateStopped,
 	TWStreamingStateError
 };
 
@@ -312,7 +313,11 @@ void TwitchFrameUnlockCallback(const uint8_t* buffer, void* userData)
 	
 		// Stop OpenAL Capture
 		[[TWOALAudioController sharedAudioController] stopCapture];
-	
+		
+		// Stop Streaming
+		self.state = TWStreamingStateStopped;
+		TTV_Stop(nullptr, NULL);
+		
 		// Free our frame buffers
 		for (int i = 0; i < TW_NUM_FRAMEBUFFERS; ++i)
 		{
