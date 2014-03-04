@@ -540,7 +540,10 @@ namespace WinformsSample
             mChatController.UserName = mBroadcastController.UserName;
             mChatController.AuthToken = mBroadcastController.AuthToken;
 
-            mChatController.Connect(mChatChannelText.Text);
+            if (mChatController.Connect(mChatChannelText.Text))
+            {
+                mChatStateLabel.Text = "Connecting";
+            }
         }
 
         private void mChatDisconnectButton_Click(object sender, EventArgs e)
@@ -559,6 +562,94 @@ namespace WinformsSample
             mChatController.Update();
 
             mChatStatusLabel.Text = mChatController.CurrentState.ToString();
+        }
+
+        private void mChatUsersListbox_MouseDown(object sender, MouseEventArgs e)
+        {
+            Twitch.Chat.ChatUserInfo user = mChatUsersListbox.SelectedItem as Twitch.Chat.ChatUserInfo;
+            if (user == null)
+            {
+                return;
+            }
+
+            if (e.Button == MouseButtons.Right)
+            {
+                mChatIgnoreMenuItem.Checked = user.IsIgnored;
+                mChatBanMenuItem.Checked = user.IsBanned;
+                mChatModeratorMenuItem.Checked = user.IsModerator;
+
+                mChatUserContextMenu.Tag = mChatUsersListbox.SelectedItem;
+                mChatUserContextMenu.Show(this, new Point(mChatUsersListbox.Left + e.X, mChatUsersListbox.Top + e.Y));
+            }
+        }
+
+        private void banToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (mChatUserContextMenu.Tag == null)
+            {
+                return;
+            }
+
+            Twitch.Chat.ChatUserInfo user = mChatUserContextMenu.Tag as Twitch.Chat.ChatUserInfo;
+            if (user == null)
+            {
+                return;
+            }
+
+            if (user.IsBanned)
+            {
+                mChatController.SendChatMessage(mChatChannelText.Text, "/unban " + user.DisplayName);
+            }
+            else
+            {
+                mChatController.SendChatMessage(mChatChannelText.Text, "/ban " + user.DisplayName);
+            }
+        }
+
+        private void moderatorToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (mChatUserContextMenu.Tag == null)
+            {
+                return;
+            }
+
+            Twitch.Chat.ChatUserInfo user = mChatUserContextMenu.Tag as Twitch.Chat.ChatUserInfo;
+            if (user == null)
+            {
+                return;
+            }
+
+            if (user.IsModerator)
+            {
+                mChatController.SendChatMessage(mChatChannelText.Text, "/unmod " + user.DisplayName);
+            }
+            else
+            {
+                mChatController.SendChatMessage(mChatChannelText.Text, "/mod " + user.DisplayName);
+            }
+        }
+
+        private void ignoreToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (mChatUserContextMenu.Tag == null)
+            {
+                return;
+            }
+
+            Twitch.Chat.ChatUserInfo user = mChatUserContextMenu.Tag as Twitch.Chat.ChatUserInfo;
+            if (user == null)
+            {
+                return;
+            }
+
+            if (user.IsIgnored)
+            {
+                mChatController.SendChatMessage(mChatChannelText.Text, "/unignore " + user.DisplayName);
+            }
+            else
+            {
+                mChatController.SendChatMessage(mChatChannelText.Text, "/ignore " + user.DisplayName);
+            }
         }
 
         #region Callbacks

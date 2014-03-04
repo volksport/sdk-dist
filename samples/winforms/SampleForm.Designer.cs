@@ -33,7 +33,9 @@
             this.mSubmitFrameTimer = new System.Windows.Forms.Timer(this.components);
             this.mChatTimer = new System.Windows.Forms.Timer(this.components);
             this.ChatTab = new System.Windows.Forms.TabPage();
+            this.label4 = new System.Windows.Forms.Label();
             this.mChatShutdownButton = new System.Windows.Forms.Button();
+            this.mEmoticonModeCombobox = new System.Windows.Forms.ComboBox();
             this.mChatInitializeButton = new System.Windows.Forms.Button();
             this.mChatMessagesGroupbox = new System.Windows.Forms.GroupBox();
             this.mChatStateLabel = new System.Windows.Forms.Label();
@@ -42,8 +44,6 @@
             this.mChatMessagesTextbox = new System.Windows.Forms.TextBox();
             this.mChatUsersListbox = new System.Windows.Forms.ListBox();
             this.mChatConnectionGroupbox = new System.Windows.Forms.GroupBox();
-            this.label4 = new System.Windows.Forms.Label();
-            this.mEmoticonModeCombobox = new System.Windows.Forms.ComboBox();
             this.label9 = new System.Windows.Forms.Label();
             this.mChatDisconnectButton = new System.Windows.Forms.Button();
             this.mChatChannelText = new System.Windows.Forms.TextBox();
@@ -113,6 +113,10 @@
             this.mShutdownButton = new System.Windows.Forms.Button();
             this.mInitButton = new System.Windows.Forms.Button();
             this.Tabs = new System.Windows.Forms.TabControl();
+            this.mChatBanMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.mChatModeratorMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.mChatIgnoreMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.mChatUserContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.ChatTab.SuspendLayout();
             this.mChatMessagesGroupbox.SuspendLayout();
             this.mChatConnectionGroupbox.SuspendLayout();
@@ -130,6 +134,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.mMaxKbpsTrackbar)).BeginInit();
             this.mInitializationGroupbox.SuspendLayout();
             this.Tabs.SuspendLayout();
+            this.mChatUserContextMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // mStreamTasksTimer
@@ -166,6 +171,15 @@
             this.ChatTab.Text = "Chat";
             this.ChatTab.UseVisualStyleBackColor = true;
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(156, 518);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(81, 13);
+            this.label4.TabIndex = 16;
+            this.label4.Text = "Emoticon Mode";
+            // 
             // mChatShutdownButton
             // 
             this.mChatShutdownButton.Location = new System.Drawing.Point(20, 547);
@@ -175,6 +189,15 @@
             this.mChatShutdownButton.Text = "Shutdown";
             this.mChatShutdownButton.UseVisualStyleBackColor = true;
             this.mChatShutdownButton.Click += new System.EventHandler(this.mChatShutdownButton_Click);
+            // 
+            // mEmoticonModeCombobox
+            // 
+            this.mEmoticonModeCombobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.mEmoticonModeCombobox.FormattingEnabled = true;
+            this.mEmoticonModeCombobox.Location = new System.Drawing.Point(156, 537);
+            this.mEmoticonModeCombobox.Name = "mEmoticonModeCombobox";
+            this.mEmoticonModeCombobox.Size = new System.Drawing.Size(126, 21);
+            this.mEmoticonModeCombobox.TabIndex = 15;
             // 
             // mChatInitializeButton
             // 
@@ -241,7 +264,9 @@
             this.mChatUsersListbox.Location = new System.Drawing.Point(642, 19);
             this.mChatUsersListbox.Name = "mChatUsersListbox";
             this.mChatUsersListbox.Size = new System.Drawing.Size(208, 433);
+            this.mChatUsersListbox.Sorted = true;
             this.mChatUsersListbox.TabIndex = 15;
+            this.mChatUsersListbox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.mChatUsersListbox_MouseDown);
             // 
             // mChatConnectionGroupbox
             // 
@@ -255,24 +280,6 @@
             this.mChatConnectionGroupbox.TabIndex = 12;
             this.mChatConnectionGroupbox.TabStop = false;
             this.mChatConnectionGroupbox.Text = "Chat Connection";
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(156, 518);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(81, 13);
-            this.label4.TabIndex = 16;
-            this.label4.Text = "Emoticon Mode";
-            // 
-            // mEmoticonModeCombobox
-            // 
-            this.mEmoticonModeCombobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.mEmoticonModeCombobox.FormattingEnabled = true;
-            this.mEmoticonModeCombobox.Location = new System.Drawing.Point(156, 537);
-            this.mEmoticonModeCombobox.Name = "mEmoticonModeCombobox";
-            this.mEmoticonModeCombobox.Size = new System.Drawing.Size(126, 21);
-            this.mEmoticonModeCombobox.TabIndex = 15;
             // 
             // label9
             // 
@@ -875,7 +882,9 @@
             "16:9",
             "1:1",
             "3:2 ",
-            "4:3"});
+            "4:3",
+            "2:1",
+            "1:2"});
             this.mAspectRatioCombo.Location = new System.Drawing.Point(17, 132);
             this.mAspectRatioCombo.Name = "mAspectRatioCombo";
             this.mAspectRatioCombo.Size = new System.Drawing.Size(121, 21);
@@ -1000,6 +1009,36 @@
             this.Tabs.Size = new System.Drawing.Size(886, 740);
             this.Tabs.TabIndex = 6;
             // 
+            // mChatBanMenuItem
+            // 
+            this.mChatBanMenuItem.Name = "mChatBanMenuItem";
+            this.mChatBanMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.mChatBanMenuItem.Text = "Ban";
+            this.mChatBanMenuItem.Click += new System.EventHandler(this.banToolStripMenuItem_Click);
+            // 
+            // mChatModeratorMenuItem
+            // 
+            this.mChatModeratorMenuItem.Name = "mChatModeratorMenuItem";
+            this.mChatModeratorMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.mChatModeratorMenuItem.Text = "Moderator";
+            this.mChatModeratorMenuItem.Click += new System.EventHandler(this.moderatorToolStripMenuItem_Click);
+            // 
+            // mChatIgnoreMenuItem
+            // 
+            this.mChatIgnoreMenuItem.Name = "mChatIgnoreMenuItem";
+            this.mChatIgnoreMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.mChatIgnoreMenuItem.Text = "Ignore";
+            this.mChatIgnoreMenuItem.Click += new System.EventHandler(this.ignoreToolStripMenuItem_Click);
+            // 
+            // mChatUserContextMenu
+            // 
+            this.mChatUserContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.mChatBanMenuItem,
+            this.mChatModeratorMenuItem,
+            this.mChatIgnoreMenuItem});
+            this.mChatUserContextMenu.Name = "mChatUserContextMenu";
+            this.mChatUserContextMenu.Size = new System.Drawing.Size(153, 92);
+            // 
             // SampleForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1039,6 +1078,7 @@
             this.mInitializationGroupbox.ResumeLayout(false);
             this.mInitializationGroupbox.PerformLayout();
             this.Tabs.ResumeLayout(false);
+            this.mChatUserContextMenu.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -1129,6 +1169,10 @@
         private System.Windows.Forms.Label mChatStateLabel;
         private System.Windows.Forms.Button mChatShutdownButton;
         private System.Windows.Forms.Button mChatInitializeButton;
+        private System.Windows.Forms.ToolStripMenuItem mChatBanMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem mChatModeratorMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem mChatIgnoreMenuItem;
+        private System.Windows.Forms.ContextMenuStrip mChatUserContextMenu;
 
     }
 }

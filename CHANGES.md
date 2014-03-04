@@ -1,5 +1,15 @@
 #Twitch Broadcasting SDK - Change history  
 
+#### March 3, 2014
+- Rewrote the parsing of video files for iOS/Mac to handle b-frames and be a lot more correct in the flv generated
+- Fixed sync issue with iOS and mac microphone capture
+
+#### February 21, 2014
+- Added support for event-chat which handles connecting to different clusters as needed.  
+- Fixed a problem in chat where user change notications may be sent to the client before membership notifications.  
+- Fixed an issue where user change notifications may not be sent for user changes.  
+- Handled a hanging connect when the chat server does not reply to a join attempt.  
+
 #### Feburary 19, 2014
 - Added twitchinterfaces.h for c++ interface classes
 - Added the ability to plugin your own h264 encoder.
