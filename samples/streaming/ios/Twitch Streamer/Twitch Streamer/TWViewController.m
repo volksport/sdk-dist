@@ -160,6 +160,18 @@ GLfloat gCubeVertexData[216] =
 	
 	// Start streaming to Twitch
 	[[TWTwitchStreamer twitchStreamer] prepareToStream];
+	
+	//
+	UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapGesture:)];
+	tapGestureRecognizer.numberOfTapsRequired = 1;
+	tapGestureRecognizer.numberOfTouchesRequired = 1;
+	[self.view addGestureRecognizer:tapGestureRecognizer];
+}
+
+- (void)handleTapGesture:(UITapGestureRecognizer *)tapGestureRecognizer
+{
+	if ([TWTwitchStreamer twitchStreamer].isStreaming)
+		[[TWTwitchStreamer twitchStreamer] stopStream];
 }
 
 - (void)dealloc

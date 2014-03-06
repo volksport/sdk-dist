@@ -36,6 +36,7 @@
 		B909C96A182C2A0800900E4B /* libc++.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = B909C969182C2A0800900E4B /* libc++.dylib */; };
 		B909C96C182C32D800900E4B /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B909C96B182C32D800900E4B /* AVFoundation.framework */; };
 		B909C96E182C3CC000900E4B /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B909C96D182C3CC000900E4B /* Accelerate.framework */; };
+		B9662D8618C7FBCA007F6703 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B9662D8518C7FBCA007F6703 /* CoreVideo.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -128,6 +129,7 @@
 		B909C969182C2A0800900E4B /* libc++.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libc++.dylib"; path = "usr/lib/libc++.dylib"; sourceTree = SDKROOT; };
 		B909C96B182C32D800900E4B /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		B909C96D182C3CC000900E4B /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		B9662D8518C7FBCA007F6703 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,6 +137,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B9662D8618C7FBCA007F6703 /* CoreVideo.framework in Frameworks */,
 				B909C96E182C3CC000900E4B /* Accelerate.framework in Frameworks */,
 				B909C96C182C32D800900E4B /* AVFoundation.framework in Frameworks */,
 				B909C96A182C2A0800900E4B /* libc++.dylib in Frameworks */,
@@ -183,6 +186,7 @@
 		B909C8CA182C1ED800900E4B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				B9662D8518C7FBCA007F6703 /* CoreVideo.framework */,
 				B909C922182C203700900E4B /* twitchsdk.xcodeproj */,
 				B909C96D182C3CC000900E4B /* Accelerate.framework */,
 				B909C96B182C32D800900E4B /* AVFoundation.framework */,

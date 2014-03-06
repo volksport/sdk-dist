@@ -144,6 +144,7 @@ void TwitchFrameUnlockCallback(const uint8_t* buffer, void* userData)
 		if (TTV_SUCCEEDED(ret))
 		{
 			TTV_SetTraceLevel(TTV_ML_ERROR);
+			// TTV_SetTraceChannelLevel("FrameQueue", TTV_ML_INFO);
 			_state = TWStreamingStateInitialized;
 			_audioSubmissionSource = NULL;
 			_channelInfo.size = sizeof(_channelInfo);
@@ -302,6 +303,8 @@ void TwitchFrameUnlockCallback(const uint8_t* buffer, void* userData)
 				[[TWOALAudioController sharedAudioController] startCapture];
 			
 			self.state = TWStreamingStateStreaming;
+			
+			// [self performSelector:@selector(stopStream) withObject:nil afterDelay:60.];
 		}
 		else NSLog(@"TWSTREAMER: Unable to start streaming.");
 	}
