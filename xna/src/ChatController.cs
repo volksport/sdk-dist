@@ -163,8 +163,8 @@ namespace Twitch.Chat
         public event EmoticonDataExpiredDelegate EmoticonDataExpired;
 
         protected string m_UserName = "";
-        protected Twitch.Core m_Core = null;
-        protected Twitch.Chat.Chat m_Chat = null;
+        protected CoreApi m_CoreApi = null;
+        protected ChatApi m_ChatApi = null;
 
         protected ChatState m_ChatState = ChatState.Uninitialized;
         protected AuthToken m_AuthToken = new AuthToken();
@@ -222,9 +222,9 @@ namespace Twitch.Chat
                 get { return m_ChatController.m_Channels; }
             }
 
-            protected Chat Api
+            protected ChatApi Api
             {
-                get { return m_ChatController.m_Chat; }
+                get { return m_ChatController.m_ChatApi; }
             }
 
             protected void CheckError(ErrorCode err)
@@ -363,7 +363,7 @@ namespace Twitch.Chat
             }
         }
 
-        protected class ChatApiListener : ControllerAccess, IChatAPIListener
+        protected class ChatApiListener : ControllerAccess, IChatApiListener
         {
             public ChatApiListener(ChatController controller) : base(controller)
             {
@@ -371,7 +371,7 @@ namespace Twitch.Chat
 
             #region IChatAPIListener Implementation
 
-            void IChatAPIListener.ChatInitializationCallback(ErrorCode result)
+            void IChatApiListener.ChatInitializationCallback(ErrorCode result)
             {
                 if (Error.Succeeded(result))
                 {
@@ -400,11 +400,11 @@ namespace Twitch.Chat
         	    }
             }
 
-            void IChatAPIListener.ChatShutdownCallback(ErrorCode result)
+            void IChatApiListener.ChatShutdownCallback(ErrorCode result)
             {
                 if (Error.Succeeded(result))
                 {
-                    ErrorCode ret = m_ChatController.m_Core.Shutdown();
+                    ErrorCode ret = m_ChatController.m_CoreApi.Shutdown();
                     if (Error.Failed(ret))
                     {
                         string err = Error.GetString(ret);
@@ -434,7 +434,7 @@ namespace Twitch.Chat
         	    }
             }
 
-            void IChatAPIListener.ChatEmoticonDataDownloadCallback(ErrorCode error)
+            void IChatApiListener.ChatEmoticonDataDownloadCallback(ErrorCode error)
             {
                 if (Error.Succeeded(error))
                 {
@@ -903,7 +903,7 @@ namespace Twitch.Chat
             {
                 if (m_ChatState == ChatState.Initialized)
                 {
-                    m_Chat.SetMessageFlushInterval(value);
+                    m_ChatApi.SetMessageFlushInterval(value);
                 }
             }
         }
@@ -918,7 +918,7 @@ namespace Twitch.Chat
             {
                 if (m_ChatState == ChatState.Initialized)
                 {
-                    m_Chat.SetUserChangeEventInterval(value);
+                    m_ChatApi.SetUserChangeEventInterval(value);
                 }
             }
         }
@@ -1046,7 +1046,7 @@ namespace Twitch.Chat
 
             SetChatState(ChatState.Initializing);
 
-            ErrorCode ret = m_Core.Initialize(ClientId, null);
+            ErrorCode ret = m_CoreApi.Initialize(ClientId, null);
             if (Error.Failed(ret))
             {
                 SetChatState(ChatState.Uninitialized);
@@ -1075,10 +1075,10 @@ namespace Twitch.Chat
             }
 
             // kick off the async init
-            ret = m_Chat.Initialize(tokenizationOptions, m_ChatAPIListener);
+            ret = m_ChatApi.Initialize(tokenizationOptions, m_ChatAPIListener);
             if (Error.Failed(ret))
             {
-                m_Core.Shutdown();
+                m_CoreApi.Shutdown();
                 SetChatState(ChatState.Uninitialized);
 
                 String err = Error.GetString(ret);
@@ -1173,7 +1173,7 @@ namespace Twitch.Chat
             }
 
             // shutdown asynchronously
-            ErrorCode ret = m_Chat.Shutdown();
+            ErrorCode ret = m_ChatApi.Shutdown();
             if (Error.Failed(ret))
             {
                 String err = Error.GetString(ret);
@@ -1230,11 +1230,11 @@ namespace Twitch.Chat
                 return;
             }
 
-	        ErrorCode ret = m_Chat.FlushEvents();
+	        ErrorCode ret = m_ChatApi.FlushEvents();
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
-                ReportError(string.Format("Error flushing chat events: {0}", err));
+                ReportError(string.Format("Error flushing chat events: {0}, in state {1}", err, m_ChatState.ToString()));
             }
         }
 
@@ -1324,7 +1324,7 @@ namespace Twitch.Chat
 
             if (m_EmoticonData == null)
             {
-                ErrorCode ret = m_Chat.DownloadEmoticonData();
+                ErrorCode ret = m_ChatApi.DownloadEmoticonData();
                 if (Error.Failed(ret))
                 {
                     string err = Error.GetString(ret);
@@ -1340,7 +1340,7 @@ namespace Twitch.Chat
                 return;
             }
 
-            ErrorCode ec = m_Chat.GetEmoticonData(out m_EmoticonData);
+            ErrorCode ec = m_ChatApi.GetEmoticonData(out m_EmoticonData);
             if (Error.Succeeded(ec))
             {
                 try

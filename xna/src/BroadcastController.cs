@@ -63,6 +63,13 @@ namespace Twitch.Broadcast
             IngestTesting           //!< Running the ingest tester.
         }
     
+        public enum GameAudioCaptureMethod
+        {
+            None,                   //!< Do not broadcast game audio.
+            SystemCapture,          //!< Capture system audio when possible.
+            Passthrough,            //!< Audio will be submitted manually to the SDK.
+        }
+    
         /// <summary>
         /// The callback signature for the event fired when a request for an auth token is complete.
         /// </summary>
@@ -143,8 +150,8 @@ namespace Twitch.Broadcast
         public event BroadcastStartedDelegate BroadcastStarted;
         public event BroadcastStoppedDelegate BroadcastStopped;
 
-        protected Twitch.Core m_Core = null;
-        protected Twitch.Broadcast.Stream m_Stream = null;
+        protected Twitch.CoreApi m_CoreApi = null;
+        protected Twitch.Broadcast.BroadcastApi m_BroadcastApi = null;
 
         protected bool m_SdkInitialized = false;    //!< Has Stream.Initialize() been called?
         protected bool m_LoggedIn = false;          //!< The AuthToken as been validated and can be used for calls to the server.
@@ -239,9 +246,14 @@ namespace Twitch.Broadcast
                 set { m_BroadcastController.m_AudioParams = value; }
             }
 
-            protected Stream Api
+            protected BroadcastApi Api
             {
-                get { return m_BroadcastController.m_Stream; }
+                get { return m_BroadcastController.m_BroadcastApi; }
+            }
+
+            protected bool IsShuttingDown
+            {
+                get { return m_BroadcastController.m_ShuttingDown; }
             }
 
             protected void SetBroadcastState(BroadcastState state)
@@ -380,14 +392,14 @@ namespace Twitch.Broadcast
             }
         }
 
-        protected class StreamCallbackListener : ControllerAccess, IStreamCallbacks
+        protected class StreamCallbackListener : ControllerAccess, IBroadcastApiListener
         {
             public StreamCallbackListener(BroadcastController controller)
                 : base(controller)
             {
             }
 
-            void IStreamCallbacks.RequestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+            void IBroadcastApiListener.RequestAuthTokenCallback(ErrorCode result, AuthToken authToken)
             {
                 if (Error.Succeeded(result))
                 {
@@ -407,7 +419,7 @@ namespace Twitch.Broadcast
                 FireAuthTokenRequestComplete(result, authToken);
             }
 
-            void IStreamCallbacks.LoginCallback(ErrorCode result, ChannelInfo channelInfo)
+            void IBroadcastApiListener.LoginCallback(ErrorCode result, ChannelInfo channelInfo)
             {
                 if (Error.Succeeded(result))
                 {
@@ -427,7 +439,7 @@ namespace Twitch.Broadcast
                 FireLoginAttemptComplete(result);
             }
 
-            void IStreamCallbacks.GetIngestServersCallback(ErrorCode result, IngestList ingestList)
+            void IBroadcastApiListener.GetIngestServersCallback(ErrorCode result, IngestList ingestList)
             {
                 if (Error.Succeeded(result))
                 {
@@ -450,7 +462,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.GetUserInfoCallback(ErrorCode result, UserInfo userInfo)
+            void IBroadcastApiListener.GetUserInfoCallback(ErrorCode result, UserInfo userInfo)
             {
                 this.UserInfo = userInfo;
 
@@ -461,7 +473,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.GetStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
+            void IBroadcastApiListener.GetStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
             {
                 if (Error.Succeeded(result))
                 {
@@ -476,7 +488,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.GetArchivingStateCallback(ErrorCode result, ArchivingState state)
+            void IBroadcastApiListener.GetArchivingStateCallback(ErrorCode result, ArchivingState state)
             {
                 this.ArchivingState = state;
 
@@ -487,7 +499,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.RunCommercialCallback(ErrorCode result)
+            void IBroadcastApiListener.RunCommercialCallback(ErrorCode result)
             {
                 if (Error.Failed(result))
                 {
@@ -496,7 +508,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.SetStreamInfoCallback(ErrorCode result)
+            void IBroadcastApiListener.SetStreamInfoCallback(ErrorCode result)
             {
                 if (Error.Failed(result))
                 {
@@ -505,7 +517,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.GetGameNameListCallback(ErrorCode result, GameInfoList list)
+            void IBroadcastApiListener.GetGameNameListCallback(ErrorCode result, GameInfoList list)
             {
                 if (Error.Failed(result))
                 {
@@ -516,13 +528,23 @@ namespace Twitch.Broadcast
                 FireGameNameListReceived(result, list);
             }
 
-            void IStreamCallbacks.StartCallback(ErrorCode ret)
+            void IBroadcastApiListener.StartCallback(ErrorCode ret)
             {
                 if (Error.Succeeded(ret))
                 {
-                    FireBroadcastStarted();
+                    // handle the case where we try and shutdown while a Start is in progress
+                    if (this.IsShuttingDown)
+                    {
+                        ret = this.Api.Stop(false);
 
-                    SetBroadcastState(BroadcastState.Broadcasting);
+                        SetBroadcastState(BroadcastState.ReadyToBroadcast);
+                    }
+                    else
+                    {
+                        FireBroadcastStarted();
+
+                        SetBroadcastState(BroadcastState.Broadcasting);
+                    }
                 }
                 else
                 {
@@ -536,7 +558,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.StopCallback(ErrorCode ret)
+            void IBroadcastApiListener.StopCallback(ErrorCode ret)
             {
                 if (Error.Succeeded(ret))
                 {
@@ -566,12 +588,12 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.BufferUnlockCallback(UIntPtr buffer)
+            void IBroadcastApiListener.BufferUnlockCallback(UIntPtr buffer)
             {
                 HandleBufferUnlock(buffer);
             }
 
-            void IStreamCallbacks.SendActionMetaDataCallback(ErrorCode ret)
+            void IBroadcastApiListener.SendActionMetaDataCallback(ErrorCode ret)
             {
                 if (Error.Failed(ret))
                 {
@@ -580,7 +602,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.SendStartSpanMetaDataCallback(ErrorCode ret)
+            void IBroadcastApiListener.SendStartSpanMetaDataCallback(ErrorCode ret)
             {
                 if (Error.Failed(ret))
                 {
@@ -589,7 +611,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.SendEndSpanMetaDataCallback(ErrorCode ret)
+            void IBroadcastApiListener.SendEndSpanMetaDataCallback(ErrorCode ret)
             {
                 if (Error.Failed(ret))
                 {
@@ -626,16 +648,25 @@ namespace Twitch.Broadcast
             get;
             set;
         }
-
+        
         /// <summary>
-        /// Whether or not to enable capturing of system and microphone audio.
+        /// Whether or not to enable capturing of microphone audio.
         /// </summary>
-        public abstract bool EnableAudio
+        public abstract bool CaptureMicrophone
         {
             get;
             set;
         }
-
+        
+        /// <summary>
+        /// How to capture game audio.
+        /// </summary>
+        public abstract GameAudioCaptureMethod AudioCaptureMethod
+        {
+            get;
+            set;
+        }
+        
         /// <summary>
         /// The username to log in with.
         /// </summary>
@@ -730,12 +761,12 @@ namespace Twitch.Broadcast
             get
             { 
                 float volume = 0;
-                m_Stream.GetVolume(TTV_AudioDeviceType.TTV_RECORDER_DEVICE, ref volume);
+                m_BroadcastApi.GetVolume(TTV_AudioDeviceType.TTV_RECORDER_DEVICE, ref volume);
                 return volume;
             }
             set
             {
-                m_Stream.SetVolume(TTV_AudioDeviceType.TTV_RECORDER_DEVICE, value);
+                m_BroadcastApi.SetVolume(TTV_AudioDeviceType.TTV_RECORDER_DEVICE, value);
             }
         }
 
@@ -747,12 +778,12 @@ namespace Twitch.Broadcast
             get
             {
                 float volume = 0;
-                m_Stream.GetVolume(TTV_AudioDeviceType.TTV_PLAYBACK_DEVICE, ref volume);
+                m_BroadcastApi.GetVolume(TTV_AudioDeviceType.TTV_PLAYBACK_DEVICE, ref volume);
                 return volume;
             }
             set
             {
-                m_Stream.SetVolume(TTV_AudioDeviceType.TTV_PLAYBACK_DEVICE, value);
+                m_BroadcastApi.SetVolume(TTV_AudioDeviceType.TTV_PLAYBACK_DEVICE, value);
             }
         }
 
@@ -772,7 +803,7 @@ namespace Twitch.Broadcast
             get
             {
                 UInt64 time = 0;
-                m_Stream.GetStreamTime(out time);
+                m_BroadcastApi.GetStreamTime(out time);
                 return time;
             }
         }
@@ -835,23 +866,32 @@ namespace Twitch.Broadcast
                 return false;
             }
 
-            m_Stream.StreamCallbacks = m_StreamListener;
-
-            ErrorCode err = m_Core.Initialize(this.ClientId, null);
+            // initialize core
+			ErrorCode err = m_CoreApi.Initialize(this.ClientId, null);
             if (!CheckError(err))
             {
-                m_Stream.StreamCallbacks = null;
                 return false;
             }
 
-            m_Core.SetTraceLevel(MessageLevel.TTV_ML_ERROR);
+            m_BroadcastApi.BroadcastApiListener = m_StreamListener;
+
+            // initialize broadcast
+            err = m_BroadcastApi.Initialize();
             if (!CheckError(err))
             {
-                m_Stream.StreamCallbacks = null;
-                m_Core.Shutdown();
+                m_BroadcastApi.BroadcastApiListener = null;
                 return false;
             }
 
+            err = m_CoreApi.SetTraceLevel(MessageLevel.TTV_ML_ERROR);
+            if (!CheckError(err))
+            {
+                m_BroadcastApi.Shutdown();
+                m_CoreApi.Shutdown();
+                m_BroadcastApi.BroadcastApiListener = null;
+                return false;
+            }
+           
             if (Error.Succeeded(err))
             {
                 m_SdkInitialized = true;
@@ -861,7 +901,9 @@ namespace Twitch.Broadcast
             }
             else
             {
-                m_Core.Shutdown();
+                m_BroadcastApi.Shutdown();
+                m_CoreApi.Shutdown();
+                m_BroadcastApi.BroadcastApiListener = null;
                 return false;
             }
         }
@@ -885,12 +927,14 @@ namespace Twitch.Broadcast
 
             Logout();
 
-            m_Stream.StreamCallbacks = null;
-            m_Stream.StatCallbacks = null;
-
-            ErrorCode err = m_Core.Shutdown();
+            ErrorCode err = m_BroadcastApi.Shutdown();
             CheckError(err);
 
+            err = m_CoreApi.Shutdown();
+            CheckError(err);
+
+            m_BroadcastApi.BroadcastApiListener = null;
+            
             m_SdkInitialized = false;
             m_ShuttingDown = false;
             SetBroadcastState(BroadcastState.Uninitialized);
@@ -940,7 +984,9 @@ namespace Twitch.Broadcast
         /// <returns>Whether or not the request was made</returns>
         public virtual bool RequestAuthToken(string username, string password)
         {
-            if (this.IsIngestTesting || !m_SdkInitialized)
+            if (this.IsIngestTesting || 
+                m_BroadcastState == BroadcastState.Authenticating || 
+                !m_SdkInitialized)
             {
                 return false;
             }
@@ -956,7 +1002,7 @@ namespace Twitch.Broadcast
 
             AuthFlag flags = AuthFlag.TTV_AuthFlag_Broadcast | AuthFlag.TTV_AuthFlag_Chat;
 
-            ErrorCode err = m_Stream.RequestAuthToken(authParams, flags);
+            ErrorCode err = m_BroadcastApi.RequestAuthToken(authParams, flags);
             CheckError(err);
 
             if (Error.Succeeded(err))
@@ -1020,7 +1066,7 @@ namespace Twitch.Broadcast
             // stop synchronously
             if (this.IsBroadcasting)
             {
-                m_Stream.Stop(false);
+                m_BroadcastApi.Stop(false);
             }
 
             m_UserName = "";
@@ -1087,7 +1133,7 @@ namespace Twitch.Broadcast
             info.StreamTitle = title;
             info.GameName = game;
 
-            ErrorCode err = m_Stream.SetStreamInfo(m_AuthToken, channel, info);
+            ErrorCode err = m_BroadcastApi.SetStreamInfo(m_AuthToken, channel, info);
             CheckError(err);
 
             return Error.Succeeded(err);
@@ -1104,7 +1150,7 @@ namespace Twitch.Broadcast
                 return false;
             }
 
-            ErrorCode err = m_Stream.RunCommercial(m_AuthToken);
+            ErrorCode err = m_BroadcastApi.RunCommercial(m_AuthToken);
             CheckError(err);
 
             return Error.Succeeded(err);
@@ -1129,7 +1175,7 @@ namespace Twitch.Broadcast
         {
             uint width = 0;
             uint height = 0;
-            m_Stream.GetMaxResolution(maxKbps, frameRate, bitsPerPixel, aspectRatio, ref width, ref height);
+            m_BroadcastApi.GetMaxResolution(maxKbps, frameRate, bitsPerPixel, aspectRatio, ref width, ref height);
 
             VideoParams videoParams = new VideoParams();
             videoParams.MaxKbps = maxKbps;
@@ -1167,7 +1213,7 @@ namespace Twitch.Broadcast
             videoParams.VerticalFlip = false;
 
             // Compute the rest of the fields based on the given parameters
-            ErrorCode ret = m_Stream.GetDefaultParams(videoParams);
+            ErrorCode ret = m_BroadcastApi.GetDefaultParams(videoParams);
             if (Error.Failed(ret))
             {
                 String err = Error.GetString(ret);
@@ -1194,10 +1240,10 @@ namespace Twitch.Broadcast
             
             // Setup the audio parameters
             m_AudioParams = new AudioParams();
-            m_AudioParams.AudioEnabled = this.EnableAudio && this.IsAudioSupported; // only enable audio if possible
-            m_AudioParams.EnableMicCapture = m_AudioParams.AudioEnabled;
-            m_AudioParams.EnablePlaybackCapture = m_AudioParams.AudioEnabled;
-            m_AudioParams.EnablePassthroughAudio = false;
+            m_AudioParams.AudioEnabled = (this.CaptureMicrophone || this.AudioCaptureMethod != GameAudioCaptureMethod.None) && this.IsAudioSupported;
+            m_AudioParams.EnableMicCapture = this.CaptureMicrophone && this.IsAudioSupported;
+            m_AudioParams.EnablePlaybackCapture = (this.AudioCaptureMethod == GameAudioCaptureMethod.SystemCapture) && this.IsAudioSupported;
+            m_AudioParams.EnablePassthroughAudio = (this.AudioCaptureMethod == GameAudioCaptureMethod.Passthrough) && this.IsAudioSupported;
 
             if (!AllocateBuffers())
             {
@@ -1206,7 +1252,7 @@ namespace Twitch.Broadcast
                 return false;
             }
 
-            ErrorCode ret = m_Stream.Start(videoParams, m_AudioParams, m_IngestServer, StartFlags.None, true);
+            ErrorCode ret = m_BroadcastApi.Start(videoParams, m_AudioParams, m_IngestServer, StartFlags.None, true);
             if (Error.Failed(ret))
             {
                 CleanupBuffers();
@@ -1236,7 +1282,7 @@ namespace Twitch.Broadcast
                 return false;
             }
 
-            ErrorCode ret = m_Stream.Stop(true);
+            ErrorCode ret = m_BroadcastApi.Stop(true);
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
@@ -1260,7 +1306,7 @@ namespace Twitch.Broadcast
                 return false;
             }
 
-            ErrorCode ret = m_Stream.PauseVideo();
+            ErrorCode ret = m_BroadcastApi.PauseVideo();
             if (Error.Failed(ret))
             {
                 // not streaming anymore
@@ -1303,7 +1349,7 @@ namespace Twitch.Broadcast
         /// <returns>True if submitted and no error, false otherwise.</returns>
         public virtual bool SendActionMetaData(string name, UInt64 streamTime, string humanDescription, string data)
         {
-            ErrorCode ret = m_Stream.SendActionMetaData(m_AuthToken, name, streamTime, humanDescription, data);
+            ErrorCode ret = m_BroadcastApi.SendActionMetaData(m_AuthToken, name, streamTime, humanDescription, data);
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
@@ -1328,7 +1374,7 @@ namespace Twitch.Broadcast
         {
             sequenceId = 0xFFFFFFFFFFFFFFFF;
 
-            ErrorCode ret = m_Stream.SendStartSpanMetaData(m_AuthToken, name, streamTime, out sequenceId, humanDescription, data);
+            ErrorCode ret = m_BroadcastApi.SendStartSpanMetaData(m_AuthToken, name, streamTime, out sequenceId, humanDescription, data);
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
@@ -1357,7 +1403,7 @@ namespace Twitch.Broadcast
                 return false;
             }
 
-            ErrorCode ret = m_Stream.SendEndSpanMetaData(m_AuthToken, name, streamTime, sequenceId, humanDescription, data);
+            ErrorCode ret = m_BroadcastApi.SendEndSpanMetaData(m_AuthToken, name, streamTime, sequenceId, humanDescription, data);
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
@@ -1375,7 +1421,7 @@ namespace Twitch.Broadcast
         /// <param name="str">The string to match</param>
         public virtual void RequestGameNameList(string str)
         {
-            ErrorCode ret = m_Stream.GetGameNameList(str);
+            ErrorCode ret = m_BroadcastApi.GetGameNameList(str);
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
@@ -1414,12 +1460,12 @@ namespace Twitch.Broadcast
             // for stress testing to make sure memory is being passed around properly
             //GC.Collect();
 
-            if (m_Stream == null || !m_SdkInitialized)
+            if (m_BroadcastApi == null || !m_SdkInitialized)
             {
                 return;
             }
 
-            ErrorCode ret = m_Stream.PollTasks();
+            ErrorCode ret = m_BroadcastApi.PollTasks();
             CheckError(ret);
 
             // update the ingest tester
@@ -1442,7 +1488,7 @@ namespace Twitch.Broadcast
                 {
                     SetBroadcastState(BroadcastState.LoggingIn);
 
-                    ret = m_Stream.Login(m_AuthToken);
+                    ret = m_BroadcastApi.Login(m_AuthToken);
                     if (Error.Failed(ret))
                     {
                         string err = Error.GetString(ret);
@@ -1455,7 +1501,7 @@ namespace Twitch.Broadcast
                 {
                     SetBroadcastState(BroadcastState.FindingIngestServer);
 
-                    ret = m_Stream.GetIngestServers(m_AuthToken);
+                    ret = m_BroadcastApi.GetIngestServers(m_AuthToken);
                     if (Error.Failed(ret))
                     {
                         SetBroadcastState(BroadcastState.LoggedIn);
@@ -1471,7 +1517,7 @@ namespace Twitch.Broadcast
                     SetBroadcastState(BroadcastState.ReadyToBroadcast);
 
                     // Kick off requests for the user and stream information that aren't 100% essential to be ready before streaming starts
-                    ret = m_Stream.GetUserInfo(m_AuthToken);
+                    ret = m_BroadcastApi.GetUserInfo(m_AuthToken);
                     if (Error.Failed(ret))
                     {
                         string err = Error.GetString(ret);
@@ -1480,7 +1526,7 @@ namespace Twitch.Broadcast
 
                     UpdateStreamInfo();
 
-                    ret = m_Stream.GetArchivingState(m_AuthToken);
+                    ret = m_BroadcastApi.GetArchivingState(m_AuthToken);
                     if (Error.Failed(ret))
                     {
                         string err = Error.GetString(ret);
@@ -1530,7 +1576,7 @@ namespace Twitch.Broadcast
 
             m_LastStreamInfoUpdateTime = now;
 
-            ErrorCode ret = m_Stream.GetStreamInfo(m_AuthToken, m_UserName);
+            ErrorCode ret = m_BroadcastApi.GetStreamInfo(m_AuthToken, m_UserName);
             if (Error.Failed(ret))
             {
                 string err = Error.GetString(ret);
@@ -1557,7 +1603,7 @@ namespace Twitch.Broadcast
                 return null;
             }
 
-            m_IngestTester = new IngestTester(m_Stream, m_IngestList);
+            m_IngestTester = new IngestTester(m_BroadcastApi, m_IngestList);
             m_IngestTester.Start();
 
             SetBroadcastState(BroadcastState.IngestTesting);
