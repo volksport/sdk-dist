@@ -8,35 +8,37 @@ using ErrorCode = Twitch.ErrorCode;
 
 public class BroadcastGUI : MonoBehaviour
 {
-	[SerializeField]
-	protected string m_UserName = "";
-	[SerializeField]
-	protected string m_Password = "";
+    [SerializeField]
+    protected string m_UserName = "";
+    [SerializeField]
+    protected string m_Password = "";
     [SerializeField]
     protected bool m_CalculateParamsFromBitrate = true;
     [SerializeField]
-	protected int m_BroadcastWidth = 512;
-	[SerializeField]
-	protected int m_BroadcastHeight = 512;
-	[SerializeField]
-	protected int m_BroadcastFramesPerSecond = 480;
-	[SerializeField]
+    protected int m_BroadcastWidth = 512;
+    [SerializeField]
+    protected int m_BroadcastHeight = 512;
+    [SerializeField]
+    protected int m_BroadcastFramesPerSecond = 480;
+    [SerializeField]
     protected int m_TargetBitrate = 2000; //!< kbps
-	[SerializeField]
-	protected float m_BroadcastAspectRatio = 1024f/768f;
-	[SerializeField]
+    [SerializeField]
+    protected float m_BroadcastAspectRatio = 1024f / 768f;
+    [SerializeField]
     protected float m_BroadcastBitsPerPixel = 0.1f;
+    [SerializeField]
+    protected bool m_AutoBroadcast = false;
 
     protected UnityBroadcastController m_BroadcastController = null;
     protected IngestTester m_IngestTester = null;
     protected bool m_GamePaused = false;
 
 
-	public string UserName
-	{
-		get { return m_UserName; }
-		set { m_UserName = value; }
-	}
+    public string UserName
+    {
+        get { return m_UserName; }
+        set { m_UserName = value; }
+    }
 
     public string Password
     {
@@ -85,18 +87,24 @@ public class BroadcastGUI : MonoBehaviour
         get { return m_BroadcastBitsPerPixel; }
         set { m_BroadcastBitsPerPixel = value; }
     }
-	
-	
-	void Start()
-	{
-		Application.runInBackground = true;
-		
-		DebugOverlay.CreateInstance();
+
+    public bool AutoBroadcast
+    {
+        get { return m_AutoBroadcast; }
+        set { m_AutoBroadcast = value; }
+    }
+
+
+    void Start()
+    {
+        Application.runInBackground = true;
+
+        DebugOverlay.CreateInstance();
 
         m_BroadcastController = this.gameObject.GetComponent<UnityBroadcastController>();
 
-		m_BroadcastController.AuthTokenRequestComplete += this.HandleAuthTokenRequestComplete;
-		m_BroadcastController.LoginAttemptComplete += this.HandleLoginAttemptComplete;
+        m_BroadcastController.AuthTokenRequestComplete += this.HandleAuthTokenRequestComplete;
+        m_BroadcastController.LoginAttemptComplete += this.HandleLoginAttemptComplete;
         m_BroadcastController.GameNameListReceived += this.HandleGameNameListReceived;
         m_BroadcastController.BroadcastStateChanged += this.HandleBroadcastStateChanged;
         m_BroadcastController.LoggedOut += this.HandleLoggedOut;
@@ -109,23 +117,28 @@ public class BroadcastGUI : MonoBehaviour
             DebugOverlay.Instance.AddViewportText("Operating system does not support broadcasting: " + System.Environment.OSVersion.ToString(), -1);
         }
     }
-	
-	void OnGUI()
-	{
-		int width = 150;
-		int height = 30;
-		int top = 70;
-		int i = 0;
-		
-		bool init = false;
-		bool shutdown = false;
-		bool requestAuthToken = false;
-		bool setAuthToken = false;
-		bool logOut = false;
-		bool start = false;
-		bool stop = false;
-		bool pause = false;
-		bool resume = false;
+
+    void OnGUI()
+    {
+        if (m_AutoBroadcast)
+        {
+            return;
+        }
+
+        int width = 150;
+        int height = 30;
+        int top = 70;
+        int i = 0;
+
+        bool init = false;
+        bool shutdown = false;
+        bool requestAuthToken = false;
+        bool setAuthToken = false;
+        bool logOut = false;
+        bool start = false;
+        bool stop = false;
+        bool pause = false;
+        bool resume = false;
         bool runCommercial = false;
         bool startIngestTest = false;
         bool skipIngestServer = false;
@@ -135,56 +148,57 @@ public class BroadcastGUI : MonoBehaviour
         bool loadNextScene = false;
         bool enterFullScreen = false;
         bool exitFullScreen = false;
-		
-		if (m_BroadcastController.IsInitialized)
-		{
+        bool toggleSound = false;
+
+        if (m_BroadcastController.IsInitialized)
+        {
             if (m_BroadcastController.IsBroadcasting)
-			{
-				runCommercial = GUI.Button(new Rect(10,top+height*i++,width,height), "Run Commercial");
-				
-				if (m_BroadcastController.IsPaused)
-				{
-					resume = GUI.Button(new Rect(10,top+height*i++,width,height), "Resume");
-				}
-				else
-				{
-					pause = GUI.Button(new Rect(10,top+height*i++,width,height), "Pause");
-				}
-				
-				stop = GUI.Button(new Rect(10,top+height*i++,width,height), "Stop");
-			}
-			else
-			{
-				if (m_BroadcastController.IsLoggedIn)
-				{
-					if (m_BroadcastController.IsReadyToBroadcast)
-					{
+            {
+                runCommercial = GUI.Button(new Rect(10, top + height * i++, width, height), "Run Commercial");
+
+                if (m_BroadcastController.IsPaused)
+                {
+                    resume = GUI.Button(new Rect(10, top + height * i++, width, height), "Resume");
+                }
+                else
+                {
+                    pause = GUI.Button(new Rect(10, top + height * i++, width, height), "Pause");
+                }
+
+                stop = GUI.Button(new Rect(10, top + height * i++, width, height), "Stop");
+            }
+            else
+            {
+                if (m_BroadcastController.IsLoggedIn)
+                {
+                    if (m_BroadcastController.IsReadyToBroadcast)
+                    {
                         start = GUI.Button(new Rect(10, top + height * i++, width, height), "Start");
                         startIngestTest = GUI.Button(new Rect(10, top + height * i++, width, height), "Start Ingest Test");
-						logOut = GUI.Button(new Rect(10,top+height*i++,width,height), "Log Out");
-					}
+                        logOut = GUI.Button(new Rect(10, top + height * i++, width, height), "Log Out");
+                    }
                     else if (m_BroadcastController.IsIngestTesting)
                     {
                         skipIngestServer = GUI.Button(new Rect(10, top + height * i++, width, height), "Skip Server");
                         cancelIngestTest = GUI.Button(new Rect(10, top + height * i++, width, height), "Cancel Ingest Test");
                     }
-				}
-				else
-				{
-					requestAuthToken = GUI.Button(new Rect(10,top+height*i++,width,height), "Request Auth Token");
-					setAuthToken = GUI.Button(new Rect(10,top+height*i++,width,height), "Use Existing Auth Token");
-				}
+                }
+                else
+                {
+                    requestAuthToken = GUI.Button(new Rect(10, top + height * i++, width, height), "Request Auth Token");
+                    setAuthToken = GUI.Button(new Rect(10, top + height * i++, width, height), "Use Existing Auth Token");
+                }
 
                 if (!m_BroadcastController.IsIngestTesting)
                 {
                     shutdown = GUI.Button(new Rect(10, top + height * i++, width, height), "Shutdown");
                 }
-			}
-		}
-		else
-		{
-			init = GUI.Button(new Rect(10,top+height*i++,width,height), "Init");
-		}
+            }
+        }
+        else
+        {
+            init = GUI.Button(new Rect(10, top + height * i++, width, height), "Init");
+        }
 
         if (m_GamePaused)
         {
@@ -197,6 +211,7 @@ public class BroadcastGUI : MonoBehaviour
 
         loadNextScene = GUI.Button(new Rect(10, top + height * i++, width, height), "Load Next Scene");
 
+#if !UNITY_IPHONE
         if (Screen.fullScreen)
         {
             exitFullScreen = GUI.Button(new Rect(10, top + height * i++, width, height), "Exit Full Screen");
@@ -205,66 +220,73 @@ public class BroadcastGUI : MonoBehaviour
         {
             enterFullScreen = GUI.Button(new Rect(10, top + height * i++, width, height), "Go Full Screen");
         }
+#endif
+
+        // Find an AudioSource
+        AudioSource audioSource = null;
+        UnityEngine.Object[] arr = GameObject.FindObjectsOfType(typeof(AudioSource));
+        if (arr != null && arr.Length > 0)
+        {
+            audioSource = arr[0] as AudioSource;
+        }
+
+        if (audioSource != null)
+        {
+            if (audioSource.isPlaying)
+            {
+                toggleSound = GUI.Button(new Rect(10, top + height * i++, width, height), "Stop Sound");
+            }
+            else
+            {
+                toggleSound = GUI.Button(new Rect(10, top + height * i++, width, height), "Play Sound");
+            }
+        }
 
         if (init)
-		{
+        {
             if (!m_BroadcastController.Initialize())
             {
                 DebugOverlay.Instance.AddViewportText("Error initializing Twitch", 2);
             }
-		}
+        }
         else if (shutdown)
-		{
+        {
             m_BroadcastController.Shutdown();
-		}
+        }
         else if (start)
-		{
-			VideoParams videoParams = null;
-
-            if (m_CalculateParamsFromBitrate)
-			{
-                videoParams = m_BroadcastController.GetRecommendedVideoParams((uint)m_TargetBitrate, (uint)m_BroadcastFramesPerSecond, m_BroadcastBitsPerPixel, m_BroadcastAspectRatio);
-			}
-			else
-			{
-                videoParams = m_BroadcastController.GetRecommendedVideoParams((uint)m_BroadcastWidth, (uint)m_BroadcastHeight, (uint)m_BroadcastFramesPerSecond);
-            }
-
-            if (!m_BroadcastController.StartBroadcasting(videoParams))
-			{
-				return;
-			}
-		}
+        {
+            StartBroadcasting();
+        }
         else if (requestAuthToken)
-		{
+        {
             m_BroadcastController.RequestAuthToken(m_UserName, m_Password);
-		}
+        }
         else if (setAuthToken)
-		{
-			string token = PlayerPrefs.GetString(s_TwitchAuthTokenKey, null);
-			string username = PlayerPrefs.GetString(s_TwitchUserNameKey, null);
-			
-			if (token != null && username != null)
-			{
-            	m_BroadcastController.SetAuthToken(username, new AuthToken(token));
-			}
-		}
+        {
+            string token = PlayerPrefs.GetString(s_TwitchAuthTokenKey, null);
+            string username = PlayerPrefs.GetString(s_TwitchUserNameKey, null);
+
+            if (token != null && username != null)
+            {
+                m_BroadcastController.SetAuthToken(username, new AuthToken(token));
+            }
+        }
         else if (logOut)
-		{
+        {
             m_BroadcastController.Logout();
-		}
+        }
         else if (stop)
-		{
+        {
             m_BroadcastController.StopBroadcasting();
-		}
+        }
         else if (pause)
-		{
+        {
             m_BroadcastController.PauseBroadcasting();
-		}
+        }
         else if (resume)
-		{
+        {
             m_BroadcastController.ResumeBroadcasting();
-		}
+        }
         else if (runCommercial)
         {
             m_BroadcastController.RunCommercial();
@@ -313,12 +335,63 @@ public class BroadcastGUI : MonoBehaviour
         {
             Screen.SetResolution(1080, 1024, false);
         }
+        else if (toggleSound)
+        {
+            if (audioSource.isPlaying)
+            {
+                audioSource.Stop();
+            }
+            else
+            {
+                audioSource.Play();
+            }
+        }
+
+        DebugOverlay.Instance.AddViewportText("Audio sample rate: " + AudioSettings.outputSampleRate, 0);
     }
-	
-	void Update()
-	{
-		if (DebugOverlay.InstanceExists)
-		{
+
+    protected void StartBroadcasting()
+    {
+        VideoParams videoParams = null;
+
+        if (m_CalculateParamsFromBitrate)
+        {
+            videoParams = m_BroadcastController.GetRecommendedVideoParams((uint)m_TargetBitrate, (uint)m_BroadcastFramesPerSecond, m_BroadcastBitsPerPixel, m_BroadcastAspectRatio);
+        }
+        else
+        {
+            videoParams = m_BroadcastController.GetRecommendedVideoParams((uint)m_BroadcastWidth, (uint)m_BroadcastHeight, (uint)m_BroadcastFramesPerSecond);
+        }
+
+        m_BroadcastController.StartBroadcasting(videoParams);
+    }
+
+    void Update()
+    {
+        if (m_AutoBroadcast)
+        {
+            switch (m_BroadcastController.CurrentState)
+            {
+                case BroadcastController.BroadcastState.Uninitialized:
+                {
+                    m_BroadcastController.Initialize();
+                    break;
+                }
+                case BroadcastController.BroadcastState.Initialized:
+                {
+                    m_BroadcastController.RequestAuthToken(m_UserName, m_Password);
+                    break;
+                }
+                case BroadcastController.BroadcastState.ReadyToBroadcast:
+                {
+                    StartBroadcasting();
+                    break;
+                }
+            }
+        }
+
+        if (DebugOverlay.InstanceExists)
+        {
             DebugOverlay.Instance.AddViewportText("Broadcast: " + m_BroadcastController.CurrentState.ToString(), 0);
 
             if (m_BroadcastController.IngestTester != null)
@@ -331,18 +404,23 @@ public class BroadcastGUI : MonoBehaviour
                 }
                 DebugOverlay.Instance.AddViewportText(str, 0);
             }
-		}
-	}
-	
-	void OnDestroy()
-	{
-		if (m_BroadcastController.IsInitialized)
-		{
-			m_BroadcastController.Shutdown();
-		}
+        }
+    }
 
-		m_BroadcastController.AuthTokenRequestComplete -= HandleAuthTokenRequestComplete;
-		m_BroadcastController.LoginAttemptComplete -= HandleLoginAttemptComplete;
+    void OnDestroy()
+    {
+        if (m_BroadcastController == null)
+        {
+            return;
+        }
+    
+        if (m_BroadcastController.IsInitialized)
+        {
+            m_BroadcastController.Shutdown();
+        }
+
+        m_BroadcastController.AuthTokenRequestComplete -= HandleAuthTokenRequestComplete;
+        m_BroadcastController.LoginAttemptComplete -= HandleLoginAttemptComplete;
         m_BroadcastController.GameNameListReceived -= this.HandleGameNameListReceived;
         m_BroadcastController.BroadcastStateChanged -= this.HandleBroadcastStateChanged;
         m_BroadcastController.LoggedOut -= this.HandleLoggedOut;
@@ -350,46 +428,46 @@ public class BroadcastGUI : MonoBehaviour
         m_BroadcastController.FrameSubmissionIssue -= this.HandleFrameSubmissionIssue;
         m_BroadcastController.IngestListReceived -= this.HandleIngestListReceived;
     }
-	
-	#region Callbacks
-	
-	protected static readonly string s_TwitchAuthTokenKey = "Twitch.AuthToken";
-	protected static readonly string s_TwitchUserNameKey = "Twitch.UserName";
-	
-	protected void HandleAuthTokenRequestComplete(Twitch.ErrorCode result, AuthToken authToken)
-	{
-		if (Twitch.Error.Succeeded(result))
-		{
-			PlayerPrefs.SetString(s_TwitchAuthTokenKey, authToken.Data);
-			PlayerPrefs.SetString(s_TwitchUserNameKey, m_BroadcastController.UserName);
-		
-			DebugOverlay.Instance.AddViewportText("User authenticated", 2);
-		}
-		else
-		{
-			PlayerPrefs.DeleteKey(s_TwitchAuthTokenKey);
-			PlayerPrefs.DeleteKey(s_TwitchUserNameKey);
-		
-			DebugOverlay.Instance.AddViewportText("Failed to authenticate", 2);
-		}
-		
-		PlayerPrefs.Save();
-	}
-	
-	protected void HandleLoginAttemptComplete(Twitch.ErrorCode result)
-	{
-		if (Twitch.Error.Succeeded(result))
-		{
-			DebugOverlay.Instance.AddViewportText("Logged in, ready to stream", 2);
-		}
-		else
-		{
-			PlayerPrefs.DeleteKey(s_TwitchAuthTokenKey);
-			PlayerPrefs.Save();
-		
-			DebugOverlay.Instance.AddViewportText("AuthToken invalid, please enter your username and password again", 2);
-		}
-	}
+
+    #region Callbacks
+
+    protected static readonly string s_TwitchAuthTokenKey = "Twitch.AuthToken";
+    protected static readonly string s_TwitchUserNameKey = "Twitch.UserName";
+
+    protected void HandleAuthTokenRequestComplete(Twitch.ErrorCode result, AuthToken authToken)
+    {
+        if (Twitch.Error.Succeeded(result))
+        {
+            PlayerPrefs.SetString(s_TwitchAuthTokenKey, authToken.Data);
+            PlayerPrefs.SetString(s_TwitchUserNameKey, m_BroadcastController.UserName);
+
+            DebugOverlay.Instance.AddViewportText("User authenticated", 2);
+        }
+        else
+        {
+            PlayerPrefs.DeleteKey(s_TwitchAuthTokenKey);
+            PlayerPrefs.DeleteKey(s_TwitchUserNameKey);
+
+            DebugOverlay.Instance.AddViewportText("Failed to authenticate", 2);
+        }
+
+        PlayerPrefs.Save();
+    }
+
+    protected void HandleLoginAttemptComplete(Twitch.ErrorCode result)
+    {
+        if (Twitch.Error.Succeeded(result))
+        {
+            DebugOverlay.Instance.AddViewportText("Logged in, ready to stream", 2);
+        }
+        else
+        {
+            PlayerPrefs.DeleteKey(s_TwitchAuthTokenKey);
+            PlayerPrefs.Save();
+
+            DebugOverlay.Instance.AddViewportText("AuthToken invalid, please enter your username and password again", 2);
+        }
+    }
 
     protected void HandleGameNameListReceived(Twitch.ErrorCode result, GameInfo[] list)
     {
@@ -430,20 +508,21 @@ public class BroadcastGUI : MonoBehaviour
         {
             case IngestTester.TestState.Finished:
             case IngestTester.TestState.Cancelled:
-            {
-                m_IngestTester.OnTestStateChanged -= OnIngestTesterStateChanged;
-
-                // use the best server based on kbps
-                m_BroadcastController.IngestServer = m_BroadcastController.IngestList.BestServer;
-
-                if (m_BroadcastController.IngestServer != null)
                 {
-                    DebugOverlay.Instance.AddViewportText("Selected Best Ingest Server: " + m_BroadcastController.IngestServer.ServerName, 2);
-                }
+                    m_IngestTester.OnTestStateChanged -= OnIngestTesterStateChanged;
 
-                break;
-            }
+                    // use the best server based on kbps
+                    m_BroadcastController.IngestServer = m_BroadcastController.IngestList.BestServer;
+
+                    if (m_BroadcastController.IngestServer != null)
+                    {
+                        DebugOverlay.Instance.AddViewportText("Selected Best Ingest Server: " + m_BroadcastController.IngestServer.ServerName, 2);
+                    }
+
+                    break;
+                }
         }
     }
-	#endregion
+
+    #endregion
 }

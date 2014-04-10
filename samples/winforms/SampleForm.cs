@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using System.Threading;
 using ErrorCode = Twitch.ErrorCode;
 using AuthToken = Twitch.AuthToken;
 
@@ -20,6 +21,8 @@ namespace WinformsSample
         protected Twitch.Test.TestFrameGenerator mFrameGenerator = null;
         protected Twitch.Broadcast.IngestTester mIngestTester = null;
 
+        protected Thread mAudioThread = null; // Used for passthrough audio only
+        protected bool mShuttingDown = false;
 
         public SampleForm()
         {
@@ -47,13 +50,24 @@ namespace WinformsSample
                 mClientSecretText.Text = System.IO.File.ReadAllText(kClientSecret);
             }
 
-            Twitch.Chat.ChatController.EmoticonMode[] arr = (Twitch.Chat.ChatController.EmoticonMode[])Enum.GetValues(typeof(Twitch.Chat.ChatController.EmoticonMode));
-            mEmoticonModeCombobox.Items.Clear();
-            foreach (var i in arr)
             {
-                mEmoticonModeCombobox.Items.Add(i);
+                Twitch.Broadcast.BroadcastController.GameAudioCaptureMethod[] arr = (Twitch.Broadcast.BroadcastController.GameAudioCaptureMethod[])Enum.GetValues(typeof(Twitch.Broadcast.BroadcastController.GameAudioCaptureMethod));
+                mAudioCaptureMethodCombo.Items.Clear();
+                foreach (var i in arr)
+                {
+                    mAudioCaptureMethodCombo.Items.Add(i);
+                }
+                mAudioCaptureMethodCombo.SelectedIndex = 0;
             }
-            mEmoticonModeCombobox.SelectedIndex = 0;
+            {
+                Twitch.Chat.ChatController.EmoticonMode[] arr = (Twitch.Chat.ChatController.EmoticonMode[])Enum.GetValues(typeof(Twitch.Chat.ChatController.EmoticonMode));
+                mEmoticonModeCombobox.Items.Clear();
+                foreach (var i in arr)
+                {
+                    mEmoticonModeCombobox.Items.Add(i);
+                }
+                mEmoticonModeCombobox.SelectedIndex = 0;
+            }
 
             mBroadcastController.AuthTokenRequestComplete += this.HandleAuthTokenRequestComplete;
             mBroadcastController.StreamInfoUpdated += this.HandleStreamInfoUpdated;
@@ -73,9 +87,74 @@ namespace WinformsSample
             mChatController.EmoticonDataExpired += this.HandleEmoticonDataExpired;
             mChatController.Connected += this.HandleChatConnected;
             mChatController.Disconnected += this.HandleChatDisconnected;
+
+            mAudioThread = new Thread(SubmitAudioSamples);
+            mAudioThread.Start();
         }
 
         #region Stream
+
+        private void SubmitAudioSamples()
+        {
+            const int sampleRate = 44100;
+            const int numChannels = 2;
+            const float pitchBase = 440.0f; // Hz, perfect A
+            const int chunkDurationMilliseconds = 20;
+            const float pitchFrequency = 5;
+            const float TWO_PI = 2 * (float)Math.PI;
+
+            const int numSamplesPerChunk = numChannels * sampleRate / (1000 / chunkDurationMilliseconds);
+            const float pitchStep = TWO_PI / (float)sampleRate / pitchFrequency;
+
+            short[] chunk = new short[numSamplesPerChunk];
+            float waveFormProgress = 0;
+            float pitchProgress = 0;
+
+            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            timer.Start();
+
+            long nextSubmit = timer.ElapsedMilliseconds;
+
+            while (!mShuttingDown)
+            {
+                if (mBroadcastController.AudioCaptureMethod == Twitch.Broadcast.BroadcastController.GameAudioCaptureMethod.Passthrough)
+                {
+                    for (int i = 0; i < numSamplesPerChunk; i += 2)
+                    {
+                        float pitch = pitchBase + 100.0f * (float)Math.Sin(pitchProgress);
+                        float waveFormStep = TWO_PI * (float)pitch / (float)sampleRate;
+
+                        float sample = (float)Math.Sin(waveFormProgress) * 32767.0f;
+                        chunk[i] = (short)sample;
+                        chunk[i + 1] = chunk[i];
+
+                        waveFormProgress += waveFormStep;
+                        pitchProgress += pitchStep;
+
+                        if (waveFormProgress >= TWO_PI)
+                        {
+                            waveFormProgress -= TWO_PI;
+                        }
+                        if (pitchProgress >= TWO_PI)
+                        {
+                            pitchProgress -= TWO_PI;
+                        }
+                    }
+
+                    while (timer.ElapsedMilliseconds < nextSubmit)
+                    {
+                        Thread.Sleep(0);
+                    }
+
+                    nextSubmit += chunkDurationMilliseconds;
+                    mBroadcastController.SubmitAudioSamples(chunk);
+                }
+                else
+                {
+                    Thread.Sleep(chunkDurationMilliseconds);
+                }
+            }
+        }
 
         private void InitButton_Click(object sender, EventArgs e)
         {
@@ -166,7 +245,8 @@ namespace WinformsSample
             uint fps = (uint)mFramesPerSecondSelector.Value;
 
             Twitch.Broadcast.VideoParams videoParams = mBroadcastController.GetRecommendedVideoParams(width, height, fps);
-            mBroadcastController.EnableAudio = mEnableAudioCheckbox.Checked;
+            mBroadcastController.AudioCaptureMethod = (Twitch.Broadcast.BroadcastController.GameAudioCaptureMethod)mAudioCaptureMethodCombo.SelectedItem;
+            mBroadcastController.CaptureMicrophone = mCaptureMicrophoneCheckbox.Checked;
 
             if (!mBroadcastController.StartBroadcasting(videoParams))
             {
@@ -185,7 +265,8 @@ namespace WinformsSample
             float aspectRatio = float.Parse(arr[0]) / float.Parse(arr[1]);
 
             Twitch.Broadcast.VideoParams videoParams = mBroadcastController.GetRecommendedVideoParams(maxKbps, fps, 0.1f, aspectRatio);
-            mBroadcastController.EnableAudio = mEnableAudioCheckbox.Checked;
+            mBroadcastController.AudioCaptureMethod = (Twitch.Broadcast.BroadcastController.GameAudioCaptureMethod)mAudioCaptureMethodCombo.SelectedItem;
+            mBroadcastController.CaptureMicrophone = mCaptureMicrophoneCheckbox.Checked;
 
             if (!mBroadcastController.StartBroadcasting(videoParams))
             {
@@ -209,6 +290,7 @@ namespace WinformsSample
 
         private void SampleForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            mShuttingDown = true;
             mChatController.ForceSyncShutdown();
             mBroadcastController.ForceSyncShutdown();
         }

@@ -1,5 +1,11 @@
 #Twitch Broadcasting SDK - Change history  
 
+#### April 3, 2014  
+- If TTV_SubmitVideoFrame returns TTV_EC_FRAME_QUEUE_TOO_LONG it no longer queues the frame you submitted.  Now you can safely assume that if any error is returned that the frame was not queued.  
+
+#### March 18, 2014
+- Fixed the long standing bug with audio volumes causing issues if set before video is submitted. 
+
 #### March 3, 2014
 - Rewrote the parsing of video files for iOS/Mac to handle b-frames and be a lot more correct in the flv generated
 - Fixed sync issue with iOS and mac microphone capture

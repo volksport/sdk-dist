@@ -12,6 +12,8 @@ namespace Twitch.Broadcast
         protected string m_ClientSecret = "";
         protected string m_CaCertFilePath = "";
         protected bool m_EnableAudio = true;
+        protected bool m_CaptureMicrohpone = true;
+        private GameAudioCaptureMethod m_AudioCaptureMethod = GameAudioCaptureMethod.SystemCapture;
 
         protected List<UIntPtr> m_CaptureBuffers = new List<UIntPtr>();
         protected List<UIntPtr> m_FreeBufferList = new List<UIntPtr>();
@@ -32,10 +34,16 @@ namespace Twitch.Broadcast
             set { m_ClientSecret = value; }
         }
 
-        public override bool EnableAudio
+        public override bool CaptureMicrophone
         {
-            get { return m_EnableAudio; }
-            set { m_EnableAudio = value; }
+            get { return m_CaptureMicrohpone; }
+            set { m_CaptureMicrohpone = value; }
+        }
+
+        public override GameAudioCaptureMethod AudioCaptureMethod
+        {
+            get { return m_AudioCaptureMethod; }
+            set { m_AudioCaptureMethod = value; }
         }
 
         public override bool IsAudioSupported
@@ -92,14 +100,14 @@ namespace Twitch.Broadcast
 
         public WinFormsBroadcastController()
         {
-            m_Core = Core.Instance;
+            m_CoreApi = CoreApi.Instance;
 
-            if (m_Core == null)
+            if (m_CoreApi == null)
             {
-                m_Core = new Core(new StandardCoreAPI());
+                m_CoreApi = new StandardCoreApi();
             } 
             
-            m_Stream = new Twitch.Broadcast.Stream(new Twitch.Broadcast.DesktopStreamAPI());
+            m_BroadcastApi = new Twitch.Broadcast.DesktopBroadcastApi();
         }
 
         protected override void HandleBufferUnlock(UIntPtr buffer)
@@ -115,7 +123,7 @@ namespace Twitch.Broadcast
             for (uint i = 0; i < 3; ++i)
             {
                 UIntPtr buffer = UIntPtr.Zero;
-                ErrorCode ret = m_Stream.AllocateFrameBuffer(m_VideoParams.OutputWidth * m_VideoParams.OutputHeight * 4, out buffer);
+                ErrorCode ret = m_BroadcastApi.AllocateFrameBuffer(m_VideoParams.OutputWidth * m_VideoParams.OutputHeight * 4, out buffer);
                 if (Error.Failed(ret))
                 {
                     string err = Error.GetString(ret);
@@ -136,7 +144,7 @@ namespace Twitch.Broadcast
             for (int i = 0; i < m_CaptureBuffers.Count; ++i)
             {
                 UIntPtr buffer = m_CaptureBuffers[i];
-                ErrorCode ret = m_Stream.FreeFrameBuffer(buffer);
+                ErrorCode ret = m_BroadcastApi.FreeFrameBuffer(buffer);
                 if (Error.Failed(ret))
                 {
                     string err = Error.GetString(ret);
@@ -173,7 +181,7 @@ namespace Twitch.Broadcast
                 return ErrorCode.TTV_EC_STREAM_NOT_STARTED;
             }
 
-            ErrorCode ret = m_Stream.SubmitVideoFrame(buffer);
+            ErrorCode ret = m_BroadcastApi.SubmitVideoFrame(buffer);
 
             // if there is a problem when submitting a frame let the client know
             if (ret != ErrorCode.TTV_EC_SUCCESS)
@@ -197,6 +205,20 @@ namespace Twitch.Broadcast
             }
 
             return ret;
+        }
+
+        public bool SubmitAudioSamples(short[] samples)
+        {
+            if (this.IsBroadcasting)
+            {
+                if (m_AudioParams.EnablePassthroughAudio)
+                {
+                    m_BroadcastApi.SubmitAudioSamples(samples, (uint)samples.Length);
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         #region Error Checking

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 /// <summary>
 /// This component is responsible for creating and maintaining the scene RenderTexture that the game will render the scene to. It handles resize events from 
 /// the Unity Screen instance and automatically regenerates the screen RenderTexture. It also updates the configured scene cameras and notifies them to update 
-/// their projections. When the RenderTexture is automatically updated it is connected to the configured BroadcastController.
+/// their projections. When the RenderTexture is automatically updated it is connected to the configured UnityBroadcastController.
 /// </summary>
 public class RenderTextureResizer : MonoBehaviour
 {
@@ -88,9 +88,7 @@ public class RenderTextureResizer : MonoBehaviour
 		{
             if (m_CurrentSceneCameras[i] != null)
 			{
-                m_CurrentSceneCameras[i].targetTexture = rt;
-                m_CurrentSceneCameras[i].ResetAspect();
-                m_CurrentSceneCameras[i].ResetProjectionMatrix();
+                UpdateCamera(m_CurrentSceneCameras[i], rt);
 			}
 		}
 		

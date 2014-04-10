@@ -118,11 +118,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>echo f | xcopy "$(ProjectDir)..\..\lib\Win32\$(ConfigurationName)Bindings\twitchsdk.dll" "$(ProjectDir)$(OutDir)..\..\x86\$(ConfigurationName)\twitchsdk.dll" /Y
-
 echo f | xcopy "$(ProjectDir)..\..\lib\Win32\$(ConfigurationName)Bindings\twitchsdk.pdb" "$(ProjectDir)$(OutDir)..\..\x86\$(ConfigurationName)\twitchsdk.pdb" /Y
-echo f | xcopy "$(ProjectDir)..\..\lib\x64\$(ConfigurationName)Bindings\twitchsdk.dll" "$(ProjectDir)$(OutDir)..\..\x64\$(ConfigurationName)\twitchsdk.dll" /Y
-
-echo f | xcopy "$(ProjectDir)..\..\lib\x64\$(ConfigurationName)Bindings\twitchsdk.pdb" "$(ProjectDir)$(OutDir)..\..\x64\$(ConfigurationName)\twitchsdk.pdb" /Y
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

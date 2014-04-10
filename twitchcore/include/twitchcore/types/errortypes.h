@@ -299,7 +299,7 @@ typedef enum
 #define TTV_SUCCEEDED(err) ( (err) <= TTV_EC_SUCCESS)
 #define TTV_RETURN_ON_NULL(ptr,err) { if ( (ptr) == nullptr) RETURN_CLIENT_ERROR(err); }
 #define TTV_RETURN_ON_NOT_NULL(ptr,err) { if ( (ptr) != nullptr) RETURN_CLIENT_ERROR(err); }
-#define TTV_RETURN_ON_EMPTY_STRING(str, err) { if (str == nullptr || str == '\0') RETURN_CLIENT_ERROR(err); }
+#define TTV_RETURN_ON_EMPTY_STRING(str, err) { if (str == nullptr || str[0] == '\0') RETURN_CLIENT_ERROR(err); }
 #define TTV_RETURN_ON_EMPTY_STDSTRING(str, err) { if (str.size() == 0) RETURN_CLIENT_ERROR(err); }
 #define TTV_RETURN_ON_ERROR(err) { if (TTV_FAILED(err)) RETURN_CLIENT_ERROR(err);}
 #define TTV_RETURN_ON_DIFFERENT(a, b, err) { if ( (a) != (b) ) RETURN_CLIENT_ERROR(err);}

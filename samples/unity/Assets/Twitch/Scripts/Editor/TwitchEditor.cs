@@ -114,7 +114,7 @@ namespace Twitch
         [MenuItem("Twitch/Populate My Credentials")]
         public static void PopulateMyCredentials()
         {
-			// TODO: fill in credentials here that you enter often
+            // TODO: fill in credentials here that you enter often
             PopulateCredentials("", "", "", "");
         }
 

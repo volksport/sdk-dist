@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Twitch;
+using Twitch.Chat;
 using ErrorCode = Twitch.ErrorCode;
 
 namespace Twitch.Chat
@@ -67,14 +66,14 @@ namespace Twitch.Chat
 
         public WinFormsChatController()
         {
-            m_Core = Core.Instance;
+            m_CoreApi = CoreApi.Instance;
 
-            if (m_Core == null)
+            if (m_CoreApi == null)
             {
-                m_Core = new Core(new StandardCoreAPI());
+                m_CoreApi = new StandardCoreApi();
             }
 
-            m_Chat = new Twitch.Chat.Chat(new Twitch.Chat.StandardChatAPI());
+            m_ChatApi = new StandardChatApi();
         }
 
         #region Error Handling

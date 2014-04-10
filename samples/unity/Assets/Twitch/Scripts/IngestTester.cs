@@ -40,7 +40,7 @@ namespace Twitch.Broadcast
 
         protected const bool k_AsyncStartStop = true;
 
-        protected Stream m_Stream = null;
+        protected BroadcastApi m_Stream = null;
         protected IngestServer[] m_IngestList = null;
 
         protected TestState m_TestState = TestState.Uninitalized;
@@ -53,8 +53,8 @@ namespace Twitch.Broadcast
         protected System.Diagnostics.Stopwatch m_Timer = new System.Diagnostics.Stopwatch();
         protected List<UIntPtr> m_IngestBuffers = null;
         protected bool m_ServerTestSucceeded = false;
-        protected IStreamCallbacks m_PreviousStreamCallbacks = null;
-        protected IStatCallbacks m_PreviousStatCallbacks = null;
+        protected IBroadcastApiListener m_PreviousStreamCallbacks = null;
+        protected IStatsListener m_PreviousStatCallbacks = null;
         protected IngestServer m_CurrentServer = null;
         protected bool m_CancelTest = false;
         protected bool m_SkipServer = false;
@@ -190,7 +190,7 @@ namespace Twitch.Broadcast
                 set { m_IngestTester.m_CurrentServer = value; }
             }
 
-            protected Stream Api
+            protected BroadcastApi Api
             {
                 get { return m_IngestTester.m_Stream; }
             }
@@ -201,54 +201,54 @@ namespace Twitch.Broadcast
             }
         }
 
-        protected class StreamCallbackListener : IngestTesterAccess, IStreamCallbacks
+        protected class StreamCallbackListener : IngestTesterAccess, IBroadcastApiListener
         {
             public StreamCallbackListener(IngestTester tester)
                 : base(tester)
             {
             }
 
-            void IStreamCallbacks.RequestAuthTokenCallback(ErrorCode result, AuthToken authToken)
+            void IBroadcastApiListener.RequestAuthTokenCallback(ErrorCode result, AuthToken authToken)
             {
             }
 
-            void IStreamCallbacks.LoginCallback(ErrorCode result, ChannelInfo channelInfo)
+            void IBroadcastApiListener.LoginCallback(ErrorCode result, ChannelInfo channelInfo)
             {
             }
 
-            void IStreamCallbacks.GetIngestServersCallback(ErrorCode result, IngestList ingestList)
+            void IBroadcastApiListener.GetIngestServersCallback(ErrorCode result, IngestList ingestList)
             {
             }
 
-            void IStreamCallbacks.GetUserInfoCallback(ErrorCode result, UserInfo userInfo)
+            void IBroadcastApiListener.GetUserInfoCallback(ErrorCode result, UserInfo userInfo)
             {
             }
 
-            void IStreamCallbacks.GetStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
+            void IBroadcastApiListener.GetStreamInfoCallback(ErrorCode result, StreamInfo streamInfo)
             {
             }
 
-            void IStreamCallbacks.GetArchivingStateCallback(ErrorCode result, ArchivingState state)
+            void IBroadcastApiListener.GetArchivingStateCallback(ErrorCode result, ArchivingState state)
             {
             }
 
-            void IStreamCallbacks.RunCommercialCallback(ErrorCode result)
+            void IBroadcastApiListener.RunCommercialCallback(ErrorCode result)
             {
             }
 
-            void IStreamCallbacks.SetStreamInfoCallback(ErrorCode result)
+            void IBroadcastApiListener.SetStreamInfoCallback(ErrorCode result)
             {
             }
 
-            void IStreamCallbacks.GetGameNameListCallback(ErrorCode result, GameInfoList list)
+            void IBroadcastApiListener.GetGameNameListCallback(ErrorCode result, GameInfoList list)
             {
             }
 
-            void IStreamCallbacks.BufferUnlockCallback(UIntPtr buffer)
+            void IBroadcastApiListener.BufferUnlockCallback(UIntPtr buffer)
             {
             }
 
-            void IStreamCallbacks.StartCallback(ErrorCode ret)
+            void IBroadcastApiListener.StartCallback(ErrorCode ret)
             {
                 this.WaitingForStartCallback = false;
 
@@ -269,7 +269,7 @@ namespace Twitch.Broadcast
                 }
             }
 
-            void IStreamCallbacks.StopCallback(ErrorCode ret)
+            void IBroadcastApiListener.StopCallback(ErrorCode ret)
             {
         	    if (Error.Failed(ret))
         	    {
@@ -290,27 +290,27 @@ namespace Twitch.Broadcast
 	            }
             }
 
-            void IStreamCallbacks.SendActionMetaDataCallback(ErrorCode ret)
+            void IBroadcastApiListener.SendActionMetaDataCallback(ErrorCode ret)
             {
             }
 
-            void IStreamCallbacks.SendStartSpanMetaDataCallback(ErrorCode ret)
+            void IBroadcastApiListener.SendStartSpanMetaDataCallback(ErrorCode ret)
             {
             }
 
-            void IStreamCallbacks.SendEndSpanMetaDataCallback(ErrorCode ret)
+            void IBroadcastApiListener.SendEndSpanMetaDataCallback(ErrorCode ret)
             {
             }
         }
 
-        protected class StatCallbackListener : IngestTesterAccess, IStatCallbacks
+        protected class StatCallbackListener : IngestTesterAccess, IStatsListener
         {
             public StatCallbackListener(IngestTester tester)
                 : base(tester)
             {
             }
 
-            void IStatCallbacks.StatCallback(StatType type, ulong data)
+            void IStatsListener.StatCallback(StatType type, ulong data)
             {
                 switch (type)
                 {
@@ -325,13 +325,13 @@ namespace Twitch.Broadcast
             }
         }
 
-        internal IngestTester(Stream stream, IngestList ingestList)
+        internal IngestTester(BroadcastApi stream, IngestList ingestList)
         {
             m_Stream = stream;
             m_IngestList = ingestList.Servers;
         }
 
-        internal IngestTester(Stream stream, IngestServer[] ingestList)
+        internal IngestTester(BroadcastApi stream, IngestServer[] ingestList)
         {
             m_Stream = stream;
             m_IngestList = ingestList;
@@ -358,11 +358,11 @@ namespace Twitch.Broadcast
             m_WaitingForStartCallback = false;
             m_WaitingForStopCallback = false;
 
-            m_PreviousStatCallbacks = m_Stream.StatCallbacks;
-            m_Stream.StatCallbacks = m_StatCallbackListener;
+            m_PreviousStatCallbacks = m_Stream.StatsListener;
+            m_Stream.StatsListener = m_StatCallbackListener;
 
-            m_PreviousStreamCallbacks = m_Stream.StreamCallbacks;
-            m_Stream.StreamCallbacks = m_StreamCallbackListener;
+            m_PreviousStreamCallbacks = m_Stream.BroadcastApiListener;
+            m_Stream.BroadcastApiListener = m_StreamCallbackListener;
 
             m_IngestTestVideoParams = new VideoParams();
             m_IngestTestVideoParams.TargetFps = Twitch.Broadcast.Constants.TTV_MAX_FPS;
@@ -580,7 +580,7 @@ namespace Twitch.Broadcast
 	            if (Error.Failed(ec))
 	            {
 	        	    // this should never happen so fake the callback to indicate it's stopped
-                    (m_StreamCallbackListener as IStreamCallbacks).StopCallback(ErrorCode.TTV_EC_SUCCESS);
+                    (m_StreamCallbackListener as IBroadcastApiListener).StopCallback(ErrorCode.TTV_EC_SUCCESS);
 	        	
 	        	    System.Diagnostics.Debug.WriteLine("Stop failed: " + ec.ToString());
 	            }
@@ -590,7 +590,7 @@ namespace Twitch.Broadcast
     	    else
     	    {
     		    // simulate a stop callback
-                (m_StreamCallbackListener as IStreamCallbacks).StopCallback(ErrorCode.TTV_EC_SUCCESS);
+                (m_StreamCallbackListener as IBroadcastApiListener).StopCallback(ErrorCode.TTV_EC_SUCCESS);
     	    }
         }
 
@@ -696,15 +696,15 @@ namespace Twitch.Broadcast
                 m_IngestBuffers = null;
             }
 
-            if (m_Stream.StatCallbacks == m_StatCallbackListener)
+            if (m_Stream.StatsListener == m_StatCallbackListener)
             {
-                m_Stream.StatCallbacks = m_PreviousStatCallbacks;
+                m_Stream.StatsListener = m_PreviousStatCallbacks;
                 m_PreviousStatCallbacks = null;
             }
 
-            if (m_Stream.StreamCallbacks == m_StreamCallbackListener)
+            if (m_Stream.BroadcastApiListener == m_StreamCallbackListener)
             {
-                m_Stream.StreamCallbacks = m_PreviousStreamCallbacks;
+                m_Stream.BroadcastApiListener = m_PreviousStreamCallbacks;
                 m_PreviousStreamCallbacks = null;
             }
         }

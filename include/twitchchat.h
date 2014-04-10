@@ -122,7 +122,8 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_FreeTokenizedMessageList(const TTV_ChatTokeniz
 /**
  * TTV_Chat_DownloadEmoticonData - Initiates a download of the emoticon data.  This will trigger a redownload if called a second time.  The callback will be called
  *								   to indicate the success of the download.  Call TTV_Chat_GetEmoticonDatato retrieve the data after it has 
- *								   been downloaded.  This should be called after successful initialization.
+ *								   been downloaded.  This should be called after successful initialization.  Calling this a second time will not automatically clear
+ *								   the data from a previous successful download.
  *
  * @param[in] callback - The callback to call when the emoticon data has finished downloading and is prepared for use.
  * @param[in] userdata - The userdata to pass back in the callback.
@@ -162,7 +163,8 @@ TTVSDK_API TTV_ErrorCode TTV_Chat_FreeEmoticonData(TTV_ChatEmoticonData* data);
 /**
  * TTV_Chat_DownloadBadgeData - Initiates a download of the badge data for the connected channel.  This will trigger a redownload if called a second time.  
  *								The callback will be called to indicate the success of the download.  Call TTV_Chat_GetBadgeData to retrieve the data after 
- *								it has been downloaded.  This should be called after successfully connecting to the channel.
+ *								it has been downloaded.  This should be called after successfully connecting to the channel.  Calling this a second time will not 
+ *								automatically clear the data from a previous successful download.
  *
  * @param[in] callback - The callback to call when the badge data has finished downloading and is prepared for use.
  * @param[in] userdata - The userdata to pass back in the callback.

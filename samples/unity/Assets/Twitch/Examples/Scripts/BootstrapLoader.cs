@@ -6,8 +6,11 @@ public class BootstrapLoader : MonoBehaviour
     [SerializeField]
     protected string m_Scene = "";
 
-	protected void Awake() 
-	{
+    protected void Awake()
+    {
+        // let the device rotate
+        Screen.orientation = ScreenOrientation.AutoRotation;
+
         // first load the persistent Twitch stuff
         Application.LoadLevelAdditive("Twitch");
 
@@ -20,5 +23,5 @@ public class BootstrapLoader : MonoBehaviour
         {
             Application.LoadLevel(m_Scene);
         }
-	}
+    }
 }

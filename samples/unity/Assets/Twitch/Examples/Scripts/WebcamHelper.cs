@@ -6,7 +6,7 @@ public class WebcamHelper : MonoBehaviour
 // Temporary hack to get the project to compile because Unity removed it as a type until 
 // they fix an issue with web cameras.
 // http://unity3d.com/unity/whats-new/unity-4.3.2
-#if UNITY_STANDALONE_OSX && !UNITY_4_3
+#if (!UNITY_STANDALONE_OSX) || (UNITY_STANDALONE_OSX && !UNITY_4_3)
 	[SerializeField]
 	protected int m_DesiredWidth = 640;
 	[SerializeField]

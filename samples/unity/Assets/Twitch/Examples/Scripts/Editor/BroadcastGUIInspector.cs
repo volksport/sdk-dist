@@ -31,6 +31,8 @@ public class BroadcastGUIInspector : Editor
             gui.BroadcastHeight = PresentIntField("Broadcast Height", gui.BroadcastHeight);
         }
 
+		gui.AutoBroadcast = PresentBooleanField("AutoBroadcast", gui.AutoBroadcast);
+
         if (GUI.changed)
 		{
             EditorUtility.SetDirty(target);

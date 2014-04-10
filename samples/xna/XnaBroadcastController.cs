@@ -15,7 +15,10 @@ namespace Twitch.Broadcast
         protected string m_ClientSecret = "";
         protected string m_CaCertFilePath = "";
         protected string m_DllPath = "";
-        protected bool m_EnableAudio = true;
+        protected bool m_CaptureMicrohpone = true;
+        protected GameAudioCaptureMethod m_AudioCaptureMethod = GameAudioCaptureMethod.SystemCapture;
+
+        private XnaBroadcastApi m_XnaBroadcastApi = null;
 
         protected GraphicsDevice m_GraphicsDevice = null;
 
@@ -35,10 +38,16 @@ namespace Twitch.Broadcast
             set { m_ClientSecret = value; }
         }
 
-        public override bool EnableAudio
+        public override bool CaptureMicrophone
         {
-            get { return m_EnableAudio; }
-            set { m_EnableAudio = value; }
+            get { return m_CaptureMicrohpone; }
+            set { m_CaptureMicrohpone = value; }
+        }
+
+        public override GameAudioCaptureMethod AudioCaptureMethod
+        {
+            get { return m_AudioCaptureMethod; }
+            set { }
         }
         
         public override bool IsAudioSupported
@@ -91,23 +100,19 @@ namespace Twitch.Broadcast
             }
         }
 
-        protected Twitch.Broadcast.XnaStream XnaStream
-        {
-            get { return m_Stream as Twitch.Broadcast.XnaStream; }
-        }
-
         #endregion
 
         public XnaBroadcastController()
         {
-            m_Core = Core.Instance;
+            m_CoreApi = CoreApi.Instance;
 
-            if (m_Core == null)
+            if (m_CoreApi == null)
             {
-                m_Core = new Core(new XnaCoreAPI());
+                m_CoreApi = new StandardCoreApi();
             }
 
-            m_Stream = new Twitch.Broadcast.XnaStream(new Twitch.Broadcast.DesktopXnaStreamAPI());
+            m_XnaBroadcastApi = new Twitch.Broadcast.DesktopXnaBroadcastApi();
+            m_BroadcastApi = m_XnaBroadcastApi;
         }
 
         public ErrorCode SubmitFrame(RenderTarget2D renderTarget)
@@ -127,7 +132,7 @@ namespace Twitch.Broadcast
 
             IntPtr p = GetNativeRenderTexturePointer(renderTarget);
 
-            ErrorCode ret = this.XnaStream.SubmitRenderTarget(p);
+            ErrorCode ret = m_XnaBroadcastApi.SubmitRenderTarget(p, renderTarget.Width, renderTarget.Height);
 
             // if there is a problem when submitting a frame let the client know
             if (ret != ErrorCode.TTV_EC_SUCCESS)
@@ -181,7 +186,7 @@ namespace Twitch.Broadcast
             // stop broadcasting if there is no device
             if (m_GraphicsDevice == null && this.IsBroadcasting)
             {
-                m_Stream.Stop(false);
+                m_XnaBroadcastApi.Stop(false);
                 SetBroadcastState(BroadcastState.ReadyToBroadcast);
             }
             
@@ -190,12 +195,12 @@ namespace Twitch.Broadcast
 
         protected void m_GraphicsDevice_DeviceResetting(object sender, EventArgs e)
         {
-            this.XnaStream.SetGraphicsDevice(IntPtr.Zero);
+            m_XnaBroadcastApi.SetGraphicsDevice(IntPtr.Zero);
         }
 
         protected void m_GraphicsDevice_DeviceLost(object sender, EventArgs e)
         {
-            this.XnaStream.SetGraphicsDevice(IntPtr.Zero);
+            m_XnaBroadcastApi.SetGraphicsDevice(IntPtr.Zero);
         }
 
         protected void m_GraphicsDevice_DeviceReset(object sender, EventArgs e)
@@ -208,7 +213,7 @@ namespace Twitch.Broadcast
                 d = GetNativeDevicePointer(m_GraphicsDevice);
             }
 
-            this.XnaStream.SetGraphicsDevice(d);
+            m_XnaBroadcastApi.SetGraphicsDevice(d);
         }
 
         protected unsafe IntPtr GetNativeDevicePointer(GraphicsDevice device)

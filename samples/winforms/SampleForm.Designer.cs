@@ -50,7 +50,7 @@
             this.mChatConnectButton = new System.Windows.Forms.Button();
             this.mChatStatusLabel = new System.Windows.Forms.Label();
             this.StreamTab = new System.Windows.Forms.TabPage();
-            this.mEnableAudioCheckbox = new System.Windows.Forms.CheckBox();
+            this.mCaptureMicrophoneCheckbox = new System.Windows.Forms.CheckBox();
             this.mLoginGroupbox = new System.Windows.Forms.GroupBox();
             this.mSetAuthTokenButton = new System.Windows.Forms.Button();
             this.mRequestAuthTokenButton = new System.Windows.Forms.Button();
@@ -117,6 +117,8 @@
             this.mChatModeratorMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mChatIgnoreMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mChatUserContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.mAudioCaptureMethodCombo = new System.Windows.Forms.ComboBox();
+            this.label15 = new System.Windows.Forms.Label();
             this.ChatTab.SuspendLayout();
             this.mChatMessagesGroupbox.SuspendLayout();
             this.mChatConnectionGroupbox.SuspendLayout();
@@ -328,7 +330,9 @@
             // 
             // StreamTab
             // 
-            this.StreamTab.Controls.Add(this.mEnableAudioCheckbox);
+            this.StreamTab.Controls.Add(this.label15);
+            this.StreamTab.Controls.Add(this.mAudioCaptureMethodCombo);
+            this.StreamTab.Controls.Add(this.mCaptureMicrophoneCheckbox);
             this.StreamTab.Controls.Add(this.mLoginGroupbox);
             this.StreamTab.Controls.Add(this.mAdvancedBroadcastGroupbox);
             this.StreamTab.Controls.Add(this.mBroadcastInfoGroupbox);
@@ -347,17 +351,17 @@
             this.StreamTab.Text = "Stream";
             this.StreamTab.UseVisualStyleBackColor = true;
             // 
-            // mEnableAudioCheckbox
+            // mCaptureMicrophoneCheckbox
             // 
-            this.mEnableAudioCheckbox.AutoSize = true;
-            this.mEnableAudioCheckbox.Checked = true;
-            this.mEnableAudioCheckbox.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.mEnableAudioCheckbox.Location = new System.Drawing.Point(182, 291);
-            this.mEnableAudioCheckbox.Name = "mEnableAudioCheckbox";
-            this.mEnableAudioCheckbox.Size = new System.Drawing.Size(89, 17);
-            this.mEnableAudioCheckbox.TabIndex = 65;
-            this.mEnableAudioCheckbox.Text = "Enable Audio";
-            this.mEnableAudioCheckbox.UseVisualStyleBackColor = true;
+            this.mCaptureMicrophoneCheckbox.AutoSize = true;
+            this.mCaptureMicrophoneCheckbox.Checked = true;
+            this.mCaptureMicrophoneCheckbox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.mCaptureMicrophoneCheckbox.Location = new System.Drawing.Point(353, 290);
+            this.mCaptureMicrophoneCheckbox.Name = "mCaptureMicrophoneCheckbox";
+            this.mCaptureMicrophoneCheckbox.Size = new System.Drawing.Size(122, 17);
+            this.mCaptureMicrophoneCheckbox.TabIndex = 65;
+            this.mCaptureMicrophoneCheckbox.Text = "Capture Microphone";
+            this.mCaptureMicrophoneCheckbox.UseVisualStyleBackColor = true;
             // 
             // mLoginGroupbox
             // 
@@ -1012,21 +1016,21 @@
             // mChatBanMenuItem
             // 
             this.mChatBanMenuItem.Name = "mChatBanMenuItem";
-            this.mChatBanMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.mChatBanMenuItem.Size = new System.Drawing.Size(130, 22);
             this.mChatBanMenuItem.Text = "Ban";
             this.mChatBanMenuItem.Click += new System.EventHandler(this.banToolStripMenuItem_Click);
             // 
             // mChatModeratorMenuItem
             // 
             this.mChatModeratorMenuItem.Name = "mChatModeratorMenuItem";
-            this.mChatModeratorMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.mChatModeratorMenuItem.Size = new System.Drawing.Size(130, 22);
             this.mChatModeratorMenuItem.Text = "Moderator";
             this.mChatModeratorMenuItem.Click += new System.EventHandler(this.moderatorToolStripMenuItem_Click);
             // 
             // mChatIgnoreMenuItem
             // 
             this.mChatIgnoreMenuItem.Name = "mChatIgnoreMenuItem";
-            this.mChatIgnoreMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.mChatIgnoreMenuItem.Size = new System.Drawing.Size(130, 22);
             this.mChatIgnoreMenuItem.Text = "Ignore";
             this.mChatIgnoreMenuItem.Click += new System.EventHandler(this.ignoreToolStripMenuItem_Click);
             // 
@@ -1037,7 +1041,25 @@
             this.mChatModeratorMenuItem,
             this.mChatIgnoreMenuItem});
             this.mChatUserContextMenu.Name = "mChatUserContextMenu";
-            this.mChatUserContextMenu.Size = new System.Drawing.Size(153, 92);
+            this.mChatUserContextMenu.Size = new System.Drawing.Size(131, 70);
+            // 
+            // mAudioCaptureMethodCombo
+            // 
+            this.mAudioCaptureMethodCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.mAudioCaptureMethodCombo.FormattingEnabled = true;
+            this.mAudioCaptureMethodCombo.Location = new System.Drawing.Point(183, 299);
+            this.mAudioCaptureMethodCombo.Name = "mAudioCaptureMethodCombo";
+            this.mAudioCaptureMethodCombo.Size = new System.Drawing.Size(148, 21);
+            this.mAudioCaptureMethodCombo.TabIndex = 66;
+            // 
+            // label15
+            // 
+            this.label15.AutoSize = true;
+            this.label15.Location = new System.Drawing.Point(182, 282);
+            this.label15.Name = "label15";
+            this.label15.Size = new System.Drawing.Size(113, 13);
+            this.label15.TabIndex = 67;
+            this.label15.Text = "Audio Capture Method";
             // 
             // SampleForm
             // 
@@ -1163,7 +1185,7 @@
         private System.Windows.Forms.ListBox mChatUsersListbox;
         private System.Windows.Forms.Button mChatSendButton;
         private System.Windows.Forms.TextBox mChatInputTextbox;
-        private System.Windows.Forms.CheckBox mEnableAudioCheckbox;
+        private System.Windows.Forms.CheckBox mCaptureMicrophoneCheckbox;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.ComboBox mEmoticonModeCombobox;
         private System.Windows.Forms.Label mChatStateLabel;
@@ -1173,6 +1195,8 @@
         private System.Windows.Forms.ToolStripMenuItem mChatModeratorMenuItem;
         private System.Windows.Forms.ToolStripMenuItem mChatIgnoreMenuItem;
         private System.Windows.Forms.ContextMenuStrip mChatUserContextMenu;
+        private System.Windows.Forms.Label label15;
+        private System.Windows.Forms.ComboBox mAudioCaptureMethodCombo;
 
     }
 }
