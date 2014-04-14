@@ -197,18 +197,50 @@ namespace Twitch
 
             List<string> inputPaths = new List<string>();
 
-            // export Assets/Plugins except for pdb and dependencies
-            string[] files = Directory.GetFiles(Application.dataPath + "/Plugins", "*.dll", SearchOption.AllDirectories);
+            List<string> whitelist = new List<string>() 
+            {
+                "twitchsdk.dll",
+                "twitchsdk.dll", // add twice because it's found under both x86 and x86_64
+                "twitchsdkwrapper.dll",
+            };
+
+            // export Assets/Plugins
+            string[] files = Directory.GetFiles(Application.dataPath + "/Plugins", "*.*", SearchOption.AllDirectories);
             foreach (string path in files)
             {
                 FileInfo file = new FileInfo(path);
 
                 // skip files
-                if (file.Name.ToLower() != "twitchsdk.dll" &&
-                    file.Name.ToLower() != "twitchsdkwrapper.dll")
+                if (!whitelist.Contains(file.Name.ToLower()))
                 {
+                    //Debug.Log(string.Format("Skipping file during export: {0}", file));
                     continue;
                 }
+
+                Debug.Log(string.Format("Exporting file: {0}", file));
+                whitelist.Remove(file.Name.ToLower());
+
+                string assetPath = GetAssetPath(path);
+
+                inputPaths.Add(assetPath);
+            }
+
+            if (whitelist.Count > 0)
+            {
+                foreach (string file in whitelist)
+                {
+                    Debug.LogError(string.Format("File missing from export: {0}", file));
+                }
+                return;
+            }
+
+            // export Assets/Plugins/twitchsdk.bundle
+            files = Directory.GetFiles(Application.dataPath + "/Plugins/twitchsdk.bundle", "*.*", SearchOption.AllDirectories);
+            foreach (string path in files)
+            {
+                FileInfo file = new FileInfo(path);
+
+                Debug.Log(string.Format("Exporting file: {0}", file));
 
                 string assetPath = GetAssetPath(path);
 
