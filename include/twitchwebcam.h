@@ -41,8 +41,7 @@ typedef enum
 
 
 /**
- * TTV_WebcamFormat - Listing of the various formats a device may return a buffer in.  If you are unable to handle a buffer format in your application
- * you may call TTV_WebCam_ConvertToRGBA to convert the buffer to RGBA.
+ * TTV_WebcamFormat - Listing of the various formats a device may return a buffer in.
  */
 typedef enum
 {
@@ -193,8 +192,7 @@ typedef void (*TTV_WebCamShutdownCallback) (TTV_ErrorCode error, void* userdata)
 
 /**
  * TTV_WebCamDeviceStatusCallback - Callback called when a device starts or stops capturing.  The device data should be copied before the callback returns if the client
- * wants to keep it.  If the capability is in a format that the client doesn't know how to handle it should call TTV_WebCam_ConvertToRGBA to convert the buffer
- * to RGBA.  The status is contained in the device info.
+ * wants to keep it.  The status is contained in the device info.
  *
  * @param device The device info. 
  * @param capability The capability which was started or stopped.
