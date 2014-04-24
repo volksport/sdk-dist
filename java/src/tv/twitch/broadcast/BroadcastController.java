@@ -272,7 +272,7 @@ public class BroadcastController
 	            reportError(String.format("IngestListCallback got failure: %s", err));
 	
 	            // try again
-	            setBroadcastState(BroadcastState.LoggingIn);
+	            setBroadcastState(BroadcastState.LoggedIn);
 	        }
 	    }
 	
