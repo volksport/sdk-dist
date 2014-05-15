@@ -393,7 +393,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	GetCursorPos(&gLastMousePos);
 
 	// Initialize the Twitch SDK
-	InitializeStreaming("blair_fraser", "15thrawn", "okuel00v3ppewpmk64d29war1wg2yba", "32d6ikh8r1ejwmv449gfjhur8heq884", GetIntelDllPath());
+	InitializeStreaming("<username>", "<password>", "<clientId>", "<clientSecret>", GetIntelDllPath());
 
 	// Main message loop
 	MSG msg;
