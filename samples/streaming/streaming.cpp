@@ -255,14 +255,16 @@ void StartStreaming(unsigned int outputWidth, unsigned int outputHeight, unsigne
 	}
 
 	// Setup the video parameters
-	TTV_VideoParams videoParams = {sizeof(TTV_VideoParams)}
+	TTV_VideoParams videoParams;
+	videoParams.size = sizeof(TTV_VideoParams);
 	videoParams.outputWidth = outputWidth;
 	videoParams.outputHeight = outputHeight;
-	videoParams.targetFps = targetFps;
+	videoParams.targetFps = targetFps;	
 
 	// Compute the rest of the fields based on the given parameters
 	TTV_GetDefaultParams(&videoParams);
 	videoParams.pixelFormat = TTV_PF_BGRA;
+	videoParams.encoderPlugin = NULL;
 
 	// Setup the audio parameters
 	TTV_AudioParams audioParams;
